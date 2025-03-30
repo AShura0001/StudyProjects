@@ -16,20 +16,28 @@ public class OperatorManagementSystem {
   public void createOperator(String operatorName, String location) {
     Location req_location = Location.fromString(location);
     String req_location_full_name = req_location.getFullName();
-    ArrayList<Character> operator_initials_arraylist = new ArrayList<>();
+    String req_location_abb = req_location.getLocationAbbreviation();
     
+    // Mutable list for operator initials.
+    ArrayList<Character> operator_initials_arraylist = new ArrayList<>();
     String[] words = operatorName.split(" ");
-
     for (String word : words) {
         operator_initials_arraylist.add(word.charAt(0));
     }
+    // Mutable string converted from list to stringbuilder class.
     StringBuilder operator_initials_sb = new StringBuilder();
       for (Character ch : operator_initials_arraylist){
         operator_initials_sb.append(ch);
       } 
+    // String Builder Class turned to String class.
     String operator_initials = operator_initials_sb.toString();
     
-    MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_initials, req_location_full_name);
+    // String[] operator_ID_array = new String[3];
+    String operator_ID = String.join("-",operator_initials,req_location_abb,"001");
+
+    
+
+    MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_ID, req_location_full_name);
   }
 
   public void viewActivities(String operatorId) {
