@@ -1,10 +1,15 @@
 package nz.ac.auckland.se281;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import nz.ac.auckland.se281.Types.Location;
 
 public class OperatorManagementSystem {
+
+  // private ArrayList<ArrayList<String>> AKL = new ArrayList<>();
+  private HashMap<String, ArrayList<ArrayList<String>>> locations_map = new HashMap<>();
+
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
@@ -18,6 +23,13 @@ public class OperatorManagementSystem {
     String req_location_full_name = req_location.getFullName();
     String req_location_abb = req_location.getLocationAbbreviation();
     
+    Boolean location_map_flag = locations_map.containsKey(req_location_abb); 
+    if (location_map_flag == true){
+      // Arraylist<> locations_list = locations_map.get(req_location_abb);
+    }
+
+
+
     // Mutable list for operator initials.
     ArrayList<Character> operator_initials_arraylist = new ArrayList<>();
     String[] words = operatorName.split(" ");
