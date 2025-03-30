@@ -51,6 +51,9 @@ public class OperatorManagementSystem {
             String operator_ID = local_location.get(operatornamekey);
             MessageCli.OPERATOR_ENTRY.printMessage(operatornamekey, operator_ID, req_location_full_name);
           }
+
+        }
+        
       }
     }
 
