@@ -16,6 +16,15 @@ public class OperatorManagementSystem {
   public void createOperator(String operatorName, String location) {
     Location req_location = Location.fromString(location);
     String req_location_full_name = req_location.getFullName();
+    ArrayList<Character> operator_initials_array = new ArrayList<>();
+    
+    String[] words = operatorName.split(" ");
+
+    for (String word : words) {
+        operator_initials_array.add(word.charAt(0));
+    }
+    
+    String operator_initial = String.join(' ',operator_initials_array);
     MessageCli.OPERATOR_CREATED.printMessage(operatorName, "", req_location_full_name);
   }
 
