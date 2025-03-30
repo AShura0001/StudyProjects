@@ -14,7 +14,7 @@ public class OperatorManagementSystem {
   public OperatorManagementSystem() {}
 
   public void searchOperators(String keyword) {
-    
+
     if (keyword.equals("*")){
       Integer locations_map_size = locations_map.size();
       if (locations_map_size ==0){
@@ -23,17 +23,38 @@ public class OperatorManagementSystem {
       else if (locations_map_size == 1){
         String location_map_sizeString = Integer.toString(locations_map_size);
         MessageCli.OPERATORS_FOUND.printMessage("is", location_map_sizeString, "", ":");
+        
+        for(String local_locations_key : locations_map.keySet()){
+          HashMap<String, String> local_location = locations_map.get(local_locations_key);
+          
+          for (String operatornamekey : local_location.keySet()){
+            Location req_location = Location.fromString(local_locations_key);
+            String req_location_full_name = req_location.getFullName();
+
+            String operator_ID = local_location.get(operatornamekey);
+            MessageCli.OPERATOR_ENTRY.printMessage(operatornamekey, operator_ID, req_location_full_name);
+          }
+
+        }
       }
       else if (locations_map_size >1){
         String location_map_sizeString = Integer.toString(locations_map_size);
-        MessageCli.OPERATORS_FOUND.printMessage("are", location_map_sizeString, "s", ":");        
+        MessageCli.OPERATORS_FOUND.printMessage("are", location_map_sizeString, "s", ":");
+        
+        for(String local_locations_key : locations_map.keySet()){
+          HashMap<String, String> local_location = locations_map.get(local_locations_key);
+          
+          for (String operatornamekey : local_location.keySet()){
+            Location req_location = Location.fromString(local_locations_key);
+            String req_location_full_name = req_location.getFullName();
+
+            String operator_ID = local_location.get(operatornamekey);
+            MessageCli.OPERATOR_ENTRY.printMessage(operatornamekey, operator_ID, req_location_full_name);
+          }
       }
     }
 
 
-
-
-    // MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
   }
 
   public void createOperator(String operatorName, String location) {
