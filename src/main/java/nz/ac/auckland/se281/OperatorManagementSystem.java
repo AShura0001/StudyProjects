@@ -64,13 +64,15 @@ public class OperatorManagementSystem {
       Integer matching_count = 0;
       for(String local_locations_key : locations_map.keySet()){
         HashMap<String, String> local_location = locations_map.get(local_locations_key);
-        
+        Location req_location = Location.fromString(local_locations_key);
+
         for (String operatornamekey : local_location.keySet()){
-          if (keyword.equalsIgnoreCase(operatornamekey) || Location.fromString(keyword) != null){
+          if (keyword.equalsIgnoreCase(operatornamekey) || Location.fromString(keyword) == req_location){
             matching_count++;
-            Location req_location = Location.fromString(local_locations_key);
             String req_location_full_name = req_location.getFullName();
             String operator_ID = local_location.get(operatornamekey);
+            // System.out.println(keyword.equalsIgnoreCase(operatornamekey));
+            // System.out.println(Location.fromString(keyword));
             
             ArrayList<String> temp_arraylist_matched = new ArrayList<>();
             temp_arraylist_matched.add(operatornamekey); 
@@ -98,7 +100,7 @@ public class OperatorManagementSystem {
 
       else if (matching_count>1){
         String matching_countString = Integer.toString(matching_count);
-        MessageCli.OPERATORS_FOUND.printMessage("are", matching_countString, "", ":");
+        MessageCli.OPERATORS_FOUND.printMessage("are", matching_countString, "s", ":");
 
         for (int i = 0; i< matching_count; i++){
           ArrayList<String> temp_pulled_set = matching_sets.get(i);
