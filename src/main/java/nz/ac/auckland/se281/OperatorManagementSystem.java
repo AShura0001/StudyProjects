@@ -58,6 +58,55 @@ public class OperatorManagementSystem {
       }
     }
 
+    else {
+
+      ArrayList<ArrayList<String>> matching_sets = new ArrayList<>();
+      Integer matching_count = 0;
+      for(String local_locations_key : locations_map.keySet()){
+        HashMap<String, String> local_location = locations_map.get(local_locations_key);
+        
+        for (String operatornamekey : local_location.keySet()){
+          if (keyword.equalsIgnoreCase(operatornamekey) || Location.fromString(keyword) != null){
+            matching_count++;
+            Location req_location = Location.fromString(local_locations_key);
+            String req_location_full_name = req_location.getFullName();
+            String operator_ID = local_location.get(operatornamekey);
+            
+            ArrayList<String> temp_arraylist_matched = new ArrayList<>();
+            temp_arraylist_matched.add(operatornamekey); 
+            temp_arraylist_matched.add(operator_ID); 
+            temp_arraylist_matched.add(req_location_full_name);
+            
+            matching_sets.add(temp_arraylist_matched);
+          }
+        }
+      }
+
+      if (matching_count ==0){
+        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");        
+      }
+      
+      else if (matching_count == 1){
+        String matching_countString = Integer.toString(matching_count);
+        MessageCli.OPERATORS_FOUND.printMessage("is", matching_countString, "", ":");
+
+        for (int i = 0; i< matching_count; i++){
+          ArrayList<String> temp_pulled_set = matching_sets.get(i);
+          MessageCli.OPERATOR_ENTRY.printMessage(temp_pulled_set.get(0),temp_pulled_set.get(1),temp_pulled_set.get(2));
+        }          
+      }
+
+      else if (matching_count>1){
+        String matching_countString = Integer.toString(matching_count);
+        MessageCli.OPERATORS_FOUND.printMessage("are", matching_countString, "", ":");
+
+        for (int i = 0; i< matching_count; i++){
+          ArrayList<String> temp_pulled_set = matching_sets.get(i);
+          MessageCli.OPERATOR_ENTRY.printMessage(temp_pulled_set.get(0),temp_pulled_set.get(1),temp_pulled_set.get(2));
+        }          
+      }      
+    }
+
 
   }
 
@@ -157,14 +206,6 @@ public class OperatorManagementSystem {
       locations_map.put(location, local_locations_map);
       MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_ID, req_location_full_name);
     }
-
-
-
-
-
-
-
-    
 
 
   }
