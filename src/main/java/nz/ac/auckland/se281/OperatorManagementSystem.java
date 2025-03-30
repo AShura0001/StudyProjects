@@ -17,6 +17,7 @@ public class OperatorManagementSystem {
 
     if (keyword.equals("*")){
       Integer locations_map_size = locations_map.size();
+      // System.out.println(locations_map_size);
       if (locations_map_size ==0){
         MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");        
       }
@@ -153,6 +154,7 @@ public class OperatorManagementSystem {
       String operator_ID = String.join("-",operator_initials,req_location_abb,operator_ID_number);
 
       local_locations_map.put(operatorName, operator_ID);
+      locations_map.put(location, local_locations_map);
       MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_ID, req_location_full_name);
     }
 
