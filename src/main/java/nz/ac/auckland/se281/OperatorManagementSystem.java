@@ -14,7 +14,26 @@ public class OperatorManagementSystem {
   public OperatorManagementSystem() {}
 
   public void searchOperators(String keyword) {
-    MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
+    
+    if (keyword.equals("*")){
+      Integer locations_map_size = locations_map.size();
+      if (locations_map_size ==0){
+        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");        
+      }
+      else if (locations_map_size == 1){
+        String location_map_sizeString = Integer.toString(locations_map_size);
+        MessageCli.OPERATORS_FOUND.printMessage("is", location_map_sizeString, "", ":");
+      }
+      else if (locations_map_size >1){
+        String location_map_sizeString = Integer.toString(locations_map_size);
+        MessageCli.OPERATORS_FOUND.printMessage("are", location_map_sizeString, "s", ":");        
+      }
+    }
+
+
+
+
+    // MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
   }
 
   public void createOperator(String operatorName, String location) {
