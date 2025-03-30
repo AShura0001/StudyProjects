@@ -62,17 +62,17 @@ public class OperatorManagementSystem {
 
       ArrayList<ArrayList<String>> matching_sets = new ArrayList<>();
       Integer matching_count = 0;
+      
       for(String local_locations_key : locations_map.keySet()){
         HashMap<String, String> local_location = locations_map.get(local_locations_key);
         Location req_location = Location.fromString(local_locations_key);
+        String req_location_full_name = req_location.getFullName();
 
         for (String operatornamekey : local_location.keySet()){
-          if (keyword.equalsIgnoreCase(operatornamekey) || Location.fromString(keyword) == req_location){
+          if (keyword.equalsIgnoreCase(operatornamekey) || req_location_full_name.contains(keyword)){
             matching_count++;
-            String req_location_full_name = req_location.getFullName();
+            
             String operator_ID = local_location.get(operatornamekey);
-            // System.out.println(keyword.equalsIgnoreCase(operatornamekey));
-            // System.out.println(Location.fromString(keyword));
             
             ArrayList<String> temp_arraylist_matched = new ArrayList<>();
             temp_arraylist_matched.add(operatornamekey); 
