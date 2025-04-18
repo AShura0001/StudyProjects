@@ -11,6 +11,40 @@ public class OperatorManagementSystem {
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
 
+  private String operatorInitialBuilder(
+      String operatorName, Integer operatorIndex, String reqLocationAbb) {
+    // Mutable list for operator initials.
+    ArrayList<Character> operatorInitialsArraylist = new ArrayList<>();
+    String[] words = operatorName.split(" ");
+    for (String word : words) {
+      operatorInitialsArraylist.add(word.charAt(0));
+    }
+    // Mutable string converted from list to stringbuilder class.
+    StringBuilder operatorInitialsSb = new StringBuilder();
+    for (Character ch : operatorInitialsArraylist) {
+      operatorInitialsSb.append(ch);
+    }
+    // String Builder Class turned to String class.
+    String operatorInitials = operatorInitialsSb.toString();
+
+    // creating the number for the operator id
+    StringBuilder operatorIdNumBuilder = new StringBuilder();
+    String operatorIndexString = Integer.toString(operatorIndex);
+    if (operatorIndex < 10) {
+      operatorIdNumBuilder.append("00");
+      operatorIdNumBuilder.append(operatorIndexString);
+    } else if (operatorIndex < 100) {
+      operatorIdNumBuilder.append("0");
+      operatorIdNumBuilder.append(operatorIndexString);
+    } else if (operatorIndex < 1000) {
+      operatorIdNumBuilder.append(operatorIndexString);
+    }
+    String operatorIdNumber = operatorIdNumBuilder.toString();
+
+    String operatorId = String.join("-", operatorInitials, reqLocationAbb, operatorIdNumber);
+    return operatorId;
+  }
+
   public void searchOperators(String keyword) {
 
     if (keyword.equals("*")) {
@@ -102,93 +136,41 @@ public class OperatorManagementSystem {
   }
 
   public void createOperator(String operatorName, String location) {
-    Location reqLocation = Location.fromString(location);
-    if (reqLocation != null) {
-      String reqLocationFullName = reqLocation.getFullName();
-      String reqLocationAbb = reqLocation.getLocationAbbreviation();
+    operatorName = operatorName.strip();
+    if (operatorName.length() > 3) {
+      Location reqLocation = Location.fromString(location);
+      if (reqLocation != null) {
+        String reqLocationFullName = reqLocation.getFullName();
+        String reqLocationAbb = reqLocation.getLocationAbbreviation();
 
-      Boolean locationMapFlag = locationsMap.containsKey(reqLocationAbb);
-      if (locationMapFlag == true) {
-        HashMap<String, String> localLocationsMap = locationsMap.get(reqLocationAbb);
-        Boolean localLocationFlag = localLocationsMap.containsKey(operatorName);
+        Boolean locationMapFlag = locationsMap.containsKey(reqLocationAbb);
+        if (locationMapFlag == true) {
+          HashMap<String, String> localLocationsMap = locationsMap.get(reqLocationAbb);
+          Boolean localLocationFlag = localLocationsMap.containsKey(operatorName);
 
-        if (localLocationFlag == true) {
-          MessageCli.OPERATOR_NOT_CREATED_ALREADY_EXISTS_SAME_LOCATION.printMessage(
-              operatorName, reqLocationFullName);
-        } else if (localLocationFlag == false) {
-          // Mutable list for operator initials.
-          ArrayList<Character> operatorInitialsArraylist = new ArrayList<>();
-          String[] words = operatorName.split(" ");
-          for (String word : words) {
-            operatorInitialsArraylist.add(word.charAt(0));
+          if (localLocationFlag == true) {
+            MessageCli.OPERATOR_NOT_CREATED_ALREADY_EXISTS_SAME_LOCATION.printMessage(
+                operatorName, reqLocationFullName);
+          } else if (localLocationFlag == false) {
+            Integer operatorIndex = localLocationsMap.size() + 1;
+            String operatorId = operatorInitialBuilder(operatorName, operatorIndex, reqLocationAbb);
+            localLocationsMap.put(operatorName, operatorId);
+            MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
           }
-          // Mutable string converted from list to stringbuilder class.
-          StringBuilder operatorInitialsSb = new StringBuilder();
-          for (Character ch : operatorInitialsArraylist) {
-            operatorInitialsSb.append(ch);
-          }
-          // String Builder Class turned to String class.
-          String operatorInitials = operatorInitialsSb.toString();
-
-          // creating the number for the operator id
-          StringBuilder operatorIdNumBuilder = new StringBuilder();
+        } else {
+          HashMap<String, String> localLocationsMap = new HashMap<>();
           Integer operatorIndex = localLocationsMap.size() + 1;
-          String operatorIndexString = Integer.toString(operatorIndex);
-          if (operatorIndex < 10) {
-            operatorIdNumBuilder.append("00");
-            operatorIdNumBuilder.append(operatorIndexString);
-          } else if (operatorIndex < 100) {
-            operatorIdNumBuilder.append("0");
-            operatorIdNumBuilder.append(operatorIndexString);
-          } else if (operatorIndex < 1000) {
-            operatorIdNumBuilder.append(operatorIndexString);
-          }
-          String operatorIdNumber = operatorIdNumBuilder.toString();
-
-          // String[] operatorId_array = new String[3];
-          String operatorId = String.join("-", operatorInitials, reqLocationAbb, operatorIdNumber);
+          String operatorId = operatorInitialBuilder(operatorName, operatorIndex, reqLocationAbb);
 
           localLocationsMap.put(operatorName, operatorId);
+          locationsMap.put(reqLocationAbb, localLocationsMap);
           MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
         }
       } else {
-        HashMap<String, String> localLocationsMap = new HashMap<>();
-        ArrayList<Character> operatorInitialsArraylist = new ArrayList<>();
-        String[] words = operatorName.split(" ");
-        for (String word : words) {
-          operatorInitialsArraylist.add(word.charAt(0));
-        }
-        // Mutable string converted from list to stringbuilder class.
-        StringBuilder operatorInitialsSb = new StringBuilder();
-        for (Character ch : operatorInitialsArraylist) {
-          operatorInitialsSb.append(ch);
-        }
-        // String Builder Class turned to String class.
-        String operatorInitials = operatorInitialsSb.toString();
-
-        // creating the number for the operator id
-        StringBuilder operatorIdNumBuilder = new StringBuilder();
-        Integer operatorIndex = localLocationsMap.size() + 1;
-        String operatorIndexString = Integer.toString(operatorIndex);
-        if (operatorIndex < 10) {
-          operatorIdNumBuilder.append("00");
-          operatorIdNumBuilder.append(operatorIndexString);
-        } else if (operatorIndex < 100) {
-          operatorIdNumBuilder.append("0");
-          operatorIdNumBuilder.append(operatorIndexString);
-        } else if (operatorIndex < 1000) {
-          operatorIdNumBuilder.append(operatorIndexString);
-        }
-        String operatorIdNumber = operatorIdNumBuilder.toString();
-
-        String operatorId = String.join("-", operatorInitials, reqLocationAbb, operatorIdNumber);
-
-        localLocationsMap.put(operatorName, operatorId);
-        locationsMap.put(reqLocationAbb, localLocationsMap);
-        MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
+        MessageCli.OPERATOR_NOT_CREATED_INVALID_LOCATION.printMessage(location);
       }
     } else {
-      MessageCli.OPERATOR_NOT_CREATED_INVALID_LOCATION.printMessage(location);
+      MessageCli.OPERATOR_NOT_CREATED_INVALID_OPERATOR_NAME.printMessage(operatorName);
     }
   }
 
