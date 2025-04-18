@@ -105,8 +105,8 @@ public class OperatorManagementSystem {
         String tempReqLocFullName = reqLocFullName.toUpperCase();
 
         for (String operatornamekey : localLocation.keySet()) {
-
-          if (keyword.equalsIgnoreCase(operatornamekey)
+          String tempOperatorNameKey = operatornamekey.toUpperCase();
+          if (tempOperatorNameKey.contains(tempKeyword)
               || tempReqLocFullName.contains(tempKeyword)
               || tempReqLocAbb.contains(tempKeyword)) {
             matchingCount++;
