@@ -46,15 +46,20 @@ public class OperatorManagementSystem {
   }
 
   public void searchOperators(String keyword) {
-
+    keyword = keyword.strip();
     if (keyword.equals("*")) {
+      Integer operatorCount = 0;
+      for (HashMap<String, String> locations : locationsMap.values()) {
+        operatorCount += locations.size();
+      }
+
       Integer locationsMapSize = locationsMap.size();
       // System.out.println(locationsMapSize);
       if (locationsMapSize == 0) {
         MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
-      } else if (locationsMapSize == 1) {
-        String locationMapSizeString = Integer.toString(locationsMapSize);
-        MessageCli.OPERATORS_FOUND.printMessage("is", locationMapSizeString, "", ":");
+      } else if (operatorCount == 1) {
+        String operatorCountString = Integer.toString(operatorCount);
+        MessageCli.OPERATORS_FOUND.printMessage("is", operatorCountString, "", ":");
 
         for (String localLocationsKey : locationsMap.keySet()) {
           HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
@@ -68,9 +73,9 @@ public class OperatorManagementSystem {
                 operatornamekey, operatorId, reqLocationFullName);
           }
         }
-      } else if (locationsMapSize > 1) {
-        String locationMapSizeString = Integer.toString(locationsMapSize);
-        MessageCli.OPERATORS_FOUND.printMessage("are", locationMapSizeString, "s", ":");
+      } else if (operatorCount > 1) {
+        String operatorCountString = Integer.toString(operatorCount);
+        MessageCli.OPERATORS_FOUND.printMessage("are", operatorCountString, "s", ":");
 
         for (String localLocationsKey : locationsMap.keySet()) {
           HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
@@ -93,10 +98,17 @@ public class OperatorManagementSystem {
       for (String localLocationsKey : locationsMap.keySet()) {
         HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
         Location reqLocation = Location.fromString(localLocationsKey);
-        String reqLocationFullName = reqLocation.getFullName();
+        String reqLocAbb = reqLocation.getLocationAbbreviation();
+        String reqLocFullName = reqLocation.getFullName();
+        String tempKeyword = keyword.toUpperCase();
+        String tempReqLocAbb = reqLocAbb.toUpperCase();
+        String tempReqLocFullName = reqLocFullName.toUpperCase();
 
         for (String operatornamekey : localLocation.keySet()) {
-          if (keyword.equalsIgnoreCase(operatornamekey) || reqLocationFullName.contains(keyword)) {
+
+          if (keyword.equalsIgnoreCase(operatornamekey)
+              || tempReqLocFullName.contains(tempKeyword)
+              || tempReqLocAbb.contains(tempKeyword)) {
             matchingCount++;
 
             String operatorId = localLocation.get(operatornamekey);
@@ -104,7 +116,7 @@ public class OperatorManagementSystem {
             ArrayList<String> temp_arraylist_matched = new ArrayList<>();
             temp_arraylist_matched.add(operatornamekey);
             temp_arraylist_matched.add(operatorId);
-            temp_arraylist_matched.add(reqLocationFullName);
+            temp_arraylist_matched.add(reqLocFullName);
 
             matchingSets.add(temp_arraylist_matched);
           }
