@@ -2,214 +2,194 @@ package nz.ac.auckland.se281;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
 import nz.ac.auckland.se281.Types.Location;
 
 public class OperatorManagementSystem {
 
-  private HashMap<String, HashMap<String, String>> locations_map = new HashMap<>();
-
+  private HashMap<String, HashMap<String, String>> locationsMap = new HashMap<>();
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
 
   public void searchOperators(String keyword) {
 
-    if (keyword.equals("*")){
-      Integer locations_map_size = locations_map.size();
-      // System.out.println(locations_map_size);
-      if (locations_map_size ==0){
-        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");        
-      }
-      else if (locations_map_size == 1){
-        String location_map_sizeString = Integer.toString(locations_map_size);
-        MessageCli.OPERATORS_FOUND.printMessage("is", location_map_sizeString, "", ":");
-        
-        for(String local_locations_key : locations_map.keySet()){
-          HashMap<String, String> local_location = locations_map.get(local_locations_key);
-          
-          for (String operatornamekey : local_location.keySet()){
-            Location req_location = Location.fromString(local_locations_key);
-            String req_location_full_name = req_location.getFullName();
+    if (keyword.equals("*")) {
+      Integer locationsMapSize = locationsMap.size();
+      // System.out.println(locationsMapSize);
+      if (locationsMapSize == 0) {
+        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
+      } else if (locationsMapSize == 1) {
+        String locationMapSizeString = Integer.toString(locationsMapSize);
+        MessageCli.OPERATORS_FOUND.printMessage("is", locationMapSizeString, "", ":");
 
-            String operator_ID = local_location.get(operatornamekey);
-            MessageCli.OPERATOR_ENTRY.printMessage(operatornamekey, operator_ID, req_location_full_name);
+        for (String localLocationsKey : locationsMap.keySet()) {
+          HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
+
+          for (String operatornamekey : localLocation.keySet()) {
+            Location reqLocation = Location.fromString(localLocationsKey);
+            String reqLocationFullName = reqLocation.getFullName();
+
+            String operatorId = localLocation.get(operatornamekey);
+            MessageCli.OPERATOR_ENTRY.printMessage(
+                operatornamekey, operatorId, reqLocationFullName);
           }
+        }
+      } else if (locationsMapSize > 1) {
+        String locationMapSizeString = Integer.toString(locationsMapSize);
+        MessageCli.OPERATORS_FOUND.printMessage("are", locationMapSizeString, "s", ":");
 
+        for (String localLocationsKey : locationsMap.keySet()) {
+          HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
+
+          for (String operatornamekey : localLocation.keySet()) {
+            Location reqLocation = Location.fromString(localLocationsKey);
+            String reqLocationFullName = reqLocation.getFullName();
+
+            String operatorId = localLocation.get(operatornamekey);
+            MessageCli.OPERATOR_ENTRY.printMessage(
+                operatornamekey, operatorId, reqLocationFullName);
+          }
         }
       }
-      else if (locations_map_size >1){
-        String location_map_sizeString = Integer.toString(locations_map_size);
-        MessageCli.OPERATORS_FOUND.printMessage("are", location_map_sizeString, "s", ":");
-        
-        for(String local_locations_key : locations_map.keySet()){
-          HashMap<String, String> local_location = locations_map.get(local_locations_key);
-          
-          for (String operatornamekey : local_location.keySet()){
-            Location req_location = Location.fromString(local_locations_key);
-            String req_location_full_name = req_location.getFullName();
+    } else {
 
-            String operator_ID = local_location.get(operatornamekey);
-            MessageCli.OPERATOR_ENTRY.printMessage(operatornamekey, operator_ID, req_location_full_name);
-          }
+      ArrayList<ArrayList<String>> matchingSets = new ArrayList<>();
+      Integer matchingCount = 0;
 
-        }
-        
-      }
-    }
+      for (String localLocationsKey : locationsMap.keySet()) {
+        HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
+        Location reqLocation = Location.fromString(localLocationsKey);
+        String reqLocationFullName = reqLocation.getFullName();
 
-    else {
+        for (String operatornamekey : localLocation.keySet()) {
+          if (keyword.equalsIgnoreCase(operatornamekey) || reqLocationFullName.contains(keyword)) {
+            matchingCount++;
 
-      ArrayList<ArrayList<String>> matching_sets = new ArrayList<>();
-      Integer matching_count = 0;
-      
-      for(String local_locations_key : locations_map.keySet()){
-        HashMap<String, String> local_location = locations_map.get(local_locations_key);
-        Location req_location = Location.fromString(local_locations_key);
-        String req_location_full_name = req_location.getFullName();
+            String operatorId = localLocation.get(operatornamekey);
 
-        for (String operatornamekey : local_location.keySet()){
-          if (keyword.equalsIgnoreCase(operatornamekey) || req_location_full_name.contains(keyword)){
-            matching_count++;
-            
-            String operator_ID = local_location.get(operatornamekey);
-            
             ArrayList<String> temp_arraylist_matched = new ArrayList<>();
-            temp_arraylist_matched.add(operatornamekey); 
-            temp_arraylist_matched.add(operator_ID); 
-            temp_arraylist_matched.add(req_location_full_name);
-            
-            matching_sets.add(temp_arraylist_matched);
+            temp_arraylist_matched.add(operatornamekey);
+            temp_arraylist_matched.add(operatorId);
+            temp_arraylist_matched.add(reqLocationFullName);
+
+            matchingSets.add(temp_arraylist_matched);
           }
         }
       }
 
-      if (matching_count ==0){
-        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");        
+      if (matchingCount == 0) {
+        MessageCli.OPERATORS_FOUND.printMessage("are", "no", "s", ".");
+      } else if (matchingCount == 1) {
+        String matchingCountString = Integer.toString(matchingCount);
+        MessageCli.OPERATORS_FOUND.printMessage("is", matchingCountString, "", ":");
+
+        for (int i = 0; i < matchingCount; i++) {
+          ArrayList<String> tempPulledSet = matchingSets.get(i);
+          MessageCli.OPERATOR_ENTRY.printMessage(
+              tempPulledSet.get(0), tempPulledSet.get(1), tempPulledSet.get(2));
+        }
+      } else if (matchingCount > 1) {
+        String matchingCountString = Integer.toString(matchingCount);
+        MessageCli.OPERATORS_FOUND.printMessage("are", matchingCountString, "s", ":");
+
+        for (int i = 0; i < matchingCount; i++) {
+          ArrayList<String> tempPulledSet = matchingSets.get(i);
+          MessageCli.OPERATOR_ENTRY.printMessage(
+              tempPulledSet.get(0), tempPulledSet.get(1), tempPulledSet.get(2));
+        }
       }
-      
-      else if (matching_count == 1){
-        String matching_countString = Integer.toString(matching_count);
-        MessageCli.OPERATORS_FOUND.printMessage("is", matching_countString, "", ":");
-
-        for (int i = 0; i< matching_count; i++){
-          ArrayList<String> temp_pulled_set = matching_sets.get(i);
-          MessageCli.OPERATOR_ENTRY.printMessage(temp_pulled_set.get(0),temp_pulled_set.get(1),temp_pulled_set.get(2));
-        }          
-      }
-
-      else if (matching_count>1){
-        String matching_countString = Integer.toString(matching_count);
-        MessageCli.OPERATORS_FOUND.printMessage("are", matching_countString, "s", ":");
-
-        for (int i = 0; i< matching_count; i++){
-          ArrayList<String> temp_pulled_set = matching_sets.get(i);
-          MessageCli.OPERATOR_ENTRY.printMessage(temp_pulled_set.get(0),temp_pulled_set.get(1),temp_pulled_set.get(2));
-        }          
-      }      
     }
-
-
   }
 
   public void createOperator(String operatorName, String location) {
-    Location req_location = Location.fromString(location);
-    String req_location_full_name = req_location.getFullName();
-    String req_location_abb = req_location.getLocationAbbreviation();
-    
-    Boolean location_map_flag = locations_map.containsKey(req_location_abb); 
-    if (location_map_flag == true){
-      HashMap<String, String> local_locations_map = locations_map.get(req_location_abb);
-      Boolean local_location_flag = local_locations_map.containsKey(operatorName);
-      
-      if (local_location_flag == true){
-        MessageCli.OPERATOR_NOT_CREATED_ALREADY_EXISTS_SAME_LOCATION.printMessage(operatorName, req_location_full_name);
-      }
+    Location reqLocation = Location.fromString(location);
+    if (reqLocation != null) {
+      String reqLocationFullName = reqLocation.getFullName();
+      String reqLocationAbb = reqLocation.getLocationAbbreviation();
 
-      else if (local_location_flag == false){
-        // Mutable list for operator initials.
-        ArrayList<Character> operator_initials_arraylist = new ArrayList<>();
+      Boolean locationMapFlag = locationsMap.containsKey(reqLocationAbb);
+      if (locationMapFlag == true) {
+        HashMap<String, String> localLocationsMap = locationsMap.get(reqLocationAbb);
+        Boolean localLocationFlag = localLocationsMap.containsKey(operatorName);
+
+        if (localLocationFlag == true) {
+          MessageCli.OPERATOR_NOT_CREATED_ALREADY_EXISTS_SAME_LOCATION.printMessage(
+              operatorName, reqLocationFullName);
+        } else if (localLocationFlag == false) {
+          // Mutable list for operator initials.
+          ArrayList<Character> operatorInitialsArraylist = new ArrayList<>();
+          String[] words = operatorName.split(" ");
+          for (String word : words) {
+            operatorInitialsArraylist.add(word.charAt(0));
+          }
+          // Mutable string converted from list to stringbuilder class.
+          StringBuilder operatorInitialsSb = new StringBuilder();
+          for (Character ch : operatorInitialsArraylist) {
+            operatorInitialsSb.append(ch);
+          }
+          // String Builder Class turned to String class.
+          String operatorInitials = operatorInitialsSb.toString();
+
+          // creating the number for the operator id
+          StringBuilder operatorIdNumBuilder = new StringBuilder();
+          Integer operatorIndex = localLocationsMap.size() + 1;
+          String operatorIndexString = Integer.toString(operatorIndex);
+          if (operatorIndex < 10) {
+            operatorIdNumBuilder.append("00");
+            operatorIdNumBuilder.append(operatorIndexString);
+          } else if (operatorIndex < 100) {
+            operatorIdNumBuilder.append("0");
+            operatorIdNumBuilder.append(operatorIndexString);
+          } else if (operatorIndex < 1000) {
+            operatorIdNumBuilder.append(operatorIndexString);
+          }
+          String operatorIdNumber = operatorIdNumBuilder.toString();
+
+          // String[] operatorId_array = new String[3];
+          String operatorId = String.join("-", operatorInitials, reqLocationAbb, operatorIdNumber);
+
+          localLocationsMap.put(operatorName, operatorId);
+          MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
+        }
+      } else {
+        HashMap<String, String> localLocationsMap = new HashMap<>();
+        ArrayList<Character> operatorInitialsArraylist = new ArrayList<>();
         String[] words = operatorName.split(" ");
         for (String word : words) {
-            operator_initials_arraylist.add(word.charAt(0));
+          operatorInitialsArraylist.add(word.charAt(0));
         }
         // Mutable string converted from list to stringbuilder class.
-        StringBuilder operator_initials_sb = new StringBuilder();
-          for (Character ch : operator_initials_arraylist){
-            operator_initials_sb.append(ch);
-          } 
+        StringBuilder operatorInitialsSb = new StringBuilder();
+        for (Character ch : operatorInitialsArraylist) {
+          operatorInitialsSb.append(ch);
+        }
         // String Builder Class turned to String class.
-        String operator_initials = operator_initials_sb.toString();
+        String operatorInitials = operatorInitialsSb.toString();
 
         // creating the number for the operator id
-        StringBuilder operator_ID_numBuilder = new StringBuilder();
-        Integer operator_index = local_locations_map.size() + 1;
-        String operator_indexString = Integer.toString(operator_index);
-        if (operator_index<10){
-          operator_ID_numBuilder.append("00");
-          operator_ID_numBuilder.append(operator_indexString);
+        StringBuilder operatorIdNumBuilder = new StringBuilder();
+        Integer operatorIndex = localLocationsMap.size() + 1;
+        String operatorIndexString = Integer.toString(operatorIndex);
+        if (operatorIndex < 10) {
+          operatorIdNumBuilder.append("00");
+          operatorIdNumBuilder.append(operatorIndexString);
+        } else if (operatorIndex < 100) {
+          operatorIdNumBuilder.append("0");
+          operatorIdNumBuilder.append(operatorIndexString);
+        } else if (operatorIndex < 1000) {
+          operatorIdNumBuilder.append(operatorIndexString);
         }
-        else if (operator_index<100){
-          operator_ID_numBuilder.append("0");
-          operator_ID_numBuilder.append(operator_indexString);
-        }
-        
-        else if (operator_index<1000){
-          operator_ID_numBuilder.append(operator_indexString);
-        }
-        String operator_ID_number = operator_ID_numBuilder.toString();
-        
+        String operatorIdNumber = operatorIdNumBuilder.toString();
 
-        // String[] operator_ID_array = new String[3];
-        String operator_ID = String.join("-",operator_initials,req_location_abb,operator_ID_number);
+        String operatorId = String.join("-", operatorInitials, reqLocationAbb, operatorIdNumber);
 
-        local_locations_map.put(operatorName, operator_ID);
-        MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_ID, req_location_full_name);
+        localLocationsMap.put(operatorName, operatorId);
+        locationsMap.put(reqLocationAbb, localLocationsMap);
+        MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
       }
+    } else {
+      MessageCli.OPERATOR_NOT_CREATED_INVALID_LOCATION.printMessage(location);
     }
-
-    else {
-      HashMap<String, String> local_locations_map = new HashMap<>();
-      ArrayList<Character> operator_initials_arraylist = new ArrayList<>();
-      String[] words = operatorName.split(" ");
-      for (String word : words) {
-          operator_initials_arraylist.add(word.charAt(0));
-      }
-      // Mutable string converted from list to stringbuilder class.
-      StringBuilder operator_initials_sb = new StringBuilder();
-        for (Character ch : operator_initials_arraylist){
-          operator_initials_sb.append(ch);
-        } 
-      // String Builder Class turned to String class.
-      String operator_initials = operator_initials_sb.toString();
-
-      // creating the number for the operator id
-      StringBuilder operator_ID_numBuilder = new StringBuilder();
-      Integer operator_index = local_locations_map.size() + 1;
-      String operator_indexString = Integer.toString(operator_index);
-      if (operator_index<10){
-        operator_ID_numBuilder.append("00");
-        operator_ID_numBuilder.append(operator_indexString);
-      }
-      else if (operator_index<100){
-        operator_ID_numBuilder.append("0");
-        operator_ID_numBuilder.append(operator_indexString);
-      }
-      
-      else if (operator_index<1000){
-        operator_ID_numBuilder.append(operator_indexString);
-      }
-      String operator_ID_number = operator_ID_numBuilder.toString();
-      
-
-      String operator_ID = String.join("-",operator_initials,req_location_abb,operator_ID_number);
-
-      local_locations_map.put(operatorName, operator_ID);
-      locations_map.put(location, local_locations_map);
-      MessageCli.OPERATOR_CREATED.printMessage(operatorName, operator_ID, req_location_full_name);
-    }
-
-
   }
 
   public void viewActivities(String operatorId) {
