@@ -2,6 +2,9 @@
   "editor.formatOnSave": true,
   "[java]": {
     "editor.defaultFormatter": "josevseb.google-java-format-for-vs-code",
+    "editor.rulers": [
+      112
+    ]
   },
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
