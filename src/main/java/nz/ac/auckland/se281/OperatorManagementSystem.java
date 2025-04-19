@@ -2,14 +2,32 @@ package nz.ac.auckland.se281;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import nz.ac.auckland.se281.Types.ActivityType;
 import nz.ac.auckland.se281.Types.Location;
 
 public class OperatorManagementSystem {
 
   private HashMap<String, HashMap<String, String>> locationsMap = new HashMap<>();
+  private HashMap<String, HashMap<String, ArrayList<String>>> activityMap = new HashMap<>();
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
+
+  private String activityIdBuilder(Integer activityIndex, String operatorId) {
+    StringBuilder activityId = new StringBuilder();
+    activityId.append(operatorId);
+    activityId.append("-");
+    if (activityIndex < 10) {
+      activityId.append("00");
+      activityId.append(activityIndex);
+    } else if (activityIndex < 100) {
+      activityId.append("0");
+      activityId.append(activityIndex);
+    } else if (activityIndex < 1000) {
+      activityId.append(activityIndex);
+    }
+    return activityId.toString();
+  }
 
   private String operatorInitialBuilder(
       String operatorName, Integer operatorIndex, String reqLocationAbb) {
@@ -149,7 +167,7 @@ public class OperatorManagementSystem {
 
   public void createOperator(String operatorName, String location) {
     operatorName = operatorName.strip();
-    if (operatorName.length() > 3) {
+    if (operatorName.length() >= 3) {
       Location reqLocation = Location.fromString(location);
       if (reqLocation != null) {
         String reqLocationFullName = reqLocation.getFullName();
@@ -191,7 +209,43 @@ public class OperatorManagementSystem {
   }
 
   public void createActivity(String activityName, String activityType, String operatorId) {
-    // TODO implement
+
+    activityName = activityName.trim();
+    if (activityName.length() >= 3) {
+      Boolean validOpIdFlag = false;
+      for (HashMap<String, String> localLocations : locationsMap.values()) {
+        if (localLocations.containsValue(operatorId)) {
+          validOpIdFlag = true;
+        }
+      }
+      if (validOpIdFlag) {
+        ActivityType reqActivityType = ActivityType.fromString(activityType);
+        String nameActivityType = reqActivityType.getName();
+        // HashMap<String, ArrayList<String>> operatorIdMap = new HashMap<>();
+        if (activityMap.containsKey(operatorId)) {
+          HashMap<String, ArrayList<String>> operatorIdMap = activityMap.get(operatorId);
+          Integer activityIndex = operatorIdMap.size() + 1;
+          String acitivityId = activityIdBuilder(activityIndex, operatorId);
+          ArrayList<String> activityDetails = new ArrayList<>();
+          activityDetails.add(activityName);
+          activityDetails.add(nameActivityType);
+          operatorIdMap.put(acitivityId, activityDetails);
+        } else {
+          HashMap<String, ArrayList<String>> operatorIdMap = new HashMap<>();
+          Integer activityIndex = operatorIdMap.size() + 1;
+          String acitivityId = activityIdBuilder(activityIndex, operatorId);
+          ArrayList<String> activityDetails = new ArrayList<>();
+          activityDetails.add(activityName);
+          activityDetails.add(nameActivityType);
+          operatorIdMap.put(acitivityId, activityDetails);
+          activityMap.put(operatorId, operatorIdMap);
+        }
+      } else {
+        MessageCli.ACTIVITY_NOT_CREATED_INVALID_OPERATOR_ID.printMessage(operatorId);
+      }
+    } else {
+      MessageCli.ACTIVITY_NOT_CREATED_INVALID_ACTIVITY_NAME.printMessage(activityName);
+    }
   }
 
   public void searchActivities(String keyword) {
