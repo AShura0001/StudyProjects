@@ -64,13 +64,13 @@ public class OperatorManagementSystem {
         for (String localLocationsKey : locationsMap.keySet()) {
           HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
 
-          for (String operatornamekey : localLocation.keySet()) {
+          for (String operatorIdkey : localLocation.keySet()) {
             Location reqLocation = Location.fromString(localLocationsKey);
             String reqLocationFullName = reqLocation.getFullName();
 
-            String operatorId = localLocation.get(operatornamekey);
+            String operatorName = localLocation.get(operatorIdkey);
             MessageCli.OPERATOR_ENTRY.printMessage(
-                operatornamekey, operatorId, reqLocationFullName);
+                operatorName, operatorIdkey, reqLocationFullName);
           }
         }
       } else if (operatorCount > 1) {
@@ -80,13 +80,13 @@ public class OperatorManagementSystem {
         for (String localLocationsKey : locationsMap.keySet()) {
           HashMap<String, String> localLocation = locationsMap.get(localLocationsKey);
 
-          for (String operatornamekey : localLocation.keySet()) {
+          for (String operatorIdkey : localLocation.keySet()) {
             Location reqLocation = Location.fromString(localLocationsKey);
             String reqLocationFullName = reqLocation.getFullName();
 
-            String operatorId = localLocation.get(operatornamekey);
+            String operatorName = localLocation.get(operatorIdkey);
             MessageCli.OPERATOR_ENTRY.printMessage(
-                operatornamekey, operatorId, reqLocationFullName);
+                operatorName, operatorIdkey, reqLocationFullName);
           }
         }
       }
@@ -104,18 +104,18 @@ public class OperatorManagementSystem {
         String tempReqLocAbb = reqLocAbb.toUpperCase();
         String tempReqLocFullName = reqLocFullName.toUpperCase();
 
-        for (String operatornamekey : localLocation.keySet()) {
-          String tempOperatorNameKey = operatornamekey.toUpperCase();
-          if (tempOperatorNameKey.contains(tempKeyword)
+        for (String operatorIdkey : localLocation.keySet()) {
+          // String tempOperatorIdKey = operatorIdkey.toUpperCase();
+          String operatorName = localLocation.get(operatorIdkey);
+          String tempOperatorName = operatorName.toUpperCase();
+          if (tempOperatorName.contains(tempKeyword)
               || tempReqLocFullName.contains(tempKeyword)
               || tempReqLocAbb.contains(tempKeyword)) {
             matchingCount++;
 
-            String operatorId = localLocation.get(operatornamekey);
-
             ArrayList<String> temp_arraylist_matched = new ArrayList<>();
-            temp_arraylist_matched.add(operatornamekey);
-            temp_arraylist_matched.add(operatorId);
+            temp_arraylist_matched.add(operatorName);
+            temp_arraylist_matched.add(operatorIdkey);
             temp_arraylist_matched.add(reqLocFullName);
 
             matchingSets.add(temp_arraylist_matched);
@@ -158,7 +158,7 @@ public class OperatorManagementSystem {
         Boolean locationMapFlag = locationsMap.containsKey(reqLocationAbb);
         if (locationMapFlag == true) {
           HashMap<String, String> localLocationsMap = locationsMap.get(reqLocationAbb);
-          Boolean localLocationFlag = localLocationsMap.containsKey(operatorName);
+          Boolean localLocationFlag = localLocationsMap.containsValue(operatorName);
 
           if (localLocationFlag == true) {
             MessageCli.OPERATOR_NOT_CREATED_ALREADY_EXISTS_SAME_LOCATION.printMessage(
@@ -166,7 +166,7 @@ public class OperatorManagementSystem {
           } else if (localLocationFlag == false) {
             Integer operatorIndex = localLocationsMap.size() + 1;
             String operatorId = operatorInitialBuilder(operatorName, operatorIndex, reqLocationAbb);
-            localLocationsMap.put(operatorName, operatorId);
+            localLocationsMap.put(operatorId, operatorName);
             MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
           }
         } else {
@@ -174,7 +174,7 @@ public class OperatorManagementSystem {
           Integer operatorIndex = localLocationsMap.size() + 1;
           String operatorId = operatorInitialBuilder(operatorName, operatorIndex, reqLocationAbb);
 
-          localLocationsMap.put(operatorName, operatorId);
+          localLocationsMap.put(operatorId, operatorName);
           locationsMap.put(reqLocationAbb, localLocationsMap);
           MessageCli.OPERATOR_CREATED.printMessage(operatorName, operatorId, reqLocationFullName);
         }
