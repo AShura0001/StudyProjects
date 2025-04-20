@@ -230,21 +230,21 @@ public class OperatorManagementSystem {
         Integer numActivities = operatorIdMap.size();
         if (numActivities == 1) {
           MessageCli.ACTIVITIES_FOUND.printMessage("is", "1", "y", ":");
-          for (String activityID : operatorIdMap.keySet()) {
+          for (String activityId : operatorIdMap.keySet()) {
             // acitvityID = acitivityDetails[name, type]
-            ArrayList<String> activityDetails = operatorIdMap.get(activityID);
+            ArrayList<String> activityDetails = operatorIdMap.get(activityId);
             // ACTIVITY_ENTRY("  * %s: [%s/%s] offered by %s"),
             MessageCli.ACTIVITY_ENTRY.printMessage(
-                activityDetails.get(0), activityID, activityDetails.get(1), operatorName);
+                activityDetails.get(0), activityId, activityDetails.get(1), operatorName);
           }
         } else {
           MessageCli.ACTIVITIES_FOUND.printMessage("are", numActivities.toString(), "ies", ":");
-          for (String activityID : operatorIdMap.keySet()) {
+          for (String activityId : operatorIdMap.keySet()) {
             // acitvityID = acitivityDetails[name, type]
-            ArrayList<String> activityDetails = operatorIdMap.get(activityID);
+            ArrayList<String> activityDetails = operatorIdMap.get(activityId);
             // ACTIVITY_ENTRY("  * %s: [%s/%s] offered by %s"),
             MessageCli.ACTIVITY_ENTRY.printMessage(
-                activityDetails.get(0), activityID, activityDetails.get(1), operatorName);
+                activityDetails.get(0), activityId, activityDetails.get(1), operatorName);
           }
         }
       } else {
@@ -303,7 +303,39 @@ public class OperatorManagementSystem {
   }
 
   public void searchActivities(String keyword) {
-    // TODO implement
+    keyword = keyword.strip();
+    if (keyword.equals("*")) {
+      Integer acitivityCount = 0;
+      for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
+        acitivityCount += opIdMap.size();
+      }
+
+      if (acitivityCount == 0) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("are", "no", "ies", ".");
+      } else if (acitivityCount == 1) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("is", "1", "y", ":");
+        for (String operatorId : activityMap.keySet()) {
+          HashMap<String, ArrayList<String>> opIdmap = activityMap.get(operatorId);
+          String operatorName = opNameFetcher(operatorId);
+          for (String activityId : opIdmap.keySet()) {
+            ArrayList<String> activityDetails = opIdmap.get(activityId);
+            MessageCli.ACTIVITY_ENTRY.printMessage(
+                activityDetails.get(0), activityId, activityDetails.get(1), operatorName);
+          }
+        }
+      } else if (acitivityCount > 1) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("are", acitivityCount.toString(), "ies", ":");
+        for (String operatorId : activityMap.keySet()) {
+          HashMap<String, ArrayList<String>> opIdmap = activityMap.get(operatorId);
+          String operatorName = opNameFetcher(operatorId);
+          for (String activityId : opIdmap.keySet()) {
+            ArrayList<String> activityDetails = opIdmap.get(activityId);
+            MessageCli.ACTIVITY_ENTRY.printMessage(
+                activityDetails.get(0), activityId, activityDetails.get(1), operatorName);
+          }
+        }
+      }
+    }
   }
 
   public void addPublicReview(String activityId, String[] options) {
