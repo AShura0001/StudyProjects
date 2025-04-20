@@ -63,6 +63,16 @@ public class OperatorManagementSystem {
     return operatorId;
   }
 
+  private Boolean opIdConfirmer(String operatorId) {
+    Boolean validOpIdFlag = false;
+    for (HashMap<String, String> localLocations : locationsMap.values()) {
+      if (localLocations.containsValue(operatorId)) {
+        validOpIdFlag = true;
+      }
+    }
+    return validOpIdFlag;
+  }
+
   public void searchOperators(String keyword) {
     keyword = keyword.strip();
     if (keyword.equals("*")) {
@@ -205,19 +215,48 @@ public class OperatorManagementSystem {
   }
 
   public void viewActivities(String operatorId) {
-    // TODO implement
+    Boolean validOpIdFlag = opIdConfirmer(operatorId);
+    if (validOpIdFlag) {
+      if (activityMap.containsKey(operatorId)) {
+        // [operator name initials, locaion abb, operator index]
+        String[] operatorComponents = operatorId.split("-");
+        HashMap<String, String> localLocationMap = locationsMap.get(operatorComponents[1]);
+        String operatorName = localLocationMap.get(operatorId);
+        HashMap<String, ArrayList<String>> operatorIdMap = activityMap.get(operatorId);
+        Integer numActivities = operatorIdMap.size();
+        if (numActivities == 1) {
+          MessageCli.ACTIVITIES_FOUND.printMessage("is", "1", "y", ":");
+          for (String activityID : operatorIdMap.keySet()) {
+            // acitvityID = acitivityDetails[name, type]
+            ArrayList<String> activityDetails = operatorIdMap.get(activityID);
+            // ACTIVITY_ENTRY("  * %s: [%s/%s] offered by %s"),
+            MessageCli.ACTIVITY_ENTRY.printMessage(
+                activityDetails.get(0), activityID, activityDetails.get(1), operatorName);
+          }
+        } else {
+          MessageCli.ACTIVITIES_FOUND.printMessage("are", numActivities.toString(), "ies", ":");
+          for (String activityID : operatorIdMap.keySet()) {
+            // acitvityID = acitivityDetails[name, type]
+            ArrayList<String> activityDetails = operatorIdMap.get(activityID);
+            // ACTIVITY_ENTRY("  * %s: [%s/%s] offered by %s"),
+            MessageCli.ACTIVITY_ENTRY.printMessage(
+                activityDetails.get(0), activityID, activityDetails.get(1), operatorName);
+          }
+        }
+      } else {
+        MessageCli.ACTIVITIES_FOUND.printMessage("are", "no", "ies", ".");
+      }
+
+    } else {
+      MessageCli.OPERATOR_NOT_FOUND.printMessage(operatorId);
+    }
   }
 
   public void createActivity(String activityName, String activityType, String operatorId) {
 
     activityName = activityName.trim();
     if (activityName.length() >= 3) {
-      Boolean validOpIdFlag = false;
-      for (HashMap<String, String> localLocations : locationsMap.values()) {
-        if (localLocations.containsValue(operatorId)) {
-          validOpIdFlag = true;
-        }
-      }
+      Boolean validOpIdFlag = opIdConfirmer(operatorId);
       if (validOpIdFlag) {
         ActivityType reqActivityType = ActivityType.fromString(activityType);
         String nameActivityType = reqActivityType.getName();
@@ -235,10 +274,13 @@ public class OperatorManagementSystem {
           Integer activityIndex = operatorIdMap.size() + 1;
           String acitivityId = activityIdBuilder(activityIndex, operatorId);
           ArrayList<String> activityDetails = new ArrayList<>();
+          // [name, type]
           activityDetails.add(activityName);
           activityDetails.add(nameActivityType);
           operatorIdMap.put(acitivityId, activityDetails);
+          // <activity id: [name, type]>
           activityMap.put(operatorId, operatorIdMap);
+          // activityMap<opID: <activity id: [name, type]>>
         }
       } else {
         MessageCli.ACTIVITY_NOT_CREATED_INVALID_OPERATOR_ID.printMessage(operatorId);
