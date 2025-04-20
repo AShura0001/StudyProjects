@@ -13,6 +13,13 @@ public class OperatorManagementSystem {
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
 
+  private String opNameFetcher(String operatorId) {
+    String[] operatorComponents = operatorId.split("-");
+    HashMap<String, String> localLocationMap = locationsMap.get(operatorComponents[1]);
+    String operatorName = localLocationMap.get(operatorId);
+    return operatorName;
+  }
+
   private String activityIdBuilder(Integer activityIndex, String operatorId) {
     StringBuilder activityId = new StringBuilder();
     activityId.append(operatorId);
@@ -66,7 +73,7 @@ public class OperatorManagementSystem {
   private Boolean opIdConfirmer(String operatorId) {
     Boolean validOpIdFlag = false;
     for (HashMap<String, String> localLocations : locationsMap.values()) {
-      if (localLocations.containsValue(operatorId)) {
+      if (localLocations.containsKey(operatorId)) {
         validOpIdFlag = true;
       }
     }
@@ -218,10 +225,7 @@ public class OperatorManagementSystem {
     Boolean validOpIdFlag = opIdConfirmer(operatorId);
     if (validOpIdFlag) {
       if (activityMap.containsKey(operatorId)) {
-        // [operator name initials, locaion abb, operator index]
-        String[] operatorComponents = operatorId.split("-");
-        HashMap<String, String> localLocationMap = locationsMap.get(operatorComponents[1]);
-        String operatorName = localLocationMap.get(operatorId);
+        String operatorName = opNameFetcher(operatorId);
         HashMap<String, ArrayList<String>> operatorIdMap = activityMap.get(operatorId);
         Integer numActivities = operatorIdMap.size();
         if (numActivities == 1) {
@@ -258,10 +262,12 @@ public class OperatorManagementSystem {
     if (activityName.length() >= 3) {
       Boolean validOpIdFlag = opIdConfirmer(operatorId);
       if (validOpIdFlag) {
+        String operatorName = opNameFetcher(operatorId);
         ActivityType reqActivityType = ActivityType.fromString(activityType);
         String nameActivityType = reqActivityType.getName();
         // HashMap<String, ArrayList<String>> operatorIdMap = new HashMap<>();
         if (activityMap.containsKey(operatorId)) {
+          System.out.println("here");
           HashMap<String, ArrayList<String>> operatorIdMap = activityMap.get(operatorId);
           Integer activityIndex = operatorIdMap.size() + 1;
           String acitivityId = activityIdBuilder(activityIndex, operatorId);
@@ -269,7 +275,11 @@ public class OperatorManagementSystem {
           activityDetails.add(activityName);
           activityDetails.add(nameActivityType);
           operatorIdMap.put(acitivityId, activityDetails);
+          // ACTIVITY_CREATED("Successfully created activity '%s' ('%s': '%s') for '%s'."),
+          MessageCli.ACTIVITY_CREATED.printMessage(
+              activityName, acitivityId, nameActivityType, operatorName);
         } else {
+          System.out.println("no here");
           HashMap<String, ArrayList<String>> operatorIdMap = new HashMap<>();
           Integer activityIndex = operatorIdMap.size() + 1;
           String acitivityId = activityIdBuilder(activityIndex, operatorId);
@@ -281,6 +291,8 @@ public class OperatorManagementSystem {
           // <activity id: [name, type]>
           activityMap.put(operatorId, operatorIdMap);
           // activityMap<opID: <activity id: [name, type]>>
+          MessageCli.ACTIVITY_CREATED.printMessage(
+              activityName, acitivityId, nameActivityType, operatorName);
         }
       } else {
         MessageCli.ACTIVITY_NOT_CREATED_INVALID_OPERATOR_ID.printMessage(operatorId);
