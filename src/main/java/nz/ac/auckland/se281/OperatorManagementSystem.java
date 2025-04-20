@@ -350,7 +350,8 @@ public class OperatorManagementSystem {
         HashMap<String, ArrayList<String>> opIdMap = activityMap.get(operatorId);
         for (String activityId : opIdMap.keySet()) {
           ArrayList<String> activityDetails = opIdMap.get(activityId);
-          if (activityDetails.get(0).equalsIgnoreCase(tempkeyword)
+          String tempactivityName = activityDetails.get(0).toUpperCase();
+          if (tempactivityName.contains(tempkeyword)
               || activityDetails.get(1).equalsIgnoreCase(tempkeyword)
               || tempLocationAbb.contains(tempkeyword)
               || tempLocationFullName.contains(tempkeyword)) {
