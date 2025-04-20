@@ -335,6 +335,58 @@ public class OperatorManagementSystem {
           }
         }
       }
+    } else {
+      String tempkeyword = keyword.toUpperCase();
+      ArrayList<ArrayList<String>> matchingSets = new ArrayList<>();
+
+      for (String operatorId : activityMap.keySet()) {
+        String[] operatorDetails = operatorId.split("-");
+        // operatorDetails[operator Initials, locations abb, operator index]
+        Location location = Location.fromString(operatorDetails[1]);
+        String locationAbb = location.getLocationAbbreviation();
+        String locationFullName = location.getFullName();
+        String tempLocationAbb = locationAbb.toUpperCase();
+        String tempLocationFullName = locationFullName.toUpperCase();
+        HashMap<String, ArrayList<String>> opIdMap = activityMap.get(operatorId);
+        for (String activityId : opIdMap.keySet()) {
+          ArrayList<String> activityDetails = opIdMap.get(activityId);
+          if (activityDetails.get(0).equalsIgnoreCase(tempkeyword)
+              || activityDetails.get(1).equalsIgnoreCase(tempkeyword)
+              || tempLocationAbb.contains(tempkeyword)
+              || tempLocationFullName.contains(tempkeyword)) {
+            String operatorName = opNameFetcher(operatorId);
+            ArrayList<String> tempArrayList = new ArrayList<>();
+            tempArrayList.add(activityDetails.get(0)); // activity name
+            tempArrayList.add(activityId); // activity id
+            tempArrayList.add(activityDetails.get(1)); // activity type
+            tempArrayList.add(operatorName); // operator name
+
+            matchingSets.add(tempArrayList);
+          }
+        }
+      }
+
+      if (matchingSets.size() == 0) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("are", "no", "ies", ".");
+      } else if (matchingSets.size() == 1) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("is", "1", "y", ":");
+        for (ArrayList<String> tempPulledSet : matchingSets) {
+          MessageCli.ACTIVITY_ENTRY.printMessage(
+              tempPulledSet.get(0),
+              tempPulledSet.get(1),
+              tempPulledSet.get(2),
+              tempPulledSet.get(3));
+        }
+      } else if (matchingSets.size() > 1) {
+        MessageCli.ACTIVITIES_FOUND.printMessage("are", matchingSets.size() + "", "ies", ":");
+        for (ArrayList<String> tempPulledSet : matchingSets) {
+          MessageCli.ACTIVITY_ENTRY.printMessage(
+              tempPulledSet.get(0),
+              tempPulledSet.get(1),
+              tempPulledSet.get(2),
+              tempPulledSet.get(3));
+        }
+      }
     }
   }
 
