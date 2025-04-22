@@ -9,12 +9,25 @@ public class OperatorManagementSystem {
 
   private HashMap<String, HashMap<String, String>> locationsMap = new HashMap<>();
   private HashMap<String, HashMap<String, ArrayList<String>>> activityMap = new HashMap<>();
+  private HashMap<String, ArrayList<Review>> reviewMap = new HashMap<>();
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
 
+  private Boolean activityIdChecker(String activityId) {
+    Boolean validActivityId = false;
+    for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
+      for (String activityIdKey : opIdMap.keySet()) {
+        if (activityId.equals(activityIdKey)) {
+          validActivityId = true;
+        }
+      }
+    }
+    return validActivityId;
+  }
+
   private String reviewIdCreator(String activityId, HashMap<String, ArrayList<Review>> reviewMap) {
-    Integer reviewIndex = reviewMap.get(activityId).size();
+    Integer reviewIndex = reviewMap.get(activityId).size() + 1;
     String reviewId = activityId + "-" + "R" + reviewIndex.toString();
     return reviewId;
   }
@@ -398,15 +411,60 @@ public class OperatorManagementSystem {
   }
 
   public void addPublicReview(String activityId, String[] options) {
-    // TODO implement
+    Boolean validActivityId = activityIdChecker(activityId);
+
+    if (validActivityId) {
+      if (reviewMap.containsKey(activityId)) {
+        PublicReview review = new PublicReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      } else {
+        reviewMap.put(activityId, new ArrayList<Review>());
+        PublicReview review = new PublicReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      }
+    } else {
+      MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
+    }
   }
 
   public void addPrivateReview(String activityId, String[] options) {
-    // TODO implement
+    Boolean validActivityId = activityIdChecker(activityId);
+
+    if (validActivityId) {
+      if (reviewMap.containsKey(activityId)) {
+        PrivateReview review = new PrivateReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      } else {
+        reviewMap.put(activityId, new ArrayList<Review>());
+        PrivateReview review = new PrivateReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      }
+    } else {
+      MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
+    }
   }
 
   public void addExpertReview(String activityId, String[] options) {
-    // TODO implement
+    Boolean validActivityId = activityIdChecker(activityId);
+
+    if (validActivityId) {
+      if (reviewMap.containsKey(activityId)) {
+        ExpertReview review = new ExpertReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      } else {
+        reviewMap.put(activityId, new ArrayList<Review>());
+        ExpertReview review = new ExpertReview(activityId, options);
+        review.insertReviewId(reviewIdCreator(activityId, reviewMap));
+        reviewMap.get(activityId).add(review);
+      }
+    } else {
+      MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
+    }
   }
 
   public void displayReviews(String activityId) {

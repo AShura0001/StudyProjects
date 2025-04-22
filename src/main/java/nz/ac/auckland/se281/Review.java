@@ -2,7 +2,7 @@ package nz.ac.auckland.se281;
 
 abstract class Review {
   protected String name;
-  protected String rating;
+  protected Integer rating;
   protected String comment;
   protected String reviewId;
   protected String[] options;
@@ -12,13 +12,20 @@ abstract class Review {
     this.activityId = acitvityId;
     this.options = options;
     this.name = options[0];
+    rating = 0;
+
+    if (rating < 1) {
+      rating = 1;
+    } else if (rating > 5) {
+      rating = 5;
+    }
   }
 
   public String getName() {
     return name;
   }
 
-  public String getRating() {
+  public Integer getRating() {
     return rating;
   }
 

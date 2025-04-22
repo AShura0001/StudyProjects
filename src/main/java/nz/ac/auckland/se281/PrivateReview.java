@@ -10,7 +10,7 @@ public class PrivateReview extends Review {
       followUpFlag = true;
     }
     email = options[1];
-    rating = options[2];
+    rating = Integer.valueOf(options[2]);
     comment = options[3];
   }
 

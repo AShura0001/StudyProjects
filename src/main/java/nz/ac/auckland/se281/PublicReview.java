@@ -8,7 +8,7 @@ public class PublicReview extends Review {
     if (options[1].equalsIgnoreCase("Y")) {
       this.name = "Anonymous";
     }
-    rating = options[2];
+    rating = Integer.valueOf(options[2]);
     comment = options[3];
   }
 
