@@ -17,13 +17,11 @@ public class OperatorManagementSystem {
   private void pushReview(Review review, String activityId) {
     Boolean validActivityId = false;
     String activityName = null;
-    for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
-      for (String activityIdKey : opIdMap.keySet()) {
-        if (activityId.equals(activityIdKey)) {
-          validActivityId = true;
-          activityName = opIdMap.get(activityIdKey).get(0);
-        }
-      }
+
+    ArrayList<String> activityDetails = activityDetailFetcher(activityId);
+    if (activityDetails.get(0).equals("Y")) {
+      validActivityId = true;
+      activityName = activityDetails.get(1);
     }
 
     if (validActivityId) {
@@ -51,17 +49,23 @@ public class OperatorManagementSystem {
     }
   }
 
-  // private Boolean activityIdChecker(String activityId) {
-  //   Boolean validActivityId = false;
-  //   for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
-  //     for (String activityIdKey : opIdMap.keySet()) {
-  //       if (activityId.equals(activityIdKey)) {
-  //         validActivityId = true;
-  //       }
-  //     }
-  //   }
-  //   return validActivityId;
-  // }
+  private ArrayList<String> activityDetailFetcher(String activityId) {
+    ArrayList<String> tempList = new ArrayList<>();
+    String validActivityId = "N";
+    tempList.add(validActivityId);
+    for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
+      for (String activityIdKey : opIdMap.keySet()) {
+        if (activityId.equals(activityIdKey)) {
+          validActivityId = "Y";
+          tempList.set(0, validActivityId);
+          tempList.add(opIdMap.get(activityIdKey).get(0));
+          tempList.add(opIdMap.get(activityIdKey).get(1));
+          // [Y, name, type]
+        }
+      }
+    }
+    return tempList;
+  }
 
   private String reviewIdCreator(String activityId, HashMap<String, ArrayList<Review>> reviewMap) {
     Integer reviewIndex = reviewMap.get(activityId).size() + 1;
@@ -448,64 +452,16 @@ public class OperatorManagementSystem {
   }
 
   public void addPublicReview(String activityId, String[] options) {
-    // Boolean validActivityId = activityIdChecker(activityId);
-
-    // if (validActivityId) {
-    //   if (reviewMap.containsKey(activityId)) {
-    //     PublicReview review = new PublicReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   } else {
-    //     reviewMap.put(activityId, new ArrayList<Review>());
-    //     PublicReview review = new PublicReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   }
-    // } else {
-    //   MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
-    // }
     PublicReview review = new PublicReview(activityId, options);
     pushReview(review, activityId);
   }
 
   public void addPrivateReview(String activityId, String[] options) {
-    // Boolean validActivityId = activityIdChecker(activityId);
-
-    // if (validActivityId) {
-    //   if (reviewMap.containsKey(activityId)) {
-    //     PrivateReview review = new PrivateReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   } else {
-    //     reviewMap.put(activityId, new ArrayList<Review>());
-    //     PrivateReview review = new PrivateReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   }
-    // } else {
-    //   MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
-    // }
     PrivateReview review = new PrivateReview(activityId, options);
     pushReview(review, activityId);
   }
 
   public void addExpertReview(String activityId, String[] options) {
-    // Boolean validActivityId = activityIdChecker(activityId);
-
-    // if (validActivityId) {
-    //   if (reviewMap.containsKey(activityId)) {
-    //     ExpertReview review = new ExpertReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   } else {
-    //     reviewMap.put(activityId, new ArrayList<Review>());
-    //     ExpertReview review = new ExpertReview(activityId, options);
-    //     review.insertReviewId(reviewIdCreator(activityId, reviewMap));
-    //     reviewMap.get(activityId).add(review);
-    //   }
-    // } else {
-    //   MessageCli.REVIEW_NOT_ADDED_INVALID_ACTIVITY_ID.printMessage(activityId);
-    // }
     ExpertReview review = new ExpertReview(activityId, options);
     pushReview(review, activityId);
   }
