@@ -13,6 +13,12 @@ public class OperatorManagementSystem {
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
 
+  private String reviewIdCreator(String activityId, HashMap<String, ArrayList<Review>> reviewMap) {
+    Integer reviewIndex = reviewMap.get(activityId).size();
+    String reviewId = activityId + "-" + "R" + reviewIndex.toString();
+    return reviewId;
+  }
+
   private String opNameFetcher(String operatorId) {
     String[] operatorComponents = operatorId.split("-");
     HashMap<String, String> localLocationMap = locationsMap.get(operatorComponents[1]);
