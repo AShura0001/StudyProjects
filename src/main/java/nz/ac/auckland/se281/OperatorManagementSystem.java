@@ -499,7 +499,29 @@ public class OperatorManagementSystem {
   }
 
   public void endorseReview(String reviewId) {
-    // TODO implement
+    Boolean reviewExistFlag = false;
+    Boolean publicReviewFlag = false;
+    for (ArrayList<Review> reviewList : reviewMap.values()) {
+      for (Review review : reviewList) {
+        if (review.getReviewId().equals(reviewId)) {
+          reviewExistFlag = true;
+          if (review instanceof PublicReview) {
+            publicReviewFlag = true;
+            PublicReview reqReview = (PublicReview) review;
+            reqReview.endorse();
+          }
+        }
+      }
+    }
+    if (reviewExistFlag) {
+      if (publicReviewFlag) {
+        MessageCli.REVIEW_ENDORSED.printMessage(reviewId);
+      } else {
+        MessageCli.REVIEW_NOT_ENDORSED.printMessage(reviewId);
+      }
+    } else {
+      MessageCli.REVIEW_NOT_FOUND.printMessage(reviewId);
+    }
   }
 
   public void resolveReview(String reviewId, String response) {

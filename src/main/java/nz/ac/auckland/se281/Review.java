@@ -43,7 +43,7 @@ abstract class Review {
     // * [3/5] Public review (SSB-TRG-002-001-R1) by 'Alice'
     MessageCli.REVIEW_ENTRY_HEADER.printMessage(
         this.rating.toString(), "5", this.type, this.reviewId, this.name);
-    System.out.println(String.format("\"%s\"", comment));
+    System.out.println(String.format("    \"%s\"", comment));
   }
 
   public void insertReviewId(String reviewId) {

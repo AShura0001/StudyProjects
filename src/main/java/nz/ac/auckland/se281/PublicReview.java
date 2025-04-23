@@ -16,4 +16,16 @@ public class PublicReview extends Review {
   public Boolean getEndorsedFlag() {
     return this.endorsedFlag;
   }
+
+  public void endorse() {
+    endorsedFlag = true;
+  }
+
+  @Override
+  public void displayReviewEntry() {
+    super.displayReviewEntry();
+    if (endorsedFlag) {
+      MessageCli.REVIEW_ENTRY_ENDORSED.printMessage();
+    }
+  }
 }
