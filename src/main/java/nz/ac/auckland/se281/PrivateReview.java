@@ -24,6 +24,16 @@ public class PrivateReview extends Review {
     return this.email;
   }
 
+  public String getResponse() {
+    return response;
+  }
+
+  public void respond(String response) {
+    this.response = response;
+    followUpFlag = false;
+    MessageCli.REVIEW_RESOLVED.printMessage(reviewId);
+  }
+
   @Override
   public void displayReviewEntry() {
     super.displayReviewEntry();
@@ -32,11 +42,5 @@ public class PrivateReview extends Review {
     } else {
       MessageCli.REVIEW_ENTRY_RESOLVED.printMessage("-");
     }
-  }
-
-  public void respond(String response) {
-    this.response = response;
-    followUpFlag = false;
-    MessageCli.REVIEW_RESOLVED.printMessage(reviewId);
   }
 }

@@ -549,7 +549,27 @@ public class OperatorManagementSystem {
   }
 
   public void uploadReviewImage(String reviewId, String imageName) {
-    // TODO implement
+    Boolean reviewExistFlag = false;
+    Boolean expertReviewFlag = false;
+    for (ArrayList<Review> reviewList : reviewMap.values()) {
+      for (Review review : reviewList) {
+        if (review.getReviewId().equals(reviewId)) {
+          reviewExistFlag = true;
+          if (review instanceof ExpertReview) {
+            expertReviewFlag = true;
+            ExpertReview reqReview = (ExpertReview) review;
+            reqReview.uploadImg(imageName);
+          }
+        }
+      }
+    }
+    if (reviewExistFlag) {
+      if (!expertReviewFlag) {
+        MessageCli.REVIEW_NOT_RESOLVED.printMessage(reviewId);
+      }
+    } else {
+      MessageCli.REVIEW_NOT_FOUND.printMessage(reviewId);
+    }
   }
 
   public void displayTopActivities() {
