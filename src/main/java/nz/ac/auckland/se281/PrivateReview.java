@@ -24,9 +24,8 @@ public class PrivateReview extends Review {
   }
 
   @Override
-  public void displayReviewEntry(Integer numReviews, Integer currentIndex) {
-    super.displayReviewEntry(numReviews, currentIndex);
-    System.out.println(String.format("\"%s\"", comment));
+  public void displayReviewEntry() {
+    super.displayReviewEntry();
     if (followUpFlag) {
       MessageCli.REVIEW_ENTRY_FOLLOW_UP.printMessage(email);
     } else {

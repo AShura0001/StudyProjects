@@ -18,9 +18,8 @@ public class ExpertReview extends Review {
   }
 
   @Override
-  public void displayReviewEntry(Integer numReviews, Integer currentIndex) {
-    super.displayReviewEntry(numReviews, currentIndex);
-    System.out.println(String.format("\"%s\"", comment));
+  public void displayReviewEntry() {
+    super.displayReviewEntry();
     if (recommendFlag) {
       MessageCli.REVIEW_ENTRY_RECOMMENDED.printMessage();
     }

@@ -38,11 +38,12 @@ abstract class Review {
     return reviewId;
   }
 
-  public void displayReviewEntry(Integer numReviews, Integer currentIndex) {
+  public void displayReviewEntry() {
     // REVIEW_ENTRY_HEADER("  * [%s/%s] %s review (%s) by '%s'"),
     // * [3/5] Public review (SSB-TRG-002-001-R1) by 'Alice'
     MessageCli.REVIEW_ENTRY_HEADER.printMessage(
-        currentIndex.toString(), numReviews.toString(), this.reviewId, this.name);
+        this.rating.toString(), "5", this.type, this.reviewId, this.name);
+    System.out.println(String.format("\"%s\"", comment));
   }
 
   public void insertReviewId(String reviewId) {

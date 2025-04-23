@@ -476,7 +476,6 @@ public class OperatorManagementSystem {
 
     if (validActivityFlag) {
       Integer numReviews = 0;
-      Integer currentIndex = 1;
       if (reviewMap.containsKey(activityId)) {
         numReviews = reviewMap.get(activityId).size();
       }
@@ -486,14 +485,12 @@ public class OperatorManagementSystem {
         // REVIEWS_FOUND("There %s %s review%s for activity '%s'."),
         MessageCli.REVIEWS_FOUND.printMessage("is", "1", "", activityDetails.get(1));
         for (Review review : reviewMap.get(activityId)) {
-          review.displayReviewEntry(numReviews, currentIndex);
-          currentIndex++;
+          review.displayReviewEntry();
         }
       } else if (numReviews > 1) {
         MessageCli.REVIEWS_FOUND.printMessage("are", numReviews.toString(), "s", activityId);
         for (Review review : reviewMap.get(activityId)) {
-          review.displayReviewEntry(numReviews, currentIndex);
-          currentIndex++;
+          review.displayReviewEntry();
         }
       }
     } else {
