@@ -29,7 +29,7 @@ public class PrivateReview extends Review {
     if (followUpFlag) {
       MessageCli.REVIEW_ENTRY_FOLLOW_UP.printMessage(email);
     } else {
-      MessageCli.REVIEW_RESOLVED.printMessage("-");
+      MessageCli.REVIEW_ENTRY_RESOLVED.printMessage("-");
     }
   }
 }
