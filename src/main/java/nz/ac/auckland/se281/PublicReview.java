@@ -5,6 +5,7 @@ public class PublicReview extends Review {
 
   PublicReview(String acitvityId, String[] options) {
     super(acitvityId, options);
+    this.type = "Public";
     if (options[1].equalsIgnoreCase("Y")) {
       this.name = "Anonymous";
     }

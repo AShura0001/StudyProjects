@@ -51,16 +51,16 @@ public class OperatorManagementSystem {
 
   private ArrayList<String> activityDetailFetcher(String activityId) {
     ArrayList<String> tempList = new ArrayList<>();
-    String validActivityId = "N";
-    tempList.add(validActivityId);
+    String validActivityFlag = "N";
+    tempList.add(validActivityFlag);
     for (HashMap<String, ArrayList<String>> opIdMap : activityMap.values()) {
       for (String activityIdKey : opIdMap.keySet()) {
         if (activityId.equals(activityIdKey)) {
-          validActivityId = "Y";
-          tempList.set(0, validActivityId);
+          validActivityFlag = "Y";
+          tempList.set(0, validActivityFlag);
           tempList.add(opIdMap.get(activityIdKey).get(0));
           tempList.add(opIdMap.get(activityIdKey).get(1));
-          // [Y, name, type]
+          // [validActivityFlag, name, type]
         }
       }
     }
@@ -467,7 +467,38 @@ public class OperatorManagementSystem {
   }
 
   public void displayReviews(String activityId) {
-    // TODO implement
+    Boolean validActivityFlag = false;
+    ArrayList<String> activityDetails = activityDetailFetcher(activityId);
+    // [flag, name, type]
+    if (activityDetails.get(0).equals("Y")) {
+      validActivityFlag = true;
+    }
+
+    if (validActivityFlag) {
+      Integer numReviews = 0;
+      Integer currentIndex = 1;
+      if (reviewMap.containsKey(activityId)) {
+        numReviews = reviewMap.get(activityId).size();
+      }
+      if (numReviews == 0) {
+        MessageCli.REVIEWS_FOUND.printMessage("are", "no", "s", activityDetails.get(1));
+      } else if (numReviews == 1) {
+        // REVIEWS_FOUND("There %s %s review%s for activity '%s'."),
+        MessageCli.REVIEWS_FOUND.printMessage("is", "1", "", activityDetails.get(1));
+        for (Review review : reviewMap.get(activityId)) {
+          review.displayReviewEntry(numReviews, currentIndex);
+          currentIndex++;
+        }
+      } else if (numReviews > 1) {
+        MessageCli.REVIEWS_FOUND.printMessage("are", numReviews.toString(), "s", activityId);
+        for (Review review : reviewMap.get(activityId)) {
+          review.displayReviewEntry(numReviews, currentIndex);
+          currentIndex++;
+        }
+      }
+    } else {
+      MessageCli.ACTIVITY_NOT_FOUND.printMessage(activityId);
+    }
   }
 
   public void endorseReview(String reviewId) {

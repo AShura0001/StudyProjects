@@ -6,6 +6,7 @@ public class PrivateReview extends Review {
 
   PrivateReview(String acitvityId, String[] options) {
     super(acitvityId, options);
+    this.type = "Private";
     if (options[4].equalsIgnoreCase("Y")) {
       followUpFlag = true;
     }

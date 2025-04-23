@@ -5,6 +5,7 @@ public class ExpertReview extends Review {
 
   ExpertReview(String acitvityId, String[] options) {
     super(acitvityId, options);
+    this.type = "Expert";
     if (options[3].equalsIgnoreCase("Y")) {
       recommendFlag = true;
     }
