@@ -22,4 +22,15 @@ public class PrivateReview extends Review {
   public String getEmail() {
     return this.email;
   }
+
+  @Override
+  public void displayReviewEntry(Integer numReviews, Integer currentIndex) {
+    super.displayReviewEntry(numReviews, currentIndex);
+    System.out.println(String.format("\"%s\"", comment));
+    if (followUpFlag) {
+      MessageCli.REVIEW_ENTRY_FOLLOW_UP.printMessage(email);
+    } else {
+      MessageCli.REVIEW_RESOLVED.printMessage("-");
+    }
+  }
 }

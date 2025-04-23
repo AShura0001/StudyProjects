@@ -16,4 +16,13 @@ public class ExpertReview extends Review {
   public Boolean getRecommendFlag() {
     return this.recommendFlag;
   }
+
+  @Override
+  public void displayReviewEntry(Integer numReviews, Integer currentIndex) {
+    super.displayReviewEntry(numReviews, currentIndex);
+    System.out.println(String.format("\"%s\"", comment));
+    if (recommendFlag) {
+      MessageCli.REVIEW_ENTRY_RECOMMENDED.printMessage();
+    }
+  }
 }
