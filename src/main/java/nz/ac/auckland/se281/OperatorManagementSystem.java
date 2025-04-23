@@ -62,7 +62,7 @@ public class OperatorManagementSystem {
           tempList.add(opIdMap.get(activityIdKey).get(0));
           tempList.add(opIdMap.get(activityIdKey).get(1));
           String[] activityIdExploded = activityId.split("-");
-          tempList.add(activityIdExploded[0]);
+          tempList.add(activityIdExploded[1]);
           // [validActivityFlag, name, type, location abb]
         }
       }
@@ -581,6 +581,7 @@ public class OperatorManagementSystem {
       Integer avgRating = 0;
       ArrayList<String> tempList = new ArrayList<>();
       for (Review review : reviewMap.get(activityId)) {
+        System.out.println("A");
         ratingsSum += review.getRating();
       }
 
@@ -593,8 +594,8 @@ public class OperatorManagementSystem {
       tempList.add(activityName);
       tempList.add(avgRating.toString());
       if (rankingMap.containsKey(locationAbb)) {
-        Integer currentTopRating = Integer.valueOf(rankingMap.get(locationAbb).get(0));
-        if (avgRating > currentTopRating) {
+        Integer currentTopRating = Integer.valueOf(rankingMap.get(locationAbb).get(1));
+        if (avgRating >= currentTopRating) {
           rankingMap.put(locationAbb, tempList);
         }
       } else {
