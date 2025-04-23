@@ -10,6 +10,7 @@ public class OperatorManagementSystem {
   private HashMap<String, HashMap<String, String>> locationsMap = new HashMap<>();
   private HashMap<String, HashMap<String, ArrayList<String>>> activityMap = new HashMap<>();
   private HashMap<String, ArrayList<Review>> reviewMap = new HashMap<>();
+  private HashMap<String, ArrayList<String>> rankingMap = new HashMap<>();
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
@@ -60,7 +61,9 @@ public class OperatorManagementSystem {
           tempList.set(0, validActivityFlag);
           tempList.add(opIdMap.get(activityIdKey).get(0));
           tempList.add(opIdMap.get(activityIdKey).get(1));
-          // [validActivityFlag, name, type]
+          String[] activityIdExploded = activityId.split("-");
+          tempList.add(activityIdExploded[0]);
+          // [validActivityFlag, name, type, location abb]
         }
       }
     }
@@ -565,7 +568,7 @@ public class OperatorManagementSystem {
     }
     if (reviewExistFlag) {
       if (!expertReviewFlag) {
-        MessageCli.REVIEW_NOT_RESOLVED.printMessage(reviewId);
+        MessageCli.REVIEW_IMAGE_NOT_ADDED_NOT_EXPERT.printMessage(reviewId);
       }
     } else {
       MessageCli.REVIEW_NOT_FOUND.printMessage(reviewId);
@@ -573,6 +576,39 @@ public class OperatorManagementSystem {
   }
 
   public void displayTopActivities() {
-    // TODO implement
+    for (String activityId : reviewMap.keySet()) {
+      Integer ratingsSum = 0;
+      Integer avgRating = 0;
+      ArrayList<String> tempList = new ArrayList<>();
+      for (Review review : reviewMap.get(activityId)) {
+        ratingsSum += review.getRating();
+      }
+
+      // Casting a long to int for an Integer variable only since the long value will fit inside int
+      // and the variable being Integer makes it convenient too.
+      avgRating = (int) Math.round((double) (ratingsSum / (reviewMap.get(activityId).size())));
+      ArrayList<String> activityDetails = activityDetailFetcher(activityId);
+      String activityName = activityDetails.get(1);
+      String locationAbb = activityDetails.get(3);
+      tempList.add(activityName);
+      tempList.add(avgRating.toString());
+      if (rankingMap.containsKey(locationAbb)) {
+        Integer currentTopRating = Integer.valueOf(rankingMap.get(locationAbb).get(0));
+        if (avgRating > currentTopRating) {
+          rankingMap.put(locationAbb, tempList);
+        }
+      } else {
+        rankingMap.put(locationAbb, tempList);
+      }
+    }
+    for (Location location : Location.values()) {
+      if (rankingMap.containsKey(location.getLocationAbbreviation())) {
+        ArrayList<String> topActivityDetails = rankingMap.get(location.getLocationAbbreviation());
+        MessageCli.TOP_ACTIVITY.printMessage(
+            location.getFullName(), topActivityDetails.get(0), topActivityDetails.get(1));
+      } else {
+        MessageCli.NO_REVIEWED_ACTIVITIES.printMessage(location.getFullName());
+      }
+    }
   }
 }
