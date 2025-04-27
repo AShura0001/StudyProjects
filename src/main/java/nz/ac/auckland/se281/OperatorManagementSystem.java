@@ -238,12 +238,12 @@ public class OperatorManagementSystem {
               || tempReqLocAbb.contains(tempKeyword)) {
             matchingCount++;
 
-            ArrayList<String> temp_arraylist_matched = new ArrayList<>();
-            temp_arraylist_matched.add(operatorName);
-            temp_arraylist_matched.add(operatorIdkey);
-            temp_arraylist_matched.add(reqLocFullName);
+            ArrayList<String> tempArraylistMatched = new ArrayList<>();
+            tempArraylistMatched.add(operatorName);
+            tempArraylistMatched.add(operatorIdkey);
+            tempArraylistMatched.add(reqLocFullName);
 
-            matchingSets.add(temp_arraylist_matched);
+            matchingSets.add(tempArraylistMatched);
           }
         }
       }
