@@ -10,6 +10,7 @@ abstract class Review {
   protected String type;
 
   protected Review(String acitvityId, String[] options) {
+    // Generic constructor for all reviews
     this.activityId = acitvityId;
     this.options = options;
     this.name = options[0];
@@ -39,6 +40,7 @@ abstract class Review {
   }
 
   public void displayReviewEntry() {
+    // Generic display method for all reviews.
     // REVIEW_ENTRY_HEADER("  * [%s/%s] %s review (%s) by '%s'"),
     // * [3/5] Public review (SSB-TRG-002-001-R1) by 'Alice'
     MessageCli.REVIEW_ENTRY_HEADER.printMessage(
@@ -47,6 +49,7 @@ abstract class Review {
   }
 
   public void insertReviewId(String reviewId) {
+    // Instert reviewId provided using the reviewIdCreator method in the OperatorManagement class.
     this.reviewId = reviewId;
   }
 }

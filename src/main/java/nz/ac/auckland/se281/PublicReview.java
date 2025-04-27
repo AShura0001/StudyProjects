@@ -4,6 +4,7 @@ public class PublicReview extends Review {
   private Boolean endorsedFlag = false;
 
   PublicReview(String acitvityId, String[] options) {
+    // Constructor for public review
     super(acitvityId, options);
     this.type = "Public";
     if (options[1].equalsIgnoreCase("Y")) {
@@ -18,6 +19,7 @@ public class PublicReview extends Review {
   }
 
   public void endorse() {
+    // Endorse the review i.e. The admin has approved the review.
     endorsedFlag = true;
   }
 
@@ -25,6 +27,8 @@ public class PublicReview extends Review {
   public void displayReviewEntry() {
     super.displayReviewEntry();
     if (endorsedFlag) {
+      // prints the Admin has approved the review message
+      // as the review is marked endorsed.
       MessageCli.REVIEW_ENTRY_ENDORSED.printMessage();
     }
   }
