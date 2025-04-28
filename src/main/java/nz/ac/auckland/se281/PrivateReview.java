@@ -2,6 +2,7 @@ package nz.ac.auckland.se281;
 
 public class PrivateReview extends Review {
   private Boolean followUpFlag = false;
+  private Boolean resolveFlag = false;
   private String email;
   private String response;
 
@@ -13,7 +14,7 @@ public class PrivateReview extends Review {
       followUpFlag = true;
     }
     email = options[1];
-    rating = Integer.valueOf(options[2]);
+    setRating(Integer.valueOf(options[2]));
     comment = options[3];
   }
 
@@ -34,6 +35,7 @@ public class PrivateReview extends Review {
     // The followUpFlag is turned off as the review is resolved.
     this.response = response;
     followUpFlag = false;
+    resolveFlag = true;
     // Appropriate message is printed for the resolved review.
     MessageCli.REVIEW_RESOLVED.printMessage(reviewId);
   }
@@ -45,11 +47,13 @@ public class PrivateReview extends Review {
       // if the followUpFlag is true, the review is not resolved and the
       // need to follow up message is printed.
       MessageCli.REVIEW_ENTRY_FOLLOW_UP.printMessage(email);
-    } else {
+    } else if (!followUpFlag && !resolveFlag) {
       // if the followUpFlag is false, the review is resolved and the
       // resolved message is printed.
       // if response was never required the same is printed.
       MessageCli.REVIEW_ENTRY_RESOLVED.printMessage("-");
+    } else if (resolveFlag) {
+      MessageCli.REVIEW_ENTRY_RESOLVED.printMessage(response);
     }
   }
 }

@@ -13,7 +13,7 @@ public class ExpertReview extends Review {
     if (options[3].equalsIgnoreCase("Y")) {
       recommendFlag = true;
     }
-    rating = Integer.valueOf(options[1]);
+    setRating(Integer.valueOf(options[1]));
     comment = options[2];
   }
 

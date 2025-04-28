@@ -8,9 +8,14 @@ import nz.ac.auckland.se281.Types.Location;
 public class OperatorManagementSystem {
 
   private HashMap<String, HashMap<String, String>> locationsMap = new HashMap<>();
+  // locationsMap<locationAbb: localLocationMap<opId: opName>>
   private HashMap<String, HashMap<String, ArrayList<String>>> activityMap = new HashMap<>();
+  // activityMap<opId: opIdMap<activityId: details[name, type]>>
   private HashMap<String, ArrayList<Review>> reviewMap = new HashMap<>();
+  // reviewMap<activityId: reviewList[Review]>
   private HashMap<String, ArrayList<String>> rankingMap = new HashMap<>();
+
+  // rankingMap<locationAbb: details[actName, avgRating (highest available)]>
 
   // Do not change the parameters of the constructor
   public OperatorManagementSystem() {}
@@ -479,9 +484,10 @@ public class OperatorManagementSystem {
         HashMap<String, ArrayList<String>> opIdMap = activityMap.get(operatorId);
         for (String activityId : opIdMap.keySet()) {
           ArrayList<String> activityDetails = opIdMap.get(activityId);
+          String upperCaseActivityType = activityDetails.get(1).toUpperCase();
           String tempactivityName = activityDetails.get(0).toUpperCase();
           if (tempactivityName.contains(tempkeyword)
-              || activityDetails.get(1).equalsIgnoreCase(tempkeyword)
+              || upperCaseActivityType.contains(tempkeyword)
               || tempLocationAbb.contains(tempkeyword)
               || tempLocationFullName.contains(tempkeyword)) {
             String operatorName = opNameFetcher(operatorId);
@@ -682,30 +688,40 @@ public class OperatorManagementSystem {
     for (String activityId : reviewMap.keySet()) {
       Integer ratingsSum = 0;
       Integer avgRating = 0;
+      Integer countedReviews = 0;
       ArrayList<String> tempList = new ArrayList<>();
       for (Review review : reviewMap.get(activityId)) {
-        ratingsSum += review.getRating();
+        if (!(review instanceof PrivateReview)) {
+          // ignores PrivateReview type reviews as per brief
+          ratingsSum += review.getRating();
+          countedReviews++;
+        }
       }
 
-      // Casting a long to int for an Integer variable (avgRating) only
-      // since the long value will fit inside int and the variable being Integer makes it convenient
-      // too.
-      avgRating = (int) Math.round((double) (ratingsSum / (reviewMap.get(activityId).size())));
-      ArrayList<String> activityDetails = activityDetailFetcher(activityId);
-      String activityName = activityDetails.get(1);
-      String locationAbb = activityDetails.get(3);
-      tempList.add(activityName);
-      tempList.add(avgRating.toString());
-      if (rankingMap.containsKey(locationAbb)) {
-        // If the location abbreviation already exists in the ranking map,
-        // check if the average rating is greater than or equal to the current top rating.
-        // If it is, update the ranking map with the new activity details.
-        Integer currentTopRating = Integer.valueOf(rankingMap.get(locationAbb).get(1));
-        if (avgRating >= currentTopRating) {
+      if (countedReviews != 0) {
+        // only works if there are public/expert reviews to consider for respective loc
+
+        // Casting a long to int for an Integer variable (avgRating) only
+        // since the long value will fit inside int and the variable being Integer makes it
+        // convenient
+        // too.
+        avgRating = (int) Math.round((double) (ratingsSum / countedReviews));
+        ArrayList<String> activityDetails = activityDetailFetcher(activityId);
+        String activityName = activityDetails.get(1);
+        String locationAbb = activityDetails.get(3);
+        tempList.add(activityName);
+        tempList.add(avgRating.toString());
+        if (rankingMap.containsKey(locationAbb)) {
+          // If the location abbreviation already exists in the ranking map,
+          // check if the average rating is greater than or equal to the current top rating.
+          // If it is, update the ranking map with the new activity details.
+          Integer currentTopRating = Integer.valueOf(rankingMap.get(locationAbb).get(1));
+          if (avgRating >= currentTopRating) {
+            rankingMap.put(locationAbb, tempList);
+          }
+        } else {
           rankingMap.put(locationAbb, tempList);
         }
-      } else {
-        rankingMap.put(locationAbb, tempList);
       }
     }
     for (Location location : Location.values()) {

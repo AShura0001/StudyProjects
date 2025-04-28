@@ -1,6 +1,9 @@
 package nz.ac.auckland.se281;
 
 abstract class Review {
+  // Abstract class so that it serves as template for child review class types
+  // while also making sure it doesn't get accessed by other than child classes
+  // for constructing actual instances.
   protected String name;
   protected Integer rating;
   protected String comment;
@@ -14,12 +17,14 @@ abstract class Review {
     this.activityId = acitvityId;
     this.options = options;
     this.name = options[0];
-    rating = 0;
+  }
 
+  protected void setRating(Integer rating) {
+    this.rating = rating;
     if (rating < 1) {
-      rating = 1;
+      this.rating = 1;
     } else if (rating > 5) {
-      rating = 5;
+      this.rating = 5;
     }
   }
 

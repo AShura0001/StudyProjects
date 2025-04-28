@@ -10,8 +10,9 @@ public class PublicReview extends Review {
     if (options[1].equalsIgnoreCase("Y")) {
       this.name = "Anonymous";
     }
-    rating = Integer.valueOf(options[2]);
+    // rating = Integer.valueOf(options[2]);
     comment = options[3];
+    setRating(Integer.valueOf(options[2]));
   }
 
   public Boolean getEndorsedFlag() {
