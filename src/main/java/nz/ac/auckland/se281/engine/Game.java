@@ -21,8 +21,17 @@ public class Game {
 
   public Game() {}
 
-  public Integer getCurrentRoundNum() {
-    return currentRoundNum;
+  private void endResult() {
+    MessageCli.PRINT_PLAYER_POINTS.printMessage(playerName, userScore);
+    MessageCli.PRINT_PLAYER_POINTS.printMessage(AI_NAME, aiScore);
+    MessageCli.PRINT_END_GAME.printMessage();
+    if (userScore > aiScore) {
+      MessageCli.PRINT_WINNER_GAME.printMessage(playerName);
+    } else if (userScore < aiScore) {
+      MessageCli.PRINT_WINNER_GAME.printMessage(AI_NAME);
+    } else {
+      MessageCli.PRINT_TIE_GAME.printMessage();
+    }
   }
 
   public void newGame(Difficulty difficulty, int numRounds, String[] options) {
@@ -139,7 +148,12 @@ public class Game {
         // System.out.println("sry for inappropriate comment");
         memory.add(userChosenColours.get(0));
         // System.out.println("sry2");
-        currentRoundNum++;
+        if (currentRoundNum == totalRounds) {
+          endResult();
+          gameOn = false;
+        } else {
+          currentRoundNum++;
+        }
         // System.out.println("sry3");
       }
     } else {
