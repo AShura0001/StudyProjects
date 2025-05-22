@@ -16,6 +16,7 @@ public class Game {
     String playerName = options[0];
     MessageCli.WELCOME_PLAYER.printMessage(playerName);
     this.totalRounds = numRounds;
+    this.currentRound = 1;
   }
 
   public void play() {
