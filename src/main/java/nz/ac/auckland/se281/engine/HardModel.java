@@ -18,7 +18,7 @@ public class HardModel implements AiModel {
     if (currentRoundNum < 3) {
       return guessStatergy.execute(memory);
     } else if (currentRoundNum == 3) {
-      this.guessStatergy.setStrategy(new LeastUsedStrategy());
+      guessStatergy.setStrategy(new LeastUsedStrategy());
       return guessStatergy.execute(memory);
     } else {
       // if (this.guessStatergy.chosernStrategy instanceof LeastUsedStrategy) {
@@ -29,11 +29,11 @@ public class HardModel implements AiModel {
       } else {
         if (avlStratFlag) {
           avlStratFlag = false;
-          this.guessStatergy.setStrategy(new LeastUsedStrategy());
+          guessStatergy.setStrategy(new LeastUsedStrategy());
           return guessStatergy.execute(memory);
         } else {
           avlStratFlag = true;
-          this.guessStatergy.setStrategy(new AvoidLastStatergy());
+          guessStatergy.setStrategy(new AvoidLastStatergy());
           return guessStatergy.execute(memory);
         }
       }
