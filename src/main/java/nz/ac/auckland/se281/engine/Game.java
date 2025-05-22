@@ -73,11 +73,12 @@ public class Game {
           MessageCli.INVALID_HUMAN_INPUT.printMessage();
         }
       }
+      // System.out.println("yesssss");
 
       AiModel currentModel = ModelGenerator.createModel(currentDifficulty);
       aiChosenColours.add(currentModel.choose());
       aiChosenColours.add(currentModel.guess(currentRoundNum, memorry));
-
+      // System.out.println("sirrrr");
       if ((currentRoundNum % 2) == 0) {
         // "Player %s: chose %s and guessed %s"
         MessageCli.PRINT_INFO_MOVE.printMessage(
@@ -121,11 +122,11 @@ public class Game {
       // "Player %s earned %s point(s) this round."
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
-      System.out.println("kys");
+      System.out.println("sry for inappropriate comment");
       memorry.add(userChosenColours.get(0));
-      System.out.println("fuck me");
+      // System.out.println("sry2");
       currentRoundNum++;
-      System.out.println("fuck you");
+      // System.out.println("sry3");
     }
   }
 

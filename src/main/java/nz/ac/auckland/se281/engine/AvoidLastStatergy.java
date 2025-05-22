@@ -7,6 +7,6 @@ public class AvoidLastStatergy implements Strategy {
 
   @Override
   public Colour chooseColor(ArrayList<Colour> memory) {
-    return Colour.getRandomColourExcluding(memory.get(memory.size()));
+    return Colour.getRandomColourExcluding(memory.get(memory.size() - 1));
   }
 }

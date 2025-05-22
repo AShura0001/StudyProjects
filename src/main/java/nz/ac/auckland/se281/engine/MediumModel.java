@@ -18,8 +18,7 @@ public class MediumModel implements AiModel {
       return chooseStatergy.execute(memory);
     } else {
       chooseStatergy.setStrategy(new AvoidLastStatergy());
-      chooseStatergy.execute(memory);
+      return chooseStatergy.execute(memory);
     }
-    return null;
   }
 }
