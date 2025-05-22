@@ -3,21 +3,16 @@ package nz.ac.auckland.se281.engine;
 import nz.ac.auckland.se281.model.Colour;
 
 class EasyModel implements AiModel {
-  private Strategy guessStrategy;
-  private Strategy chooseStrategy = new RandomStrategy();
-
-  @Override
-  public Colour choose() {
-    return Colour.getRandomColourForAi();
-  }
+  ChosenStatergy guessStatergy = new ChosenStatergy(new RandomStrategy());
+  ChosenStatergy chooseStatergy = new ChosenStatergy(new RandomStrategy());
 
   @Override
   public Colour guess() {
-    return Colour.getRandomColourForAi();
+    return guessStatergy.execute();
   }
 
   @Override
-  public void setStrategy(Strategy reqStrategy) {
-    this.guessStrategy = reqStrategy;
+  public Colour choose() {
+    return chooseStatergy.execute();
   }
 }
