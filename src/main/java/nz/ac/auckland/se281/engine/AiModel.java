@@ -6,4 +6,6 @@ public interface AiModel {
   Colour choose();
 
   Colour guess();
+
+  void setStrategy(Strategy reqStrategy);
 }
