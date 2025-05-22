@@ -18,7 +18,11 @@ public class Game {
   public void newGame(Difficulty difficulty, int numRounds, String[] options) {
     this.playerName = options[0];
     MessageCli.WELCOME_PLAYER.printMessage(playerName);
-    this.totalRounds = numRounds;
+    if (numRounds > 0) {
+      this.totalRounds = numRounds;
+    } else {
+      MessageCli.INVALID_ROUNDS.printMessage();
+    }
     this.currentRound = 1;
   }
 
@@ -35,26 +39,35 @@ public class Game {
         MessageCli.ASK_HUMAN_INPUT.printMessage();
         String humanInput = Utils.scanner.nextLine();
         String[] choices = humanInput.split(" ");
-        for (String choice : choices) {
-          // System.out.println(choice);
-          // System.out.println(Colour.fromInput(choice));
-          if (Colour.fromInput(choice) != null) {
-            // System.out.println("lola");
+        if (choices.length == 2) {
+          for (String choice : choices) {
+            // System.out.println(choice);
             // System.out.println(Colour.fromInput(choice));
-            chosenColours.add(Colour.fromInput(choice));
-            inputFlag = false;
-          } else {
-            // System.out.println("brub");
-            MessageCli.INVALID_HUMAN_INPUT.printMessage();
-            chosenColours.clear();
-            inputFlag = true;
-            break;
+            if (Colour.fromInput(choice) != null) {
+              // System.out.println("lola");
+              // System.out.println(Colour.fromInput(choice));
+              chosenColours.add(Colour.fromInput(choice));
+              inputFlag = false;
+            } else {
+              // System.out.println("brub");
+              MessageCli.INVALID_HUMAN_INPUT.printMessage();
+              chosenColours.clear();
+              inputFlag = true;
+              break;
+            }
           }
+        } else {
+          MessageCli.INVALID_HUMAN_INPUT.printMessage();
         }
       }
       // "Player %s: chose %s and guessed %s"
       MessageCli.PRINT_INFO_MOVE.printMessage(
           playerName, chosenColours.get(0), chosenColours.get(1));
+
+      if ((currentRound % 3) == 0) {
+        Colour powerColour = Colour.getRandomColourForPowerColour();
+        MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
+      }
       currentRound++;
     }
   }
