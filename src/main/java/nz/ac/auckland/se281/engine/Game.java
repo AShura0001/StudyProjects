@@ -1,8 +1,10 @@
 package nz.ac.auckland.se281.engine;
 
+import java.util.ArrayList;
 import nz.ac.auckland.se281.Main.Difficulty;
 import nz.ac.auckland.se281.cli.MessageCli;
 import nz.ac.auckland.se281.cli.Utils;
+import nz.ac.auckland.se281.model.Colour;
 
 public class Game {
   private Integer currentRound;
@@ -20,13 +22,25 @@ public class Game {
   }
 
   public void play() {
-    // "Starting round %s of %s:"
+    ArrayList<Colour> chosenColours = new ArrayList<>();
+    // Colour chosenColour = new Colour();
     if (currentRound != null && totalRounds != null) {
+      // "Starting round %s of %s:"
       MessageCli.START_ROUND.printMessage(currentRound, totalRounds);
-      currentRound++;
 
       MessageCli.ASK_HUMAN_INPUT.printMessage();
       String humanInput = Utils.scanner.nextLine();
+      String[] choices = humanInput.split(" ");
+      for (String choice : choices) {
+        if (Colour.fromInput(choice) != null) {
+          chosenColours.add(Colour.fromInput(choice));
+        } else {
+          MessageCli.INVALID_HUMAN_INPUT.printMessage();
+          play();
+        }
+      }
+
+      currentRound++;
     }
   }
 
