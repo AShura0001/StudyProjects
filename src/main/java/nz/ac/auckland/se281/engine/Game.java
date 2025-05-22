@@ -29,6 +29,7 @@ public class Game {
   }
 
   public void play() {
+    // <chosen colour, guessed colour>
     ArrayList<Colour> userChosenColours = new ArrayList<>();
     ArrayList<Colour> aiChosenColours = new ArrayList<>();
     // Colour chosenColour = new Colour();
@@ -77,16 +78,26 @@ public class Game {
         // "Player %s: chose %s and guessed %s"
         MessageCli.PRINT_INFO_MOVE.printMessage(
             AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
-
         MessageCli.PRINT_INFO_MOVE.printMessage(
             playerName, userChosenColours.get(0), userChosenColours.get(1));
-
       } else {
         MessageCli.PRINT_INFO_MOVE.printMessage(
             playerName, userChosenColours.get(0), userChosenColours.get(1));
-
         MessageCli.PRINT_INFO_MOVE.printMessage(
             AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
+      }
+
+      // <chosen colour, guessed colour>
+      if (userChosenColours.get(1) == aiChosenColours.get(0)) {
+        // "Player %s earned %s point(s) this round."
+        MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, 1);
+      } else {
+        MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, 0);
+      }
+      if (aiChosenColours.get(1) == userChosenColours.get(0)) {
+        MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, 1);
+      } else {
+        MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, 0);
       }
 
       currentRound++;
