@@ -11,6 +11,8 @@ public class Game {
   private Integer totalRounds;
   private String playerName;
   private Difficulty currentDifficulty;
+  private Integer userScore = 0;
+  private Integer aiScore = 0;
 
   public static String AI_NAME = "HAL-9000";
 
@@ -32,6 +34,8 @@ public class Game {
     // <chosen colour, guessed colour>
     ArrayList<Colour> userChosenColours = new ArrayList<>();
     ArrayList<Colour> aiChosenColours = new ArrayList<>();
+    Integer userPointearned = 0;
+    Integer aiPointearned = 0;
     // Colour chosenColour = new Colour();
     if (currentRound != null && totalRounds != null) {
       // "Starting round %s of %s:"
@@ -65,11 +69,6 @@ public class Game {
         }
       }
 
-      if ((currentRound % 3) == 0) {
-        Colour powerColour = Colour.getRandomColourForPowerColour();
-        MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
-      }
-
       AiModel currentModel = ModelGenerator.createModel(currentDifficulty);
       aiChosenColours.add(currentModel.choose());
       aiChosenColours.add(currentModel.guess());
@@ -88,18 +87,35 @@ public class Game {
       }
 
       // <chosen colour, guessed colour>
-      if (userChosenColours.get(1) == aiChosenColours.get(0)) {
-        // "Player %s earned %s point(s) this round."
-        MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, 1);
-      } else {
-        MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, 0);
-      }
-      if (aiChosenColours.get(1) == userChosenColours.get(0)) {
-        MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, 1);
-      } else {
-        MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, 0);
-      }
 
+      if ((currentRound % 3) == 0) {
+        Colour powerColour = Colour.getRandomColourForPowerColour();
+        MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
+        if (userChosenColours.get(1) == powerColour) {
+          if (userChosenColours.get(1) == aiChosenColours.get(0)) {
+            userPointearned = 3;
+          }
+        } else if (userChosenColours.get(1) == aiChosenColours.get(0)) {
+          userPointearned = 1;
+        }
+        if (aiChosenColours.get(1) == powerColour) {
+          if (aiChosenColours.get(1) == userChosenColours.get(0)) {
+            aiPointearned = 3;
+          }
+        } else if (aiChosenColours.get(1) == userChosenColours.get(0)) {
+          aiPointearned = 1;
+        }
+      } else {
+        if (userChosenColours.get(1) == aiChosenColours.get(0)) {
+          userPointearned = 1;
+        }
+        if (aiChosenColours.get(1) == userChosenColours.get(0)) {
+          aiPointearned = 1;
+        }
+      }
+      // "Player %s earned %s point(s) this round."
+      MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
+      MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
       currentRound++;
     }
   }
