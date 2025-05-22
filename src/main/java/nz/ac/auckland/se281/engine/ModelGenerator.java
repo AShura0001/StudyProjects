@@ -8,6 +8,8 @@ public class ModelGenerator {
     switch (difficulty) {
       case EASY:
         return new EasyModel();
+      case MEDIUM:
+        return new MediumModel();
       default:
         MessageCli.INVALID_DIFFICULTY.printMessage();
     }

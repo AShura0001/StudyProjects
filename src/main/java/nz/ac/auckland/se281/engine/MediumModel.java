@@ -3,7 +3,7 @@ package nz.ac.auckland.se281.engine;
 import java.util.ArrayList;
 import nz.ac.auckland.se281.model.Colour;
 
-public class DifficultModel implements AiModel {
+public class MediumModel implements AiModel {
   ChosenStatergy guessStatergy = new ChosenStatergy(new RandomStrategy());
   ChosenStatergy chooseStatergy = new ChosenStatergy(new RandomStrategy());
 
