@@ -9,13 +9,14 @@ import nz.ac.auckland.se281.model.Colour;
 public class Game {
   private Integer currentRound;
   private Integer totalRounds;
+  private String playerName;
 
   public static String AI_NAME = "HAL-9000";
 
   public Game() {}
 
   public void newGame(Difficulty difficulty, int numRounds, String[] options) {
-    String playerName = options[0];
+    this.playerName = options[0];
     MessageCli.WELCOME_PLAYER.printMessage(playerName);
     this.totalRounds = numRounds;
     this.currentRound = 1;
@@ -35,18 +36,25 @@ public class Game {
         String humanInput = Utils.scanner.nextLine();
         String[] choices = humanInput.split(" ");
         for (String choice : choices) {
-          System.out.println(choice);
+          // System.out.println(choice);
           // System.out.println(Colour.fromInput(choice));
           if (Colour.fromInput(choice) != null) {
-            System.out.println(Colour.fromInput(choice));
+            // System.out.println("lola");
+            // System.out.println(Colour.fromInput(choice));
             chosenColours.add(Colour.fromInput(choice));
+            inputFlag = false;
           } else {
+            // System.out.println("brub");
             MessageCli.INVALID_HUMAN_INPUT.printMessage();
             chosenColours.clear();
+            inputFlag = true;
+            break;
           }
         }
-        inputFlag = false;
       }
+      // "Player %s: chose %s and guessed %s"
+      MessageCli.PRINT_INFO_MOVE.printMessage(
+          playerName, chosenColours.get(0), chosenColours.get(1));
       currentRound++;
     }
   }
