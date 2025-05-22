@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import nz.ac.auckland.se281.model.Colour;
 
 public class ChosenStatergy {
-  Strategy chosernStrategy;
+  private Strategy chosenStrategy;
 
   public ChosenStatergy(Strategy reqStrategy) {
-    this.chosernStrategy = reqStrategy;
+    this.chosenStrategy = reqStrategy;
   }
 
   public void setStrategy(Strategy reqStrategy) {
-    this.chosernStrategy = reqStrategy;
+    this.chosenStrategy = reqStrategy;
   }
 
   public Colour execute(ArrayList<Colour> memory) {
-    return chosernStrategy.chooseColor(memory);
+    return chosenStrategy.chooseColor(memory);
   }
 }

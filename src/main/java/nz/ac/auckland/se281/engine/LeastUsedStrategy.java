@@ -14,6 +14,12 @@ public class LeastUsedStrategy implements Strategy {
     colourCount.add(0); // YELLOW
   }
 
+  private void resetColourCount() {
+    for (int i = 0; i < colourCount.size(); i++) {
+      colourCount.set(i, 0);
+    }
+  }
+
   @Override
   public Colour chooseColor(ArrayList<Colour> memory) {
     for (Colour colour : memory) {
@@ -21,13 +27,13 @@ public class LeastUsedStrategy implements Strategy {
         case RED:
           colourCount.set(0, colourCount.get(0) + 1);
           break;
-        case YELLOW:
+        case GREEN:
           colourCount.set(1, colourCount.get(1) + 1);
           break;
-        case GREEN:
+        case BLUE:
           colourCount.set(2, colourCount.get(2) + 1);
           break;
-        case BLUE:
+        case YELLOW:
           colourCount.set(3, colourCount.get(3) + 1);
           break;
       }
@@ -35,16 +41,28 @@ public class LeastUsedStrategy implements Strategy {
 
     for (int i = 0; i < colourCount.size(); i++) {
       if (colourCount.get(i) < colourCount.get(leastUsedColourIndex)) {
+        // System.out.println("triggered");
         leastUsedColourIndex = i;
       }
     }
+
+    // System.out.println("array is " + colourCount);
+    // System.out.println("leastUsedColourIndex is " + leastUsedColourIndex);
     if (leastUsedColourIndex == 0) {
+      resetColourCount();
+      leastUsedColourIndex = 0;
       return Colour.RED;
     } else if (leastUsedColourIndex == 1) {
+      resetColourCount();
+      leastUsedColourIndex = 0;
       return Colour.GREEN;
     } else if (leastUsedColourIndex == 2) {
+      resetColourCount();
+      leastUsedColourIndex = 0;
       return Colour.BLUE;
     } else {
+      resetColourCount();
+      leastUsedColourIndex = 0;
       return Colour.YELLOW;
     }
   }

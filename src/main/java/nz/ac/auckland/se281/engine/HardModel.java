@@ -14,22 +14,26 @@ public class HardModel implements AiModel {
 
   @Override
   public Colour guess(Integer currentRoundNum, ArrayList<Colour> memory, Boolean winFlag) {
+    // System.out.println("flag is" + winFlag);
     if (currentRoundNum < 3) {
       return guessStatergy.execute(memory);
     } else if (currentRoundNum == 3) {
-      guessStatergy.setStrategy(new LeastUsedStrategy());
+      this.guessStatergy.setStrategy(new LeastUsedStrategy());
       return guessStatergy.execute(memory);
     } else {
+      // if (this.guessStatergy.chosernStrategy instanceof LeastUsedStrategy) {
+      //   // System.out.println("bro");
+      // }
       if (winFlag) {
         return guessStatergy.execute(memory);
       } else {
         if (avlStratFlag) {
           avlStratFlag = false;
-          guessStatergy.setStrategy(new LeastUsedStrategy());
+          this.guessStatergy.setStrategy(new LeastUsedStrategy());
           return guessStatergy.execute(memory);
         } else {
           avlStratFlag = true;
-          guessStatergy.setStrategy(new AvoidLastStatergy());
+          this.guessStatergy.setStrategy(new AvoidLastStatergy());
           return guessStatergy.execute(memory);
         }
       }

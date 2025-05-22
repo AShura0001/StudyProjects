@@ -10,11 +10,11 @@ public class Game {
   private Integer currentRoundNum;
   private Integer totalRounds;
   private String playerName;
-  private Difficulty currentDifficulty;
   private Boolean winFlag = false;
   private Integer userScore = 0;
   private Integer aiScore = 0;
   private ArrayList<Colour> memory = new ArrayList<>();
+  AiModel currentModel;
 
   public static String AI_NAME = "HAL-9000";
 
@@ -33,7 +33,11 @@ public class Game {
       MessageCli.INVALID_ROUNDS.printMessage();
     }
     this.currentRoundNum = 1;
-    this.currentDifficulty = difficulty;
+    this.currentModel = ModelGenerator.createModel(difficulty);
+    memory.clear();
+    winFlag = false;
+    userScore = 0;
+    aiScore = 0;
   }
 
   public void play() {
@@ -75,8 +79,6 @@ public class Game {
         }
       }
       // System.out.println("yesssss");
-
-      AiModel currentModel = ModelGenerator.createModel(currentDifficulty);
       aiChosenColours.add(currentModel.choose());
       aiChosenColours.add(currentModel.guess(currentRoundNum, memory, winFlag));
       // System.out.println("sirrrr");
@@ -108,11 +110,9 @@ public class Game {
         if (aiChosenColours.get(1) == powerColour) {
           if (aiChosenColours.get(1) == userChosenColours.get(0)) {
             aiPointearned = 3;
-            winFlag = true;
           }
         } else if (aiChosenColours.get(1) == userChosenColours.get(0)) {
           aiPointearned = 1;
-          winFlag = true;
         }
       } else {
         if (userChosenColours.get(1) == aiChosenColours.get(0)) {
@@ -120,13 +120,18 @@ public class Game {
         }
         if (aiChosenColours.get(1) == userChosenColours.get(0)) {
           aiPointearned = 1;
-          winFlag = true;
         }
+      }
+
+      if (aiPointearned != 0) {
+        winFlag = true;
+      } else {
+        winFlag = false;
       }
       // "Player %s earned %s point(s) this round."
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
-      System.out.println("sry for inappropriate comment");
+      // System.out.println("sry for inappropriate comment");
       memory.add(userChosenColours.get(0));
       // System.out.println("sry2");
       currentRoundNum++;
