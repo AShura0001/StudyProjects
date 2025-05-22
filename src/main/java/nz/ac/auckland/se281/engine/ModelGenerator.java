@@ -10,6 +10,8 @@ public class ModelGenerator {
         return new EasyModel();
       case MEDIUM:
         return new MediumModel();
+      case HARD:
+        return new HardModel();
       default:
         MessageCli.INVALID_DIFFICULTY.printMessage();
     }
