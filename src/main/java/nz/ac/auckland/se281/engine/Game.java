@@ -27,19 +27,26 @@ public class Game {
     if (currentRound != null && totalRounds != null) {
       // "Starting round %s of %s:"
       MessageCli.START_ROUND.printMessage(currentRound, totalRounds);
+      Boolean inputFlag = false;
 
-      MessageCli.ASK_HUMAN_INPUT.printMessage();
-      String humanInput = Utils.scanner.nextLine();
-      String[] choices = humanInput.split(" ");
-      for (String choice : choices) {
-        if (Colour.fromInput(choice) != null) {
-          chosenColours.add(Colour.fromInput(choice));
-        } else {
-          MessageCli.INVALID_HUMAN_INPUT.printMessage();
-          play();
+      inputFlag = true;
+      while (inputFlag) {
+        MessageCli.ASK_HUMAN_INPUT.printMessage();
+        String humanInput = Utils.scanner.nextLine();
+        String[] choices = humanInput.split(" ");
+        for (String choice : choices) {
+          System.out.println(choice);
+          // System.out.println(Colour.fromInput(choice));
+          if (Colour.fromInput(choice) != null) {
+            System.out.println(Colour.fromInput(choice));
+            chosenColours.add(Colour.fromInput(choice));
+          } else {
+            MessageCli.INVALID_HUMAN_INPUT.printMessage();
+            chosenColours.clear();
+          }
         }
+        inputFlag = false;
       }
-
       currentRound++;
     }
   }
