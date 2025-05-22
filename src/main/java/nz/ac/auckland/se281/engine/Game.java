@@ -7,16 +7,21 @@ import nz.ac.auckland.se281.cli.Utils;
 import nz.ac.auckland.se281.model.Colour;
 
 public class Game {
-  private Integer currentRound;
+  private Integer currentRoundNum;
   private Integer totalRounds;
   private String playerName;
   private Difficulty currentDifficulty;
   private Integer userScore = 0;
   private Integer aiScore = 0;
+  private ArrayList<Colour> memorry = new ArrayList<>();
 
   public static String AI_NAME = "HAL-9000";
 
   public Game() {}
+
+  public Integer getCurrentRoundNum() {
+    return currentRoundNum;
+  }
 
   public void newGame(Difficulty difficulty, int numRounds, String[] options) {
     this.playerName = options[0];
@@ -26,7 +31,7 @@ public class Game {
     } else {
       MessageCli.INVALID_ROUNDS.printMessage();
     }
-    this.currentRound = 1;
+    this.currentRoundNum = 1;
     this.currentDifficulty = difficulty;
   }
 
@@ -37,9 +42,9 @@ public class Game {
     Integer userPointearned = 0;
     Integer aiPointearned = 0;
     // Colour chosenColour = new Colour();
-    if (currentRound != null && totalRounds != null) {
+    if (currentRoundNum != null && totalRounds != null) {
       // "Starting round %s of %s:"
-      MessageCli.START_ROUND.printMessage(currentRound, totalRounds);
+      MessageCli.START_ROUND.printMessage(currentRoundNum, totalRounds);
       Boolean inputFlag = false;
 
       inputFlag = true;
@@ -71,9 +76,9 @@ public class Game {
 
       AiModel currentModel = ModelGenerator.createModel(currentDifficulty);
       aiChosenColours.add(currentModel.choose());
-      aiChosenColours.add(currentModel.guess());
+      aiChosenColours.add(currentModel.guess(currentRoundNum, memorry));
 
-      if ((currentRound % 2) == 0) {
+      if ((currentRoundNum % 2) == 0) {
         // "Player %s: chose %s and guessed %s"
         MessageCli.PRINT_INFO_MOVE.printMessage(
             AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
@@ -88,7 +93,7 @@ public class Game {
 
       // <chosen colour, guessed colour>
 
-      if ((currentRound % 3) == 0) {
+      if ((currentRoundNum % 3) == 0) {
         Colour powerColour = Colour.getRandomColourForPowerColour();
         MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
         if (userChosenColours.get(1) == powerColour) {
@@ -116,7 +121,11 @@ public class Game {
       // "Player %s earned %s point(s) this round."
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
       MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
-      currentRound++;
+      System.out.println("kys");
+      memorry.add(userChosenColours.get(0));
+      System.out.println("fuck me");
+      currentRoundNum++;
+      System.out.println("fuck you");
     }
   }
 
