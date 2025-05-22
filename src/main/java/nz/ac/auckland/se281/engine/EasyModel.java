@@ -12,7 +12,7 @@ class EasyModel implements AiModel {
   }
 
   @Override
-  public Colour guess(Integer currentRoundNum, ArrayList<Colour> memory) {
+  public Colour guess(Integer currentRoundNum, ArrayList<Colour> memory, Boolean winFlag) {
     return guessStatergy.execute(memory);
   }
 }

@@ -12,7 +12,7 @@ public class MediumModel implements AiModel {
   }
 
   @Override
-  public Colour guess(Integer currentRoundNum, ArrayList<Colour> memory) {
+  public Colour guess(Integer currentRoundNum, ArrayList<Colour> memory, Boolean winFlag) {
     if (currentRoundNum < 2) {
       return guessStatergy.execute(memory);
     } else {

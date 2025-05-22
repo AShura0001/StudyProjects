@@ -9,9 +9,9 @@ public class LeastUsedStrategy implements Strategy {
 
   public LeastUsedStrategy() {
     colourCount.add(0); // RED
-    colourCount.add(0); // YELLOW
     colourCount.add(0); // GREEN
     colourCount.add(0); // BLUE
+    colourCount.add(0); // YELLOW
   }
 
   @Override
@@ -41,11 +41,11 @@ public class LeastUsedStrategy implements Strategy {
     if (leastUsedColourIndex == 0) {
       return Colour.RED;
     } else if (leastUsedColourIndex == 1) {
-      return Colour.YELLOW;
-    } else if (leastUsedColourIndex == 2) {
       return Colour.GREEN;
-    } else {
+    } else if (leastUsedColourIndex == 2) {
       return Colour.BLUE;
+    } else {
+      return Colour.YELLOW;
     }
   }
 }
