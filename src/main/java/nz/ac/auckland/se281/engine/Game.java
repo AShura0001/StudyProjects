@@ -10,6 +10,7 @@ public class Game {
   private Integer currentRound;
   private Integer totalRounds;
   private String playerName;
+  private Difficulty currentDifficulty;
 
   public static String AI_NAME = "HAL-9000";
 
@@ -24,10 +25,12 @@ public class Game {
       MessageCli.INVALID_ROUNDS.printMessage();
     }
     this.currentRound = 1;
+    this.currentDifficulty = difficulty;
   }
 
   public void play() {
-    ArrayList<Colour> chosenColours = new ArrayList<>();
+    ArrayList<Colour> userChosenColours = new ArrayList<>();
+    ArrayList<Colour> aiChosenColours = new ArrayList<>();
     // Colour chosenColour = new Colour();
     if (currentRound != null && totalRounds != null) {
       // "Starting round %s of %s:"
@@ -46,12 +49,12 @@ public class Game {
             if (Colour.fromInput(choice) != null) {
               // System.out.println("lola");
               // System.out.println(Colour.fromInput(choice));
-              chosenColours.add(Colour.fromInput(choice));
+              userChosenColours.add(Colour.fromInput(choice));
               inputFlag = false;
             } else {
               // System.out.println("brub");
               MessageCli.INVALID_HUMAN_INPUT.printMessage();
-              chosenColours.clear();
+              userChosenColours.clear();
               inputFlag = true;
               break;
             }
@@ -60,14 +63,32 @@ public class Game {
           MessageCli.INVALID_HUMAN_INPUT.printMessage();
         }
       }
-      // "Player %s: chose %s and guessed %s"
-      MessageCli.PRINT_INFO_MOVE.printMessage(
-          playerName, chosenColours.get(0), chosenColours.get(1));
 
       if ((currentRound % 3) == 0) {
         Colour powerColour = Colour.getRandomColourForPowerColour();
         MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
       }
+
+      AiModel currentModel = ModelGenerator.createModel(currentDifficulty);
+      aiChosenColours.add(currentModel.choose());
+      aiChosenColours.add(currentModel.guess());
+
+      if ((currentRound % 2) == 0) {
+        // "Player %s: chose %s and guessed %s"
+        MessageCli.PRINT_INFO_MOVE.printMessage(
+            AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
+
+        MessageCli.PRINT_INFO_MOVE.printMessage(
+            playerName, userChosenColours.get(0), userChosenColours.get(1));
+
+      } else {
+        MessageCli.PRINT_INFO_MOVE.printMessage(
+            playerName, userChosenColours.get(0), userChosenColours.get(1));
+
+        MessageCli.PRINT_INFO_MOVE.printMessage(
+            AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
+      }
+
       currentRound++;
     }
   }
