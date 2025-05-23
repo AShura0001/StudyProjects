@@ -7,21 +7,21 @@ import nz.ac.auckland.se281.cli.Utils;
 import nz.ac.auckland.se281.model.Colour;
 
 public class Game {
-  private Integer currentRoundNum;
-  private Integer totalRounds;
-  private String playerName;
-  private Boolean winFlag = false;
-  private Boolean gameOn = false;
-  private Integer userScore = 0;
-  private Integer aiScore = 0;
-  private ArrayList<Colour> memory = new ArrayList<>();
-  AiModel currentModel;
 
   public static String AI_NAME = "HAL-9000";
 
-  public Game() {}
+  private AiModel currentModel;
+  private ArrayList<Colour> memory = new ArrayList<>(); // Stores players moves locally
+  private Boolean gameOn = false;
+  private Boolean winFlag = false;
+  private Integer aiScore = 0;
+  private Integer currentRoundNum;
+  private Integer totalRounds;
+  private Integer userScore = 0;
+  private String playerName;
 
   private void endResult() {
+    // Prints the final score and the winner
     MessageCli.PRINT_PLAYER_POINTS.printMessage(playerName, userScore);
     MessageCli.PRINT_PLAYER_POINTS.printMessage(AI_NAME, aiScore);
     MessageCli.PRINT_END_GAME.printMessage();
@@ -35,15 +35,21 @@ public class Game {
   }
 
   public void newGame(Difficulty difficulty, int numRounds, String[] options) {
+    // Starts a new game with given parameters
     this.playerName = options[0];
     MessageCli.WELCOME_PLAYER.printMessage(playerName);
     if (numRounds > 0) {
+      // ensure that the number of rounds is a positive integer
+      // Apparently its implemeted from the start and we don't need to check it
       this.totalRounds = numRounds;
     } else {
       MessageCli.INVALID_ROUNDS.printMessage();
     }
+    // Either Initializes the following varaibles
+    // or resets them for a new game as per the requirements
     this.currentRoundNum = 1;
     this.currentModel = ModelGenerator.createModel(difficulty);
+    // Player moves are reset for a new game
     memory.clear();
     winFlag = false;
     userScore = 0;
@@ -52,37 +58,44 @@ public class Game {
   }
 
   public void play() {
+    // plays a round of the game
     if (gameOn) {
+      // Only plays a round if the game is on
       // <chosen colour, guessed colour>
       ArrayList<Colour> userChosenColours = new ArrayList<>();
       ArrayList<Colour> aiChosenColours = new ArrayList<>();
       Integer userPointearned = 0;
       Integer aiPointearned = 0;
       // Colour chosenColour = new Colour();
+      // Checks if curentRoundNum and totalRounds are valid
       if (currentRoundNum != null && totalRounds != null) {
         // "Starting round %s of %s:"
         MessageCli.START_ROUND.printMessage(currentRoundNum, totalRounds);
-        Boolean inputFlag = false;
+        // local flag to make while loop work, so that player can input
+        // invalid input as many times until valid input is given
+        Boolean inputFlag = true;
 
-        inputFlag = true;
         while (inputFlag) {
           MessageCli.ASK_HUMAN_INPUT.printMessage();
+          // Reads the input from the user
           String humanInput = Utils.scanner.nextLine();
           String[] choices = humanInput.split(" ");
           if (choices.length == 2) {
             for (String choice : choices) {
-              // System.out.println(choice);
-              // System.out.println(Colour.fromInput(choice));
               if (Colour.fromInput(choice) != null) {
-                // System.out.println("lola");
-                // System.out.println(Colour.fromInput(choice));
+                // If input is valid, turn flag off since till now no
+                // invalid input was given and new inputs are not required
                 userChosenColours.add(Colour.fromInput(choice));
                 inputFlag = false;
               } else {
-                // System.out.println("brub");
+                // Invalid input found.
+                // turn the flag on since we required new inputs
+                // clear the prior inputs incase one of them was valid and stored
                 MessageCli.INVALID_HUMAN_INPUT.printMessage();
                 userChosenColours.clear();
                 inputFlag = true;
+                // for loop is broken at the first invalid input to ensure the second
+                // input is not checked
                 break;
               }
             }
@@ -90,10 +103,13 @@ public class Game {
             MessageCli.INVALID_HUMAN_INPUT.printMessage();
           }
         }
-        // System.out.println("yesssss");
+
+        // calls the moves from respective ai model and stored
+        // as current round's ai moves.
         aiChosenColours.add(currentModel.choose());
         aiChosenColours.add(currentModel.guess(currentRoundNum, memory, winFlag));
-        // System.out.println("sirrrr");
+
+        // formats the moves based on who had turn (unnecessary)
         if ((currentRoundNum % 2) == 0) {
           // "Player %s: chose %s and guessed %s"
           MessageCli.PRINT_INFO_MOVE.printMessage(
@@ -107,11 +123,14 @@ public class Game {
               AI_NAME, aiChosenColours.get(0), aiChosenColours.get(1));
         }
 
+        // checks if it is a 3rd round
         // <chosen colour, guessed colour>
-
         if ((currentRoundNum % 3) == 0) {
+          // chooses a random power colour for current round
           Colour powerColour = Colour.getRandomColourForPowerColour();
           MessageCli.PRINT_POWER_COLOUR.printMessage(powerColour);
+          // checks if the power colour is same as guessed colour for both ai and user
+          // seperately and assigns points accordingly.
           if (userChosenColours.get(1) == powerColour) {
             if (userChosenColours.get(1) == aiChosenColours.get(0)) {
               userPointearned = 3;
@@ -127,6 +146,7 @@ public class Game {
             aiPointearned = 1;
           }
         } else {
+          // checks if guessed colour is right but not a power colour round.
           if (userChosenColours.get(1) == aiChosenColours.get(0)) {
             userPointearned = 1;
           }
@@ -135,33 +155,38 @@ public class Game {
           }
         }
 
+        // updates the stats of the game
         userScore += userPointearned;
         aiScore += aiPointearned;
+        // stores the result for ai for each round which might be needed if
+        // the ai model is set to hard, as the strategy switches on a loss after 3 round.
         if (aiPointearned != 0) {
           winFlag = true;
         } else {
           winFlag = false;
         }
+        // prints the result of each individual round.
         // "Player %s earned %s point(s) this round."
         MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
         MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
-        // System.out.println("sry for inappropriate comment");
         memory.add(userChosenColours.get(0));
-        // System.out.println("sry2");
         if (currentRoundNum == totalRounds) {
+          // if last round is reached, ends game and prints the final result.
           endResult();
           gameOn = false;
         } else {
+          // if not, then passes to next round.
           currentRoundNum++;
         }
-        // System.out.println("sry3");
       }
     } else {
+      // If game is not started, play cannot be called
       MessageCli.GAME_NOT_STARTED.printMessage();
     }
   }
 
   public void showStats() {
+    // Prints current stats of the game only if the game is on
     if (gameOn) {
       // "Player %s has %s point(s)."
       MessageCli.PRINT_PLAYER_POINTS.printMessage(playerName, userScore);

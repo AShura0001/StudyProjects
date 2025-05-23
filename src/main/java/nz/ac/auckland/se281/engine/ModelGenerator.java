@@ -4,6 +4,8 @@ import nz.ac.auckland.se281.Main.Difficulty;
 import nz.ac.auckland.se281.cli.MessageCli;
 
 public class ModelGenerator {
+  // This class is used to generate the AI model based on the difficulty level.
+  // Basically instantiates the model and returns it.
   public static AiModel createModel(Difficulty difficulty) {
     switch (difficulty) {
       case EASY:
@@ -14,7 +16,7 @@ public class ModelGenerator {
         return new HardModel();
       default:
         MessageCli.INVALID_DIFFICULTY.printMessage();
+        return null;
     }
-    return null;
   }
 }

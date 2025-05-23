@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import nz.ac.auckland.se281.model.Colour;
 
 public class ChosenStatergy {
+  // This class creates a strategy object and also allows to switch 
+  // during runtime between different strategies.
   private Strategy chosenStrategy;
 
   public ChosenStatergy(Strategy reqStrategy) {
+    // Constructor to set the initial strategy
     this.chosenStrategy = reqStrategy;
   }
 
