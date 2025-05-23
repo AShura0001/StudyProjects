@@ -78,7 +78,11 @@ public class Game {
           MessageCli.ASK_HUMAN_INPUT.printMessage();
           // Reads the input from the user
           String humanInput = Utils.scanner.nextLine();
-          String[] choices = humanInput.split(" ");
+          // removes any leading or trailing whitespace
+          humanInput = humanInput.trim();
+          // Splits the input into two parts with regex set
+          // as one or more whitespace.
+          String[] choices = humanInput.split("\\s+");
           if (choices.length == 2) {
             for (String choice : choices) {
               if (Colour.fromInput(choice) != null) {
@@ -169,7 +173,9 @@ public class Game {
         MessageCli.PRINT_OUTCOME_ROUND.printMessage(playerName, userPointearned);
         MessageCli.PRINT_OUTCOME_ROUND.printMessage(AI_NAME, aiPointearned);
         memory.add(userChosenColours.get(0));
-        if (currentRoundNum == totalRounds) {
+        // cannot perform currentRoundNum == totalRounds as it is an Integer
+        // and values outside the range of -128 to 127 are not cached
+        if (currentRoundNum.equals(totalRounds)) {
           // if last round is reached, ends game and prints the final result.
           endResult();
           gameOn = false;
