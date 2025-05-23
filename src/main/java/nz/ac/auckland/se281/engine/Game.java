@@ -66,7 +66,6 @@ public class Game {
       ArrayList<Colour> aiChosenColours = new ArrayList<>();
       Integer userPointearned = 0;
       Integer aiPointearned = 0;
-      // Colour chosenColour = new Colour();
       // Checks if curentRoundNum and totalRounds are valid
       if (currentRoundNum != null && totalRounds != null) {
         // "Starting round %s of %s:"
