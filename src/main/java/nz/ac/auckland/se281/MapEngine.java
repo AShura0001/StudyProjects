@@ -53,7 +53,7 @@ public class MapEngine {
             riskMap.getNeighbours(chosenCountry).toString());
         validInputflag = true;
       } catch (InvalidCountryException invalidInput) {
-        invalidInput.getMessage();
+        System.out.println(invalidInput.getMessage());
       }
     }
   }
@@ -67,7 +67,7 @@ public class MapEngine {
     if (countriesRefMap.containsKey(userInput)) {
       return countriesRefMap.get(userInput);
     } else {
-      throw new InvalidCountryException();
+      throw new InvalidCountryException(userInput);
     }
   }
 }
