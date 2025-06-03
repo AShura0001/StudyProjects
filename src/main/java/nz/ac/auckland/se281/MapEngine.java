@@ -39,9 +39,8 @@ public class MapEngine {
   }
 
   /** this method is invoked when the user run the command info-country. */
-  Boolean validInputflag = false;
-
   public void showInfoCountry() {
+    Boolean validInputflag = false;
     while (!validInputflag) {
       try {
         Country chosenCountry = readInputCountry();
