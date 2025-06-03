@@ -1,5 +1,6 @@
 package nz.ac.auckland.se281;
 
+import java.util.Arrays;
 import java.util.List;
 
 /** This class is the main entry point. */
@@ -15,6 +16,14 @@ public class MapEngine {
 
     List<String> countries = Utils.readCountries();
     List<String> adjacencies = Utils.readAdjacencies();
+    for (String country : countries) {
+      String[] countryDetails = country.split(",");
+      Country tempCountry =
+          new Country(countryDetails[0], countryDetails[1], Integer.valueOf(countryDetails[2]));
+      for (String individualAdj : adjacencies) {
+        if (Arrays.asList(individualAdj.split(",")).contains(tempCountry.getName())) {}
+      }
+    }
   }
 
   /** this method is invoked when the user run the command info-country. */
