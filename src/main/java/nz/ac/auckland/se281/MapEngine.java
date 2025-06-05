@@ -89,8 +89,12 @@ public class MapEngine {
 
       List<String> transitContinentsString = new ArrayList<>();
       for (String visitedContinet : orderedVisitedContinents) {
-        transitContinentsString.add(
-            visitedContinet + " (" + transitContinents.get(visitedContinet) + ")");
+        String continentInfo =
+            visitedContinet + " (" + transitContinents.get(visitedContinet) + ")";
+        transitContinentsString.add(continentInfo);
+        if (visitedContinet.equals(highestFuelContinent)) {
+          highestFuelContinent = continentInfo;
+        }
       }
 
       // for (Country onRouteCountry : fastestRoute) {
@@ -118,7 +122,7 @@ public class MapEngine {
       // "You will visit the following continents: %s"
       MessageCli.CONTINENT_INFO.printMessage(transitContinentsString.toString());
       // "The continent where you will spend the most fuel is: %s"
-      MessageCli.FUEL_CONTINENT_INFO.printMessage(highestFuelContinent.toString());
+      MessageCli.FUEL_CONTINENT_INFO.printMessage(highestFuelContinent);
     } else {
       MessageCli.NO_CROSSBORDER_TRAVEL.printMessage();
     }
