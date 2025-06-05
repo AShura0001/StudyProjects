@@ -56,18 +56,49 @@ public class MapEngine {
 
     if (startCountry != endCountry) {
       Integer fuelReq = 0;
+      Integer highestFuelContinentCounter = 0;
+      String highestFuelContinent = new String();
       HashMap<String, Integer> transitContinents = new HashMap<>();
+
+      List<String> fastestRouteStringList = new ArrayList<>();
       List<Country> fastestRoute = riskMap.getFastestRouteBFS(startCountry, endCountry);
-      for (Integer transitIndex = 1; transitIndex < fastestRoute.size() - 1; transitIndex++) {
-        Country transitCountry = fastestRoute.get(transitIndex);
-        fuelReq += transitCountry.getFuel();
-        // not assigning temp values to be memory efficient.
-        transitContinents.put(
-            transitCountry.getContinent(),
-            transitContinents.getOrDefault(transitCountry.getContinent(), 0)
-                + transitCountry.getFuel());
+
+      for (Country onRouteCountry : fastestRoute) {
+        fastestRouteStringList.add(onRouteCountry.getName());
+        if (onRouteCountry != startCountry && onRouteCountry != endCountry) {
+          fuelReq += onRouteCountry.getFuel();
+          // not assigning temp values to be memory efficient.
+          transitContinents.put(
+              onRouteCountry.getContinent(),
+              transitContinents.getOrDefault(onRouteCountry.getContinent(), 0)
+                  + onRouteCountry.getFuel());
+          if (transitContinents.get(onRouteCountry.getContinent()) > highestFuelContinentCounter) {
+            highestFuelContinent = onRouteCountry.getContinent();
+            highestFuelContinentCounter = transitContinents.get(onRouteCountry.getContinent());
+          }
+        }
       }
 
+      // for (Country onRouteCountry : fastestRoute) {
+      //   fastestRouteStringList.add(onRouteCountry.getName());
+      // }
+
+      // for (Integer transitIndex = 1; transitIndex < fastestRoute.size() - 1; transitIndex++) {
+      //   Country transitCountry = fastestRoute.get(transitIndex);
+      //   fuelReq += transitCountry.getFuel();
+      //   // not assigning temp values to be memory efficient.
+      //   transitContinents.put(
+      //       transitCountry.getContinent(),
+      //       transitContinents.getOrDefault(transitCountry.getContinent(), 0)
+      //           + transitCountry.getFuel());
+      //   if (transitContinents.get(transitCountry.getContinent())> highestFuelContinentCounter){
+      //     highestFuelContinent = transitCountry.getContinent();
+      //     highestFuelContinentCounter = transitContinents.get(transitCountry.getContinent());
+      //   }
+      // }
+
+      // "The fastest route is: %s"
+      MessageCli.ROUTE_INFO.printMessage(fastestRouteStringList.toString());
     } else {
       MessageCli.NO_CROSSBORDER_TRAVEL.printMessage();
     }
