@@ -99,6 +99,12 @@ public class MapEngine {
 
       // "The fastest route is: %s"
       MessageCli.ROUTE_INFO.printMessage(fastestRouteStringList.toString());
+      // "You will spend this amount of fuel for your journey: %s units"
+      MessageCli.FUEL_INFO.printMessage(fuelReq.toString());
+      // "You will visit the following continents: %s"
+      MessageCli.CONTINENT_INFO.printMessage(transitContinents.keySet().toString());
+      // "The continent where you will spend the most fuel is: %s"
+      MessageCli.FUEL_CONTINENT_INFO.printMessage(highestFuelContinent.toString());
     } else {
       MessageCli.NO_CROSSBORDER_TRAVEL.printMessage();
     }
