@@ -79,11 +79,11 @@ public class MapEngine {
           if (transitContinents.get(onRouteCountry.getContinent()) > highestFuelContinentCounter) {
             highestFuelContinent = onRouteCountry.getContinent();
             highestFuelContinentCounter = transitContinents.get(onRouteCountry.getContinent());
-          } else {
-            transitContinents.put(
-                onRouteCountry.getContinent(),
-                transitContinents.getOrDefault(onRouteCountry.getContinent(), 0));
           }
+        } else {
+          transitContinents.put(
+              onRouteCountry.getContinent(),
+              transitContinents.getOrDefault(onRouteCountry.getContinent(), 0));
         }
       }
 
