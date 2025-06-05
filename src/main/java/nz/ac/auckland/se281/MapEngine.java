@@ -2,7 +2,9 @@ package nz.ac.auckland.se281;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /** This class is the main entry point. */
 public class MapEngine {
@@ -59,12 +61,14 @@ public class MapEngine {
       Integer highestFuelContinentCounter = 0;
       String highestFuelContinent = new String();
       HashMap<String, Integer> transitContinents = new HashMap<>();
+      Set<String> orderedVisitedContinents = new LinkedHashSet<>();
 
       List<String> fastestRouteStringList = new ArrayList<>();
       List<Country> fastestRoute = riskMap.getFastestRouteBFS(startCountry, endCountry);
 
       for (Country onRouteCountry : fastestRoute) {
         fastestRouteStringList.add(onRouteCountry.getName());
+        orderedVisitedContinents.add(onRouteCountry.getContinent());
         if (onRouteCountry != startCountry && onRouteCountry != endCountry) {
           fuelReq += onRouteCountry.getFuel();
           // not assigning temp values to be memory efficient.
@@ -75,8 +79,18 @@ public class MapEngine {
           if (transitContinents.get(onRouteCountry.getContinent()) > highestFuelContinentCounter) {
             highestFuelContinent = onRouteCountry.getContinent();
             highestFuelContinentCounter = transitContinents.get(onRouteCountry.getContinent());
+          } else {
+            transitContinents.put(
+                onRouteCountry.getContinent(),
+                transitContinents.getOrDefault(onRouteCountry.getContinent(), 0));
           }
         }
+      }
+
+      List<String> transitContinentsString = new ArrayList<>();
+      for (String visitedContinet : orderedVisitedContinents) {
+        transitContinentsString.add(
+            visitedContinet + " (" + transitContinents.get(visitedContinet) + ")");
       }
 
       // for (Country onRouteCountry : fastestRoute) {
@@ -102,7 +116,7 @@ public class MapEngine {
       // "You will spend this amount of fuel for your journey: %s units"
       MessageCli.FUEL_INFO.printMessage(fuelReq.toString());
       // "You will visit the following continents: %s"
-      MessageCli.CONTINENT_INFO.printMessage(transitContinents.keySet().toString());
+      MessageCli.CONTINENT_INFO.printMessage(transitContinentsString.toString());
       // "The continent where you will spend the most fuel is: %s"
       MessageCli.FUEL_CONTINENT_INFO.printMessage(highestFuelContinent.toString());
     } else {
