@@ -59,7 +59,8 @@ public class MapEngine {
     if (startCountry != endCountry) {
       Integer fuelReq = 0;
       Integer highestFuelContinentCounter = 0;
-      String highestFuelContinent = new String();
+      String highestFuelContinent =
+          startCountry.getContinent(); // initializes with start country's 0 fuel consumption
       HashMap<String, Integer> transitContinents = new HashMap<>();
       Set<String> orderedVisitedContinents = new LinkedHashSet<>();
 
