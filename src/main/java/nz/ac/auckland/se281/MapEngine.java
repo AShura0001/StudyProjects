@@ -40,27 +40,33 @@ public class MapEngine {
 
   /** this method is invoked when the user run the command info-country. */
   public void showInfoCountry() {
-    Boolean validInputflag = false;
-    while (!validInputflag) {
+    Country chosenCountry = verifiedCountry();
+    // "%s => continent: %s, fuel cost: %s, neighbours: %s"
+    MessageCli.COUNTRY_INFO.printMessage(
+        chosenCountry.getName(),
+        chosenCountry.getContinent(),
+        chosenCountry.getFuel().toString(),
+        riskMap.getNeighbours(chosenCountry).toString());
+  }
+
+  /** this method is invoked when the user run the command route. */
+  public void showRoute() {
+    Country startCountry = verifiedCountry(); // First valid input on the input stream
+    Country endCountry = verifiedCountry(); // Next valid input on the input stream
+  }
+
+  // New methods;
+  private Country verifiedCountry() {
+    while (true) {
       try {
-        Country chosenCountry = readInputCountry();
-        // "%s => continent: %s, fuel cost: %s, neighbours: %s"
-        MessageCli.COUNTRY_INFO.printMessage(
-            chosenCountry.getName(),
-            chosenCountry.getContinent(),
-            chosenCountry.getFuel().toString(),
-            riskMap.getNeighbours(chosenCountry).toString());
-        validInputflag = true;
+        return readInputCountry();
       } catch (InvalidCountryException invalidInput) {
         System.out.println(invalidInput.getMessage());
       }
     }
   }
 
-  /** this method is invoked when the user run the command route. */
-  public void showRoute() {}
-
-  public Country readInputCountry() throws InvalidCountryException {
+  private Country readInputCountry() throws InvalidCountryException {
     String userInput = Utils.scanner.nextLine();
     userInput = Utils.capitalizeFirstLetterOfEachWord(userInput);
     if (countriesRefMap.containsKey(userInput)) {
