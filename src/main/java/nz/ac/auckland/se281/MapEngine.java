@@ -53,6 +53,24 @@ public class MapEngine {
   public void showRoute() {
     Country startCountry = verifiedCountry(); // First valid input on the input stream
     Country endCountry = verifiedCountry(); // Next valid input on the input stream
+
+    if (startCountry != endCountry) {
+      Integer fuelReq = 0;
+      HashMap<String, Integer> transitContinents = new HashMap<>();
+      List<Country> fastestRoute = riskMap.getFastestRouteBFS(startCountry, endCountry);
+      for (Integer transitIndex = 1; transitIndex < fastestRoute.size() - 1; transitIndex++) {
+        Country transitCountry = fastestRoute.get(transitIndex);
+        fuelReq += transitCountry.getFuel();
+        // not assigning temp values to be memory efficient.
+        transitContinents.put(
+            transitCountry.getContinent(),
+            transitContinents.getOrDefault(transitCountry.getContinent(), 0)
+                + transitCountry.getFuel());
+      }
+
+    } else {
+      MessageCli.NO_CROSSBORDER_TRAVEL.printMessage();
+    }
   }
 
   // New methods;
