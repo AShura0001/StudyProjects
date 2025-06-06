@@ -32,7 +32,7 @@ public class Graph {
     return neighbourSet;
   }
 
-  public List<Country> getFastestRouteBFS(Country startCountry, Country endCountry) {
+  public List<Country> getFastestRouteBfs(Country startCountry, Country endCountry) {
     // A modified BFS algorithm to find the fastest route between two countries
     List<Country> visited = new ArrayList<>();
     Queue<Country> queue = new LinkedList<>();
