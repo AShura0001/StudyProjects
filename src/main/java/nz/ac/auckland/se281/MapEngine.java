@@ -83,7 +83,7 @@ public class MapEngine {
 
       List<String> fastestRouteStringList = new ArrayList<>();
       // BFS algorithm to find the fastest route between start and end country.
-      List<Country> fastestRoute = riskMap.getFastestRouteBFS(startCountry, endCountry);
+      List<Country> fastestRoute = riskMap.getFastestRouteBfs(startCountry, endCountry);
 
       for (Country onRouteCountry : fastestRoute) {
         // adds to the string list/set to be used for printing later.
