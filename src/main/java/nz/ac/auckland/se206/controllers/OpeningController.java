@@ -4,14 +4,12 @@ import java.io.IOException;
 
 // nz.ac.auckland.se206.controllers.OpeningController
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Rectangle;
 import nz.ac.auckland.se206.App;
-import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.GameTimer;
 
 public class OpeningController {
@@ -22,7 +20,6 @@ public class OpeningController {
   @FXML private Label timerCounter;
   @FXML private Button submitBtn;
 
-  private static GameStateContext context = new GameStateContext();
 
   @FXML
   public void initialize() {
