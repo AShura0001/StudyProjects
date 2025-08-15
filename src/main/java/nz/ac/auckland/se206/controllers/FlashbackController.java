@@ -41,6 +41,8 @@ public class FlashbackController {
   @FXML
   public void initialize() throws ApiProxyException {
     // Any required initialization code can be placed here
+    flashbackTxt.setEditable(false);
+    flashbackTxt.setWrapText(true);
   }
 
   /**
