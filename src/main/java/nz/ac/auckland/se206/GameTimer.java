@@ -93,6 +93,17 @@ public class GameTimer {
   /** Stop the timer */
   public void stop() {
     isRunning = false;
+    scheduler.shutdownNow();
+  }
+
+  public void forceTimeUp() {
+    isRunning = false;
+    scheduler.shutdownNow();
+    // Update all subscribers to show TIME UP
+    Platform.runLater(
+        () -> {
+          subscribers.values().forEach(callback -> callback.accept("TIME UP!"));
+        });
   }
 
   /** Reset timer to initial value */

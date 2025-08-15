@@ -41,8 +41,7 @@ public class VerdictController {
       choiceMade = true;
       result.setText("You made the wrong judgement!");
       showExplanation();
-      GameTimer.getInstance().stop();
-      timerCounter.setText("TIME UP!");
+      GameTimer.getInstance().forceTimeUp();
     }
   }
 
@@ -52,8 +51,7 @@ public class VerdictController {
       choiceMade = true;
       result.setText("You made the correct judgement!");
       showExplanation();
-      GameTimer.getInstance().stop();
-      timerCounter.setText("TIME UP!");
+      GameTimer.getInstance().forceTimeUp();
     }
   }
 
