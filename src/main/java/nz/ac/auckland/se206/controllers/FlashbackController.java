@@ -12,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionRequest;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionRequest.Model;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionResult;
@@ -31,7 +32,12 @@ public class FlashbackController {
   @FXML private Button btnSend;
   @FXML private Button goBackBtn;
   @FXML private Label timerCounter;
+  @FXML private Button evidenceBtn;
+  @FXML private ImageView evidence1;
+  @FXML private ImageView evidence2;
+  @FXML private ImageView evidence3;
 
+  private boolean evidenceVisible = false;
   private ChatCompletionRequest chatCompletionRequest;
   private String participant;
 
@@ -75,6 +81,18 @@ public class FlashbackController {
    */
   public void setParticipant(String participant) {
     this.participant = participant;
+
+    if ("aiDefendantRect".equals(participant)) {
+      evidenceBtn.setVisible(true);
+    } else {
+      evidenceBtn.setVisible(false);
+    }
+
+    // Always hide evidence images initially
+    evidence1.setVisible(false);
+    evidence2.setVisible(false);
+    evidence3.setVisible(false);
+    evidenceVisible = false;
 
     // Check if we have existing conversation
     boolean hasHistory = ConversationManager.getInstance().hasConversation(participant);
@@ -265,5 +283,24 @@ public class FlashbackController {
   private void onGoBack(ActionEvent event) throws IOException {
     GameTimer.getInstance().unsubscribe("flashback");
     App.setRoot("opening");
+  }
+
+  @FXML
+  private void onEvidenceClick(ActionEvent event) {
+    if (evidenceVisible) {
+      // Hide evidence
+      evidence1.setVisible(false);
+      evidence2.setVisible(false);
+      evidence3.setVisible(false);
+      evidenceBtn.setText("Click to Look at the Crime Evidence Presented");
+      evidenceVisible = false;
+    } else {
+      // Show evidence
+      evidence1.setVisible(true);
+      evidence2.setVisible(true);
+      evidence3.setVisible(true);
+      evidenceBtn.setText("Hide Evidence");
+      evidenceVisible = true;
+    }
   }
 }
