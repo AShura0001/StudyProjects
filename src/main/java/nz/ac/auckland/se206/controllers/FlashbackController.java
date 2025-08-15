@@ -1,12 +1,10 @@
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
-
-// nz.ac.auckland.se206.controllers.FlashbackController
-
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.CompletableFuture;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -21,7 +19,6 @@ import nz.ac.auckland.apiproxy.config.ApiProxyConfig;
 import nz.ac.auckland.apiproxy.exceptions.ApiProxyException;
 import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
-import nz.ac.auckland.se206.speech.TextToSpeech;
 
 public class FlashbackController {
 
@@ -110,6 +107,59 @@ public class FlashbackController {
   }
 
   /**
+   * Runs the GPT model with a given chat message asynchronously.
+   *
+   * @param msg the chat message to process
+   */
+  private void runGptAsync(ChatMessage msg) {
+    // Show loading indicator
+    Platform.runLater(
+        () -> {
+          btnSend.setDisable(true);
+          appendChatMessage(new ChatMessage("system", "Thinking..."));
+        });
+
+    CompletableFuture.supplyAsync(
+            () -> {
+              chatCompletionRequest.addMessage(msg);
+              try {
+                ChatCompletionResult chatCompletionResult = chatCompletionRequest.execute();
+                Choice result = chatCompletionResult.getChoices().iterator().next();
+                chatCompletionRequest.addMessage(result.getChatMessage());
+                return result.getChatMessage();
+              } catch (ApiProxyException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .thenAcceptAsync(
+            response -> {
+              // Update UI on JavaFX thread
+              Platform.runLater(
+                  () -> {
+                    // Remove "Thinking..." message
+                    String currentText = flashbackTxt.getText();
+                    String withoutThinking = currentText.replace("system: Thinking...\n\n", "");
+                    flashbackTxt.setText(withoutThinking);
+
+                    // Add actual response
+                    appendChatMessage(response);
+                    btnSend.setDisable(false);
+                  });
+            })
+        .exceptionally(
+            throwable -> {
+              Platform.runLater(
+                  () -> {
+                    btnSend.setDisable(false);
+                    appendChatMessage(
+                        new ChatMessage("system", "Error: " + throwable.getMessage()));
+                  });
+              throwable.printStackTrace();
+              return null;
+            });
+  }
+
+  /**
    * Sends a message to the GPT model.
    *
    * @param event the action event triggered by the send button
@@ -125,7 +175,9 @@ public class FlashbackController {
     txtInput.clear();
     ChatMessage msg = new ChatMessage("user", message);
     appendChatMessage(msg);
-    runGpt(msg);
+
+    // Call async version instead of blocking version
+    runGptAsync(msg);
   }
 
   /**
