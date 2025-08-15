@@ -1,5 +1,6 @@
 package nz.ac.auckland.se206;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,7 +14,9 @@ public class GameTimer {
   private final ConcurrentHashMap<String, Consumer<String>> subscribers = new ConcurrentHashMap<>();
 
   private int totalSeconds = 120; // 2 minutes
+  private int graceSeconds = 10; // 10 second final verdict time
   private boolean isRunning = false;
+  private boolean hasNavigated = false;
 
   private GameTimer() {}
 
@@ -38,6 +41,7 @@ public class GameTimer {
     if (isRunning) return;
 
     isRunning = true;
+    hasNavigated = false; // flag for the verdict screen
     scheduler.scheduleAtFixedRate(
         () -> {
           if (totalSeconds > 0) {
@@ -49,6 +53,29 @@ public class GameTimer {
                 () -> {
                   subscribers.values().forEach(callback -> callback.accept(timeString));
                 });
+          } else if (graceSeconds > 0) {
+            // open verdict scene when grace period starts
+            if (!hasNavigated) {
+              hasNavigated = true;
+              Platform.runLater(
+                  () -> {
+                    try {
+                      App.setRoot("verdict");
+                    } catch (IOException e) {
+                      System.err.println("Failed to navigate to verdict: " + e.getMessage());
+                    }
+                  });
+            }
+
+            // Continue grace period countdown IN verdict scene
+            graceSeconds--;
+            String graceTime = "FINAL: " + String.format("%02d", graceSeconds);
+
+            Platform.runLater(
+                () -> {
+                  subscribers.values().forEach(callback -> callback.accept(graceTime));
+                });
+
           } else {
             // Timer finished
             stop();
