@@ -27,18 +27,24 @@ import nz.ac.auckland.se206.prompts.PromptEngineering;
 
 public class FlashbackController {
 
+  // UI elements for chat interface
   @FXML private TextArea flashbackTxt;
   @FXML private TextField txtInput;
   @FXML private Button btnSend;
   @FXML private Button goBackBtn;
   @FXML private Label timerCounter;
+
+  // Evidence display elements (only for AI defendant)
   @FXML private Button evidenceBtn;
   @FXML private ImageView evidence1;
   @FXML private ImageView evidence2;
   @FXML private ImageView evidence3;
 
+  // Track if evidence images are currently shown
   private boolean evidenceVisible = false;
+  // GPT chat request handler
   private ChatCompletionRequest chatCompletionRequest;
+  // Which participant we're talking to
   private String participant;
 
   /**
@@ -82,6 +88,7 @@ public class FlashbackController {
   public void setParticipant(String participant) {
     this.participant = participant;
 
+    // Show evidence button only for AI defendant
     if ("aiDefendantRect".equals(participant)) {
       evidenceBtn.setVisible(true);
     } else {

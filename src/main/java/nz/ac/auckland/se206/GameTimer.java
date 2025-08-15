@@ -11,11 +11,13 @@ import javafx.application.Platform;
 public class GameTimer {
   private static final GameTimer INSTANCE = new GameTimer();
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+  // Map of scene controllers listening to timer updates
   private final ConcurrentHashMap<String, Consumer<String>> subscribers = new ConcurrentHashMap<>();
 
-  private int totalSeconds = 120; // 2 minutes
+  private int totalSeconds = 120; // 2 minutes 
   private int graceSeconds = 10; // 10 second final verdict time
   private boolean isRunning = false;
+  // Prevent multiple auto-navigations to verdict
   private boolean hasNavigated = false;
 
   private GameTimer() {}

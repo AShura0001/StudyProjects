@@ -9,12 +9,14 @@ import nz.ac.auckland.se206.speech.TextToSpeech;
 
 public class VerdictController {
 
+  // UI elements for final verdict decision
   @FXML private Label timerCounter;
   @FXML private Button yesBtn;
   @FXML private Button noBtn;
   @FXML private TextArea reasoning;
   @FXML private Label result;
 
+  // Track if user has already made their choice
   private boolean choiceMade = false;
 
   @FXML

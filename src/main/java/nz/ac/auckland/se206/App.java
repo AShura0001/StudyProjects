@@ -57,6 +57,7 @@ public class App extends Application {
    * @throws IOException if the FXML file is not found
    */
   public static void openChat(MouseEvent event, String participant) throws IOException {
+    // on mouse click loads up new root according to the event and participant id.
     FXMLLoader loader = new FXMLLoader(App.class.getResource("/fxml/flashback.fxml"));
     Parent root = loader.load();
 
@@ -77,6 +78,7 @@ public class App extends Application {
    */
   @Override
   public void start(final Stage stage) throws IOException {
+    // Initializes the game/app by loading up the opening scene
     Parent root = loadFxml("opening");
     scene = new Scene(root);
     stage.setScene(scene);
