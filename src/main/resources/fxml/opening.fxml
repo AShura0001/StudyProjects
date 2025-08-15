@@ -19,15 +19,20 @@
       <Rectangle fx:id="aiDefendantRect" arcHeight="5.0" arcWidth="5.0" fill="#1f93ff" focusTraversable="true" height="304.0" layoutX="14.0" layoutY="195.0" onMouseClicked="#handleRectangleClick" opacity="0.0" stroke="BLACK" strokeType="INSIDE" width="256.0" />
       <Rectangle fx:id="aiWitnessRect" arcHeight="5.0" arcWidth="5.0" fill="#ff2121" focusTraversable="true" height="276.0" layoutX="313.0" layoutY="278.0" onMouseClicked="#handleRectangleClick" opacity="0.0" stroke="BLACK" strokeType="INSIDE" width="131.0" />
       <Rectangle fx:id="humanWitnessRect" arcHeight="5.0" arcWidth="5.0" fill="#e5ff21" focusTraversable="true" height="333.0" layoutX="509.0" layoutY="281.0" onMouseClicked="#handleRectangleClick" opacity="0.0" stroke="BLACK" strokeType="INSIDE" width="172.0" />
-      <Label fx:id="timerCounter" alignment="CENTER" layoutX="20.0" layoutY="107.0" prefHeight="36.0" prefWidth="161.0" style="-fx-border-width: 5; -fx-border-color: #bcbcbc;" text="02:00">
+      <Label fx:id="timerCounter" alignment="CENTER" layoutX="20.0" layoutY="22.0" prefHeight="36.0" prefWidth="161.0" style="-fx-border-width: 5; -fx-border-color: #bcbcbc;" text="02:00">
          <font>
             <Font name="System Bold" size="19.0" />
          </font></Label>
-      <Label fx:id="topLabel" alignment="CENTER" layoutX="157.0" layoutY="22.0" prefHeight="76.0" prefWidth="414.0" style="-fx-background-color: BLACK;" text="ALPHA AI - JUDGING THE VERDICT" textFill="WHITE">
+      <Label fx:id="topLabel" alignment="CENTER" layoutX="203.0" layoutY="22.0" prefHeight="76.0" prefWidth="414.0" style="-fx-background-color: BLACK;" text="ALPHA AI - JUDGING THE VERDICT" textFill="WHITE">
          <font>
             <Font size="24.0" />
          </font>
       </Label>
-      <Button fx:id="submitBtn" layoutX="446.0" layoutY="113.0" mnemonicParsing="false" onAction="#passVerdict" text="PASS YOUR VERDICT" />
+      <Button fx:id="submitBtn" layoutX="37.0" layoutY="73.0" mnemonicParsing="false" onAction="#passVerdict" text="PASS YOUR VERDICT" />
+      <Label layoutX="17.0" layoutY="104.0" prefHeight="44.0" prefWidth="667.0" text="This is an AI Courtroom where you have to pass a verdict on the judgement passed by the AI Defendant, Click on each participant below to hear their story and make your decision within 2 minutes provided." textFill="WHITE" wrapText="true">
+         <font>
+            <Font name="System Bold" size="12.0" />
+         </font>
+      </Label>
    </children>
 </Pane>

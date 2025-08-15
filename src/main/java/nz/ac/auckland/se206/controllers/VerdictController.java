@@ -5,6 +5,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import nz.ac.auckland.se206.GameTimer;
+import nz.ac.auckland.se206.speech.TextToSpeech;
 
 public class VerdictController {
 
@@ -65,9 +66,12 @@ public class VerdictController {
     // Disable buttons after choice is made
     yesBtn.setDisable(true);
     noBtn.setDisable(true);
+
+    TextToSpeech.speak(reasoning.getText());
   }
 
   public void cleanup() {
     GameTimer.getInstance().unsubscribe("verdict");
+    TextToSpeech.stop();
   }
 }

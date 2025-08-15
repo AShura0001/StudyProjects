@@ -11,6 +11,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Rectangle;
 import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameTimer;
+import nz.ac.auckland.se206.speech.TextToSpeech;
 
 public class OpeningController {
 
@@ -20,23 +21,37 @@ public class OpeningController {
   @FXML private Label timerCounter;
   @FXML private Button submitBtn;
 
+  private static boolean isFirstTimeInit = true;
 
   @FXML
   public void initialize() {
-    // Update based on the gamertimer class
     GameTimer.getInstance().subscribe("opening", timeString -> {
         timerCounter.setText(timeString);
     });
     
     GameTimer.getInstance().start();
+    
+    // Play opening TTS only on first visit
+    if (isFirstTimeInit) {
+      TextToSpeech.speak(
+          "This is an AI Courtroom where you have to pass a verdict on the judgement passed by the AI Defendant, Click on each participant below to hear their story and make your decision within 2 minutes provided.");
+      isFirstTimeInit = false;
+    }
   }
   
   public void cleanup() {
       GameTimer.getInstance().unsubscribe("opening");
+      TextToSpeech.stop();
   }
 
   @FXML
   private void handleRectangleClick(MouseEvent event) throws IOException {
+    TextToSpeech.stop();
+    try {
+    Thread.sleep(50);
+  } catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+  }
     Rectangle clickedRectangle = (Rectangle) event.getSource();
     String rectangleId = clickedRectangle.getId();
     App.openChat(event, rectangleId);
@@ -44,6 +59,7 @@ public class OpeningController {
   
   @FXML
 private void passVerdict() throws IOException {
+    TextToSpeech.stop();
     // reset timer and then change root
     GameTimer.getInstance().unsubscribe("opening");
     App.setRoot("verdict");
