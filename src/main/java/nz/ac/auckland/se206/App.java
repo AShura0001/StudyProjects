@@ -2,6 +2,7 @@ package nz.ac.auckland.se206;
 
 import java.io.IOException;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -83,6 +84,13 @@ public class App extends Application {
     Parent root = loadFxml("opening");
     scene = new Scene(root);
     stage.setScene(scene);
+
+    stage.setOnCloseRequest(
+        e -> {
+          Platform.exit();
+          System.exit(0);
+        });
+
     stage.show();
     root.requestFocus();
   }
