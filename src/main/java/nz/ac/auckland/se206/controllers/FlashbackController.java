@@ -2,6 +2,7 @@ package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import javafx.application.Platform;
@@ -19,6 +20,7 @@ import nz.ac.auckland.apiproxy.chat.openai.Choice;
 import nz.ac.auckland.apiproxy.config.ApiProxyConfig;
 import nz.ac.auckland.apiproxy.exceptions.ApiProxyException;
 import nz.ac.auckland.se206.App;
+import nz.ac.auckland.se206.ConversationManager;
 import nz.ac.auckland.se206.GameTimer;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 
@@ -61,6 +63,8 @@ public class FlashbackController {
   private String getSystemPrompt() {
     Map<String, String> map = new HashMap<>();
     map.put("participant", participant);
+
+    // Use the participant ID to get the right prompt
     return PromptEngineering.getPrompt("newchat.txt", map);
   }
 
@@ -72,12 +76,21 @@ public class FlashbackController {
   public void setParticipant(String participant) {
     this.participant = participant;
 
-    // Show loading message now, doesn't wait for the gpt to compile a response instead works
-    // parallely
-    Platform.runLater(
-        () -> {
-          flashbackTxt.setText("Loading conversation with " + participant + "...\n\n");
-        });
+    // Check if we have existing conversation
+    boolean hasHistory = ConversationManager.getInstance().hasConversation(participant);
+
+    if (hasHistory) {
+      // Load existing conversation history if it exists!
+      String history = ConversationManager.getInstance().getFormattedConversation(participant);
+      flashbackTxt.setText(history);
+      flashbackTxt.appendText("--- Conversation Resumed ---\n\n");
+    } else {
+      // Only show loading for NEW conversations
+      Platform.runLater(
+          () -> {
+            flashbackTxt.setText("Loading conversation with " + participant + "...\n\n");
+          });
+    }
 
     // Load config and initialize chat asynchronously
     CompletableFuture.supplyAsync(
@@ -99,9 +112,18 @@ public class FlashbackController {
                       .setModel(Model.GPT_4_1_MINI)
                       .setMaxTokens(100);
 
-              // Send initial system message asynchronously
-              ChatMessage systemMessage = new ChatMessage("system", getSystemPrompt());
-              runGptAsync(systemMessage);
+              // Only send system message for NEW conversations
+              if (!hasHistory) {
+                ChatMessage systemMessage = new ChatMessage("system", getSystemPrompt());
+                runGptAsync(systemMessage);
+              } else {
+                // Restore conversation to GPT context
+                List<ChatMessage> history =
+                    ConversationManager.getInstance().getConversation(participant);
+                for (ChatMessage msg : history) {
+                  chatCompletionRequest.addMessage(msg);
+                }
+              }
             })
         .exceptionally(
             throwable -> {
@@ -120,6 +142,7 @@ public class FlashbackController {
    * @param msg the chat message to append
    */
   private void appendChatMessage(ChatMessage msg) {
+    ConversationManager.getInstance().addMessage(participant, msg);
     flashbackTxt.appendText(msg.getRole() + ": " + msg.getContent() + "\n\n");
   }
 

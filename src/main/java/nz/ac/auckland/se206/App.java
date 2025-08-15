@@ -83,6 +83,7 @@ public class App extends Application {
 
     stage.setOnCloseRequest(
         e -> {
+          ConversationManager.getInstance().clearAll();
           GameTimer.getInstance().shutdown();
           Platform.exit();
           System.exit(0);
