@@ -7,7 +7,7 @@
 <?import javafx.scene.text.Font?>
 
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="620.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="620.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
    <children>
       <Label alignment="CENTER" layoutX="49.0" layoutY="54.0" prefHeight="111.0" prefWidth="608.0" text="BASED ON YOUR INTERACTION DO YOU BELIEVE THE JUDGE MADE THE RIGHT JUDGMENT?" textAlignment="CENTER" wrapText="true">
          <font>
