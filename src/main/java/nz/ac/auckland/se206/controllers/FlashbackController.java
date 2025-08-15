@@ -71,19 +71,47 @@ public class FlashbackController {
    */
   public void setParticipant(String participant) {
     this.participant = participant;
-    try {
-      ApiProxyConfig config = ApiProxyConfig.readConfig();
-      chatCompletionRequest =
-          new ChatCompletionRequest(config)
-              .setN(1)
-              .setTemperature(0.2)
-              .setTopP(0.5)
-              .setModel(Model.GPT_4_1_MINI)
-              .setMaxTokens(100);
-      runGpt(new ChatMessage("system", getSystemPrompt()));
-    } catch (ApiProxyException e) {
-      e.printStackTrace();
-    }
+
+    // Show loading message now, doesn't wait for the gpt to compile a response instead works
+    // parallely
+    Platform.runLater(
+        () -> {
+          flashbackTxt.setText("Loading conversation with " + participant + "...\n\n");
+        });
+
+    // Load config and initialize chat asynchronously
+    CompletableFuture.supplyAsync(
+            () -> {
+              try {
+                return ApiProxyConfig.readConfig();
+              } catch (ApiProxyException e) {
+                throw new RuntimeException("Failed to load API config", e);
+              }
+            })
+        .thenAcceptAsync(
+            config -> {
+              // Initialize chat completion request
+              chatCompletionRequest =
+                  new ChatCompletionRequest(config)
+                      .setN(1)
+                      .setTemperature(0.2)
+                      .setTopP(0.5)
+                      .setModel(Model.GPT_4_1_MINI)
+                      .setMaxTokens(100);
+
+              // Send initial system message asynchronously
+              ChatMessage systemMessage = new ChatMessage("system", getSystemPrompt());
+              runGptAsync(systemMessage);
+            })
+        .exceptionally(
+            throwable -> {
+              Platform.runLater(
+                  () -> {
+                    flashbackTxt.setText("Error loading conversation: " + throwable.getMessage());
+                  });
+              throwable.printStackTrace();
+              return null;
+            });
   }
 
   /**
@@ -123,12 +151,14 @@ public class FlashbackController {
    * @param msg the chat message to process
    */
   private void runGptAsync(ChatMessage msg) {
-    // Show loading indicator
-    Platform.runLater(
-        () -> {
-          btnSend.setDisable(true);
-          appendChatMessage(new ChatMessage("system", "Thinking..."));
-        });
+    // Don't show "Thinking..." for system messages
+    if (!msg.getRole().equals("system")) {
+      Platform.runLater(
+          () -> {
+            if (btnSend != null) btnSend.setDisable(true);
+            appendChatMessage(new ChatMessage("system", "Thinking..."));
+          });
+    }
 
     CompletableFuture.supplyAsync(
             () -> {
@@ -144,24 +174,29 @@ public class FlashbackController {
             })
         .thenAcceptAsync(
             response -> {
-              // Update UI on JavaFX thread
               Platform.runLater(
                   () -> {
-                    // Remove "Thinking..." message
-                    String currentText = flashbackTxt.getText();
-                    String withoutThinking = currentText.replace("system: Thinking...\n\n", "");
-                    flashbackTxt.setText(withoutThinking);
+                    // Remove "Thinking..." message if it was added
+                    if (!msg.getRole().equals("system")) {
+                      String currentText = flashbackTxt.getText();
+                      String withoutThinking = currentText.replace("system: Thinking...\n\n", "");
+                      flashbackTxt.setText(withoutThinking);
+                    }
 
                     // Add actual response
                     appendChatMessage(response);
-                    btnSend.setDisable(false);
+                    if (btnSend != null) btnSend.setDisable(false);
                   });
+
+              // TTS disabled for flashback - don't uncomment this
+              // CompletableFuture.runAsync(() -> TextToSpeech.speak(response.getContent()));
+
             })
         .exceptionally(
             throwable -> {
               Platform.runLater(
                   () -> {
-                    btnSend.setDisable(false);
+                    if (btnSend != null) btnSend.setDisable(false);
                     appendChatMessage(
                         new ChatMessage("system", "Error: " + throwable.getMessage()));
                   });
@@ -187,7 +222,7 @@ public class FlashbackController {
     ChatMessage msg = new ChatMessage("user", message);
     appendChatMessage(msg);
 
-    // Call async version instead of blocking version
+    // Doesn't block like runGpt()
     runGptAsync(msg);
   }
 
@@ -204,8 +239,8 @@ public class FlashbackController {
    * @throws IOException if there is an I/O error
    */
   @FXML
-  private void onGoBack(ActionEvent event) throws ApiProxyException, IOException {
-    cleanup(); // Unsubscribe before leaving
+  private void onGoBack(ActionEvent event) throws IOException {
+    GameTimer.getInstance().unsubscribe("flashback");
     App.setRoot("opening");
   }
 }

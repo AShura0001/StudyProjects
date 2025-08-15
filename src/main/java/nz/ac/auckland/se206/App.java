@@ -39,8 +39,7 @@ public class App extends Application {
   }
 
   /**
-   * Loads the FXML file and returns the associated node. The method expects that the file is
-   * located in "src/main/resources/fxml".
+   * Loads the FXML file and returns the associated node.
    *
    * @param fxml the name of the FXML file (without extension)
    * @return the root node of the FXML file
@@ -51,18 +50,15 @@ public class App extends Application {
   }
 
   /**
-   * Opens the chat view and sets the profession in the chat controller.
+   * Opens the chat view and sets the participant in the flashback controller.
    *
    * @param event the mouse event that triggered the method
-   * @param profession the profession to set in the chat controller
+   * @param participant the participant to set in the flashback controller
    * @throws IOException if the FXML file is not found
    */
   public static void openChat(MouseEvent event, String participant) throws IOException {
     FXMLLoader loader = new FXMLLoader(App.class.getResource("/fxml/flashback.fxml"));
     Parent root = loader.load();
-
-    // ChatController chatController = loader.getController();
-    // chatController.setProfession(profession);
 
     FlashbackController flashbackController = loader.getController();
     flashbackController.setParticipant(participant);
@@ -74,10 +70,10 @@ public class App extends Application {
   }
 
   /**
-   * This method is invoked when the application starts. It loads and shows the "room" scene.
+   * This method is invoked when the application starts. It loads and shows the "opening" scene.
    *
    * @param stage the primary stage of the application
-   * @throws IOException if the "src/main/resources/fxml/room.fxml" file is not found
+   * @throws IOException if the "src/main/resources/fxml/opening.fxml" file is not found
    */
   @Override
   public void start(final Stage stage) throws IOException {

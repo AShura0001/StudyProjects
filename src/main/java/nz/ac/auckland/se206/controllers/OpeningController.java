@@ -10,6 +10,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Rectangle;
+import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.GameTimer;
 
@@ -25,26 +26,25 @@ public class OpeningController {
 
   @FXML
   public void initialize() {
-    // Subscribe to timer updates
+    // Update based on the gamertimer class
     GameTimer.getInstance().subscribe("opening", timeString -> {
         timerCounter.setText(timeString);
     });
     
-    // Start the timer when opening scene loads
     GameTimer.getInstance().start();
   }
   
-  // When navigating away from this scene
   public void cleanup() {
       GameTimer.getInstance().unsubscribe("opening");
   }
 
   @FXML
-  private void handleRectangleClick(MouseEvent event) throws IOException{
+  private void handleRectangleClick(MouseEvent event) throws IOException {
     Rectangle clickedRectangle = (Rectangle) event.getSource();
-    context.handleRectangleClick(event, clickedRectangle.getId());
-  }
-
+    String rectangleId = clickedRectangle.getId();
+    App.openChat(event, rectangleId);
+}
+  
   @FXML
   private void passVerdict() {}
 }
