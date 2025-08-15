@@ -2,18 +2,21 @@ package nz.ac.auckland.se206;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import org.yaml.snakeyaml.Yaml;
+
 import javafx.scene.input.MouseEvent;
 import nz.ac.auckland.se206.states.GameOver;
 import nz.ac.auckland.se206.states.GameStarted;
 import nz.ac.auckland.se206.states.GameState;
 import nz.ac.auckland.se206.states.Guessing;
-import org.yaml.snakeyaml.Yaml;
 
 /**
  * Context class for managing the state of the game. Handles transitions between different game
@@ -66,7 +69,8 @@ public class GameStateContext {
 
     int randomNumber = random.nextInt(3);
     rectIdToGuess =
-        randomNumber == 0 ? "rectPerson1" : ((randomNumber == 1) ? "rectPerson2" : "rectPerson3");
+        randomNumber == 0 ? "rectPerson1" : ((randomNumber == 1) ? "rectPerson2" :
+  "rectPerson3");
     professionToGuess = rectanglesToProfession.get(rectIdToGuess);
   }
 
@@ -153,4 +157,67 @@ public class GameStateContext {
   public void handleGuessClick() throws IOException {
     gameState.handleGuessClick();
   }
+
+  // // Working
+  // private final GameStarted gameStartedState;
+  // private final Guessing guessingState;
+  // private final GameOver gameOverState;
+  // private GameState gameState;
+
+  // private final Set<String> rectangleIds;
+
+  // /** Constructs a new GameStateContext with fixed rectangle IDs. */
+  // public GameStateContext() {
+  //   gameStartedState = new GameStarted(this);
+  //   guessingState = new Guessing(this);
+  //   gameOverState = new GameOver(this);
+
+  //   gameState = gameStartedState;
+
+  //   // Fixed rectangle IDs
+  //   rectangleIds =
+  //       new HashSet<>(Arrays.asList("aiDefendantRect", "aiWitnessRect", "humanWitnessRect"));
+  // }
+
+  // public void setState(GameState state) {
+  //   this.gameState = state;
+  // }
+
+  // public GameState getGameStartedState() {
+  //   return gameStartedState;
+  // }
+
+  // public GameState getGuessingState() {
+  //   return guessingState;
+  // }
+
+  // public GameState getGameOverState() {
+  //   return gameOverState;
+  // }
+
+  // // public String getRole(String rectangleId) {}
+
+  // /**
+  //  * Handles a click on a rectangle, delegating to the current game state's logic.
+  //  *
+  //  * @param event the mouse click event
+  //  * @param rectangleId the ID of the rectangle that was clicked
+  //  * @throws IOException if an error occurs during event handling
+  //  */
+  // public void handleRectangleClick(MouseEvent event, String rectangleId) throws IOException {
+  //   if (rectangleIds.contains(rectangleId)) {
+  //     gameState.handleRectangleClick(event, rectangleId);
+  //   } else {
+  //     System.out.println("Invalid rectangle ID clicked: " + rectangleId);
+  //   }
+  // }
+
+  // /**
+  //  * Handles a click on the guess/next button — still useful for transitioning between states.
+  //  *
+  //  * @throws IOException if an error occurs during event handling
+  //  */
+  // public void handleGuessClick() throws IOException {
+  //   gameState.handleGuessClick();
+  // }
 }
