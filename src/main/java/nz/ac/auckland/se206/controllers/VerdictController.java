@@ -39,7 +39,7 @@ public class VerdictController {
   private void agree() {
     if (!choiceMade) {
       choiceMade = true;
-      result.setText("You made the wrong judgement!");
+      result.setText("You passed the wrong Verdict!");
       showExplanation();
       GameTimer.getInstance().forceTimeUp();
     }
@@ -49,7 +49,7 @@ public class VerdictController {
   private void donotagree() {
     if (!choiceMade) {
       choiceMade = true;
-      result.setText("You made the correct judgement!");
+      result.setText("You passed the correct Verdict!");
       showExplanation();
       GameTimer.getInstance().forceTimeUp();
     }
@@ -57,9 +57,10 @@ public class VerdictController {
 
   private void showExplanation() {
     reasoning.setText(
-        "The judge made a wrong decision since it had a bias influenced by personal benefits in the"
-            + " development of robots and also didn't properly consider other facts shown in the"
-            + " case");
+        "REASONING: \n"
+            + "The judge made a wrong decision since it had a bias influenced by personal benefits"
+            + " in the development of robots and also didn't properly consider other facts shown in"
+            + " the case");
 
     // Disable buttons after choice is made
     yesBtn.setDisable(true);
