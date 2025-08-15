@@ -51,15 +51,6 @@ public class FlashbackController {
   private String getSystemPrompt() {
     Map<String, String> map = new HashMap<>();
     map.put("participant", participant);
-    if (participant.equals("aiDefendantRect")){
-      map.put("memory", "You are a defendant in a court case.");
-    }
-    else if (participant.equals("aiWitnessRect")) {
-      map.put("memory", "You are a witness in a court case.");
-    }
-    else if (participant.equals("humanWitnessRect")) {
-      map.put("memory", "You are a human witness in a court case.");
-    }
     return PromptEngineering.getPrompt("newchat.txt", map);
   }
 
@@ -108,7 +99,7 @@ public class FlashbackController {
       Choice result = chatCompletionResult.getChoices().iterator().next();
       chatCompletionRequest.addMessage(result.getChatMessage());
       appendChatMessage(result.getChatMessage());
-      TextToSpeech.speak(result.getChatMessage().getContent());
+      // TextToSpeech.speak(result.getChatMessage().getContent());
       return result.getChatMessage();
     } catch (ApiProxyException e) {
       e.printStackTrace();
@@ -144,6 +135,6 @@ public class FlashbackController {
    */
   @FXML
   private void onGoBack(ActionEvent event) throws ApiProxyException, IOException {
-    App.setRoot("room");
+    App.setRoot("opening");
   }
 }

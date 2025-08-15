@@ -1,5 +1,7 @@
 package nz.ac.auckland.se206.controllers;
 
+import java.io.IOException;
+
 // nz.ac.auckland.se206.controllers.OpeningController
 
 import java.util.concurrent.Executors;
@@ -9,7 +11,9 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Rectangle;
+import nz.ac.auckland.se206.GameStateContext;
 
 public class OpeningController {
 
@@ -19,6 +23,7 @@ public class OpeningController {
   @FXML private Label timerCounter;
   @FXML private Button submitBtn;
 
+  private static GameStateContext context = new GameStateContext();
   private ScheduledExecutorService scheduler;
   private int timeRemaining = 2 * 60;
 
@@ -53,7 +58,10 @@ public class OpeningController {
   }
 
   @FXML
-  private void handleRectangleClick() {}
+  private void handleRectangleClick(MouseEvent event) throws IOException{
+    Rectangle clickedRectangle = (Rectangle) event.getSource();
+    context.handleRectangleClick(event, clickedRectangle.getId());
+  }
 
   @FXML
   private void passVerdict() {}

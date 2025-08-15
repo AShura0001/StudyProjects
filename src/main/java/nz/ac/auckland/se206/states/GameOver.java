@@ -35,8 +35,9 @@ public class GameOver implements GameState {
     if (rectangleId.equals("rectCashier") || rectangleId.equals("rectWaitress")) {
       return;
     }
-    String clickedProfession = context.getProfession(rectangleId);
-    TextToSpeech.speak("Game Over, you have already guessed! This is the " + clickedProfession);
+    // String clickedProfession = context.getProfession(rectangleId);
+    // TextToSpeech.speak("Game Over, you have already guessed! This is the " + clickedProfession);
+    System.out.println("game over");
   }
 
   /**
