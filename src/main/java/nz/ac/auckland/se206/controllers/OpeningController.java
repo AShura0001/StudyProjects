@@ -43,5 +43,9 @@ public class OpeningController {
 }
   
   @FXML
-  private void passVerdict() {}
+private void passVerdict() throws IOException {
+    // reset timer and then change root
+    GameTimer.getInstance().unsubscribe("opening");
+    App.setRoot("verdict");
+}
 }
