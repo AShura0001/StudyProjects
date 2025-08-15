@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionRequest;
@@ -18,6 +19,7 @@ import nz.ac.auckland.apiproxy.chat.openai.Choice;
 import nz.ac.auckland.apiproxy.config.ApiProxyConfig;
 import nz.ac.auckland.apiproxy.exceptions.ApiProxyException;
 import nz.ac.auckland.se206.App;
+import nz.ac.auckland.se206.GameTimer;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 
 public class FlashbackController {
@@ -26,6 +28,7 @@ public class FlashbackController {
   @FXML private TextField txtInput;
   @FXML private Button btnSend;
   @FXML private Button goBackBtn;
+  @FXML private Label timerCounter;
 
   private ChatCompletionRequest chatCompletionRequest;
   private String participant;
@@ -40,6 +43,14 @@ public class FlashbackController {
     // Any required initialization code can be placed here
     flashbackTxt.setEditable(false);
     flashbackTxt.setWrapText(true);
+
+    // Subscribe to timer updates
+    GameTimer.getInstance()
+        .subscribe(
+            "flashback",
+            timeString -> {
+              timerCounter.setText(timeString);
+            });
   }
 
   /**
@@ -180,6 +191,11 @@ public class FlashbackController {
     runGptAsync(msg);
   }
 
+  // When navigating away from this scene
+  public void cleanup() {
+    GameTimer.getInstance().unsubscribe("flashback");
+  }
+
   /**
    * Navigates back to the previous view.
    *
@@ -189,6 +205,7 @@ public class FlashbackController {
    */
   @FXML
   private void onGoBack(ActionEvent event) throws ApiProxyException, IOException {
+    cleanup(); // Unsubscribe before leaving
     App.setRoot("opening");
   }
 }
