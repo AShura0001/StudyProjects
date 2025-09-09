@@ -14,7 +14,7 @@ public class App {
         
         GptClient client = new GptClient();
 
-        String input_content = "Your input content here";
+        String input_content = "As a Manny’s food service customer, I want to see different food item types displayed in different colors—RGB = #FF0000 for meats, #A52AFA for grains, and #808000 for vegetables and fruits, so that I can quickly identify my food items by food type.";
 
         String systemPrompt = PromptEngineering.getPrompt("prompt");
 
