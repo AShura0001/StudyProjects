@@ -78,5 +78,77 @@
   {
     "US_ID": "US20",
     "US_text": "As a project manager, I want to be able to share projects to other users, so that we can work collaboratively."
+  },
+  {
+  "US_ID": "US21",
+  "US_text": "As a child learning programming, I want to see the programming instructions so that I can keep track of what the robot is doing."
+  },
+  {
+  "US_ID": "US22",
+  "US_text": "As a user of the UI, I want a large screen size so that I can see all the relevant options without the screen feeling too cluttered."
+  },
+  {
+  "US_ID": "US23",
+  "US_text": "As a NZ based product I want the system to use English and Te Reo Māori languages so that we honour Te Tiriti o Waitangi, and provide an inclusive experience for all users."
+  },
+  {
+  "US_ID": "US24",
+  "US_text": "As a child using the system, I want the robot to be able to navigate the paths on the floor so that it is able to complete the tasks given."
+  },
+  {
+  "US_ID": "US25",
+  "US_text": "As an educator, I want young kids to start by learning the most basic programming concepts so that they are equipped with the necessary knowledge before moving onto the harder stuff."
+  },
+  {
+  "US_ID": "US26",
+  "US_text": "As a parent, I want to ensure that my child/children are under adult supervision at all times so that I know that they are safe."
+  },
+  {
+  "US_ID": "US27",
+  "US_text": "As a child or supervisor using the robot, I want the robot to alert me if anything goes wrong, so that I can resolve issues as they arise."
+  },
+  {
+  "US_ID": "US28",
+  "US_text": "As an educator, I want the program to use voice commands so that young kids can communicate with the robot using natural language, making it more accessible."
+  },
+  {
+  "US_ID": "US29",
+  "US_text": "As a user of the voice recognition system, I want the program to react quickly so that I don’t get frustrated or lose interest in the robot."
+  },
+  {
+  "US_ID": "US30",
+  "US_text": "As an educator, I want to introduce young kids to more challenging programming concepts so they can keep progressing and strengthening their abilities."
+  },
+  {
+  "US_ID": "US31",
+  "US_text": "As an educator, I want to configure the number of programming blocks allowed so that the children can learn about code efficiency."
+  },
+  {
+  "US_ID": "US32",
+  "US_text": "As a researcher, I want the program to prevent children from adding multiple code commands with a single voice command, so they cannot cut corners and let the LLM write code for them."
+  },
+  {
+  "US_ID": "US33",
+  "US_text": "As a supervisor, I want to prevent the robot from accepting impractical commands so that the kids do not break the robot."
+  },
+  {
+  "US_ID": "US34",
+  "US_text": "As a supervisor, I want to configure the speed of the robot so that it does not pose a safety risk."
+  },
+  {
+  "US_ID": "US35",
+  "US_text": "As a child, I want the system to ask clarifying questions if it does not understand me, so that it does not misinterpret my commands or give any unexpected outputs."
+  },
+  {
+  "US_ID": "US36",
+  "US_text": "As a parent/caregiver, I want to track my child’s progress so that I can see their improvement and skills."
+  },
+  {
+  "US_ID": "US37",
+  "US_text": "As a user, I want to be able to change the theme of the UI so that it aligns with my preferences."
+  },
+  {
+  "US_ID": "US38",
+  "US_text": "As a colour blind user, I want the UI to be colour-blind friendly so that I am able to easily distinguish between text and other elements in the UI."
   }
 ]
