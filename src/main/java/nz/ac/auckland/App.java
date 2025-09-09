@@ -18,7 +18,7 @@ public class App {
 
         String systemPrompt = PromptEngineering.getPrompt("prompt");
 
-        System.out.println(systemPrompt);
+        // System.out.println(systemPrompt);
 
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage("system", systemPrompt));
