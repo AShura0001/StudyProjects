@@ -1,5 +1,13 @@
 package nz.ac.auckland;
 
+
+import java.io.FileReader;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.JSONObject;
+
+import netscape.javascript.JSObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionResult;
@@ -14,20 +22,27 @@ public class App {
         
         GptClient client = new GptClient();
 
-        String input_content = "As a Manny’s food service customer, I want to see different food item types displayed in different colors—RGB = #FF0000 for meats, #A52AFA for grains, and #808000 for vegetables and fruits, so that I can quickly identify my food items by food type.";
 
-        String systemPrompt = PromptEngineering.getPrompt("prompt");
-
-        // System.out.println(systemPrompt);
-
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(new ChatMessage("system", systemPrompt));
-        messages.add(
-            new ChatMessage("user", input_content));
-
-        ChatCompletionResult result = client.runOnce(messages, 1, 0.2, 1.0, 2000);
-        String response = result.getFirstChoice().getChatMessage().getContent();
-        System.out.println(response);
-  
+        JSONParser parser = new JSONParser();
+        FileReader input_file = new FileReader("src\\main\\resources\\input\\input.json");
+        JSONArray input_json = (JSONArray) parser.parse(input_file);
+        for (Object obj: input_json) {
+            JSONObject userStory = (JSONObject) obj;
+            String input_content = String.format("%s: %s", userStory.get("US_ID"), userStory.get("US_text"));
+    
+            String systemPrompt = PromptEngineering.getPrompt("prompt");
+    
+            // System.out.println(systemPrompt);
+    
+            List<ChatMessage> messages = new ArrayList<>();
+            messages.add(new ChatMessage("system", systemPrompt));
+            messages.add(
+                new ChatMessage("user", input_content));
+    
+            ChatCompletionResult result = client.runOnce(messages, 1, 0.2, 1.0, 2000);
+            String response = result.getFirstChoice().getChatMessage().getContent();
+            System.out.println(response);
+      
+        }
     }
 }
