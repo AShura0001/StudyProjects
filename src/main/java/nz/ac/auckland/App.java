@@ -26,23 +26,25 @@ public class App {
         JSONParser parser = new JSONParser();
         FileReader input_file = new FileReader("src\\main\\resources\\input\\input.json");
         JSONArray input_json = (JSONArray) parser.parse(input_file);
+        
+        String systemPrompt = PromptEngineering.getPrompt("prompt");
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage("system", systemPrompt));
+
         for (Object obj: input_json) {
+            // parses input json and transfers to the ChatCompletionRequest object to execute.
             JSONObject userStory = (JSONObject) obj;
             String input_content = String.format("%s: %s", userStory.get("US_ID"), userStory.get("US_text"));
-    
-            String systemPrompt = PromptEngineering.getPrompt("prompt");
-    
+            
             // System.out.println(systemPrompt);
     
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(new ChatMessage("system", systemPrompt));
             messages.add(
                 new ChatMessage("user", input_content));
     
-            ChatCompletionResult result = client.runOnce(messages, 1, 1, 1.0, 2000);
-            String response = result.getFirstChoice().getChatMessage().getContent();
-            System.out.println(response);
-      
+            }
+        ChatCompletionResult result = client.runOnce(messages, 1, 1, 1.0, 2000);
+        String response = result.getFirstChoice().getChatMessage().getContent();
+        System.out.println(response);
+    
         }
-    }
 }

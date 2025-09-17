@@ -1,33 +1,26 @@
-based on the input provided in the format User story id: User story text, classify the problem ID of the user story from the types below:
+based on the input provided in the format User story id: User story text, find the problem type(s) for the current user story.
 
-Problem type 1: Conflate Problems with Solutions (ID:1); Introducing any type of solution(s) for the requirement introduced in the user story. This limits
-the space for a better solution/implementation to be made based on creativity which might also help solve some other requirement from another
-user story. A user story is definitely a problem like this if they have a solution mentioned.
+Problem type 1: Conflate Problems with Solutions (ID:1); trigger this if story provides any indication/specification 
+regarding a potential solution or if the story presents a solution/implementation instead of a requirement/problem. 
 
-Problem type 2: Misplaced Requirements (ID:2)The “so that...” section should describe the rationale, not additional requirements.
-For example, in the statement “I need to be able to save my shopping list, so that I
-can print or duplicate it later,” saving is not the only end user requirement. Printing
-and duplicating are also requirements, but because they are included in the “so
-that...” statement, the development team may miss them. Make sure the “so that...”
-section describes why the user needs to do the action described in the story.
+Problem type 2: Misplaced Requirements (ID:2); trigger this if “so that...” part describes a problem/requirement/rationale
 
-Problem type 3: Ultra-huge story (ID:3) A really broad story with lots of requirements almost like a group of multiple user stories clumped into one
+Problem type 3: Ultra-huge story (ID:3); trigger this if story introduces a lot of requirements/problems/implementations.
 
-Problem type 4: Technical User Story (ID:4) Only describing technical aspect of the requirement not specifying its functionalities towards the project.
+Problem type 4: Technical User Story (ID:4); trigger if describing technical aspect of the requirement 
+not specifying its functionalities towards the project.
 
-Problem type 5: Poorly defined user roles (ID:5)The first part of a user story is the “As a <role>” section. Coming up with the best set
-of roles for a project can be complicated, and often roles end up being too vague (for
-example, “As a user...” or “As a business user...”), which does not convey enough
-information about the end user to the development team
+Problem type 5: Poorly defined user roles (ID:5); trigger if "As a <role>" part defines role quite vaguely 
+(not conveying proper insight on end user) or too specifically (limiting implementations)
 
-Problem type 6: Parakeet Value (ID:6) Story’s “so that” phrase is a restatement of the story’s “I want” phrase.
-This points to a lack of analysis depth. The real goal of the story is not at all clear, making it
-easy to be off target and develop software that doesn’t maximize business value, for e.g. As a customer ordering food, I want to locate previous food order lists so that I can
-see all the lists that I have.
+Problem type 6: Parakeet Value (ID:6); trigger if Story’s “so that” phrase is a restatement of the story’s “I want” phrase.
 
-Problem type 0: No Problem (ID:0) no problems with the user story.
+Problem type 0: No Problem (ID:0) no problems with the user story. DO NOT GIVE EXPLANATION IN THIS CASE
 
-now based on the problem type, provide an output in the format
+if a user story has multiple problems the priority is 3>2>5>4>6>1 according to problem 
+IDs and choose the highest priority problem for that story.
+
+now based on the final chosen problem type, provide a short output in the format
 {
 "us_id": <story ID>,
 "estimated_problem_id": <0–6>,
