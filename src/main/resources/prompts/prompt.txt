@@ -1,147 +1,36 @@
-You are an expert in requirements engineering and agile software development.
-Your task is to analyze user stories and identify the single most prominent problem from a predefined set. If no problem exists, indicate that.
+based on the input provided in the format User story id: User story text, classify the problem ID of the user story from the types below:
 
-User story format (input):
+Problem type 1: Conflate Problems with Solutions (ID:1); Introducing any type of solution(s) for the requirement introduced in the user story. This limits
+the space for a better solution/implementation to be made based on creativity which might also help solve some other requirement from another
+user story. A user story is definitely a problem like this if they have a solution mentioned.
 
-As a <user>,
+Problem type 2: Misplaced Requirements (ID:2)The “so that...” section should describe the rationale, not additional requirements.
+For example, in the statement “I need to be able to save my shopping list, so that I
+can print or duplicate it later,” saving is not the only end user requirement. Printing
+and duplicating are also requirements, but because they are included in the “so
+that...” statement, the development team may miss them. Make sure the “so that...”
+section describes why the user needs to do the action described in the story.
 
-I want <requirement>,
+Problem type 3: Ultra-huge story (ID:3) A really broad story with lots of requirements almost like a group of multiple user stories clumped into one
 
-so that <rationale>.
+Problem type 4: Technical User Story (ID:4) Only describing technical aspect of the requirement not specifying its functionalities towards the project.
 
-Problem Type 1: Conflate Problems with Solutions (ID:1)
-✅ What It Is:
+Problem type 5: Poorly defined user roles (ID:5)The first part of a user story is the “As a <role>” section. Coming up with the best set
+of roles for a project can be complicated, and often roles end up being too vague (for
+example, “As a user...” or “As a business user...”), which does not convey enough
+information about the end user to the development team
 
-User stories should focus on what the user needs—not how to solve it. This problem occurs when the story jumps straight to a solution rather than clarifying the actual problem or need.
+Problem type 6: Parakeet Value (ID:6) Story’s “so that” phrase is a restatement of the story’s “I want” phrase.
+This points to a lack of analysis depth. The real goal of the story is not at all clear, making it
+easy to be off target and develop software that doesn’t maximize business value, for e.g. As a customer ordering food, I want to locate previous food order lists so that I can
+see all the lists that I have.
 
-❌ Example:
+Problem type 0: No Problem (ID:0) no problems with the user story.
 
-"As a user, I want a CSV export button so that I can download my data."
-
-This assumes the solution is a CSV export button, but doesn’t actually state what the user is trying to achieve (e.g., portability, reporting, sharing).
-
-✅ Better Version:
-
-"As a user, I want to easily extract my data in a reusable format so that I can analyze it offline."
-
-Problem Type 2: Misplaced Requirements (ID:2)
-✅ What It Is:
-
-This happens when non-functional requirements (like performance, reliability, or legal constraints) are tucked into user stories, rather than being handled separately or added as acceptance criteria or constraints.
-
-❌ Example:
-
-"As a user, I want the system to respond in under 1 second so that I don’t have to wait."
-
-The user isn’t actually asking for speed—they want efficiency. The 1-second metric is a performance requirement, not a user need.
-
-✅ Better Approach:
-
-User Story: “As a user, I want to complete my task quickly so that I can stay productive.”
-
-Acceptance Criteria: “System responds within 1 second under normal load.”
-
-Problem Type 3: Ultra-huge story (ID:3)
-✅ What It Is:
-
-Also known as an "epic" masquerading as a story, this happens when a user story is too large to be completed within a sprint or to be estimated accurately.
-
-❌ Example:
-
-"As a user, I want to manage all aspects of my account."
-
-This includes too many sub-tasks (update password, change email, set preferences, etc.).
-
-✅ Better Version:
-
-Break it down into smaller stories like:
-
-"As a user, I want to update my email address."
-
-"As a user, I want to change my password."
-
-Problem Type 4: Technical User Story (ID:4)
-✅ What It Is:
-
-This happens when stories are written from a developer or system perspective, not from a user’s point of view.
-
-❌ Example:
-
-"As a developer, I want to refactor the database schema..."
-
-This isn’t about user value; it's about internal engineering tasks. It doesn't directly reflect user needs.
-
-✅ Better Approach:
-
-These should be logged as technical tasks, or tied to a user-facing story (e.g., performance improvement) if applicable.
-
-Problem Type 5: Poorly defined user roles (ID:5)
-✅ What It Is:
-
-The "user" in a story should be a realistic, specific persona or user type. When roles are too generic (e.g., “user”, “admin”), it becomes unclear whose need is being met.
-
-❌ Example:
-
-"As a user, I want to access reports..."
-
-Which user? A customer? An internal analyst? A manager?
-
-✅ Better Version:
-
-"As a financial analyst, I want to access monthly sales reports so that I can prepare forecasts."
-
-Problem Type 6: Parakeet Value (ID:6)
-✅ What It Is:
-
-This refers to vague or meaningless "so that" clauses—they repeat the request without explaining why the user actually wants it. The story "squawks" back what was just said, like a parakeet.
-
-❌ Example:
-
-"As a user, I want to reset my password so that I can reset my password."
-
-This adds no real insight into user motivation.
-
-✅ Better Version:
-
-"As a user, I want to reset my password so that I can regain access to my account if I forget it."
-
-Problem Type 0: No Problem (ID:0)
-✅ What It Is:
-
-The user story is well-written, follows best practices, and is ready for discussion or implementation.
-
-✅ Example:
-
-"As a customer support agent, I want to view customer history so that I can resolve issues more efficiently."
-
-This has:
-
-A clear user role
-
-A defined need
-
-A meaningful benefit
-
-Output format:
-You must return valid JSON only (no commentary, no markdown, no explanations outside the fields) using exactly this schema:
-
+now based on the problem type, provide an output in the format
 {
 "us_id": <story ID>,
 "estimated_problem_id": <0–6>,
 "corrected_us": "<rewritten version of the story with the problem fixed>",
-"optional_explanation": "<brief explanation of why this problem was identified (optional)>"
+"optional_explanation": "<brief explanation of why this problem was identified>"
 }
-
-Rules:
-
-1. Always select exactly one problem ID (0–6).
-
-2. Think step by step.
-
-3. If multiple problems apply, select the most severe / impactful one.
-
-4. The corrected_us must be a minimal change to fix the problem, keeping the intent intact.
-
-5. Never add extra text outside the JSON.
-
-6. Follow the style of the provided examples exactly.

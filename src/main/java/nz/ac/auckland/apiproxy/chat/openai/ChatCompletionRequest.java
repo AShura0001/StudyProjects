@@ -17,6 +17,8 @@ import org.apache.http.impl.client.HttpClients;
 public class ChatCompletionRequest {
 
   public enum Model {
+    GPT_5_MINI("gpt-5-mini"),
+    GPT_5_NANO("gpt-5-nano"),
     GPT_4_1_MINI("gpt-4.1-mini"),
     GPT_4_1_NANO("gpt-4.1-nano"),
     GPT_4o_MINI("gpt-4o-mini");
