@@ -8,40 +8,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import javafx.application.Platform;
 import javafx.scene.input.MouseEvent;
-import nz.ac.auckland.se206.states.GameOver;
-import nz.ac.auckland.se206.states.GameStarted;
-import nz.ac.auckland.se206.states.GameState;
-import nz.ac.auckland.se206.states.Guessing;
+import nz.ac.auckland.se206.controllers.ChatController;
+import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Context class for managing the state of the game. Handles transitions between different game
- * states and maintains game data such as the professions and rectangle IDs.
+ * Context for managing the game state. This version removes the old Guessing state and focuses
+ * on gameplay with chat and room interactions only.
  */
+@SuppressWarnings("unused")
 public class GameStateContext {
+  public void focusChatForParticipant(ChatController.Participant p) {
+    if (chatController == null) return;
+    javafx.application.Platform.runLater(() -> chatController.selectParticipant(p));
+  }
 
+  // Randomized gameplay data (still useful if you keep professions/rectangles)
   private final String rectIdToGuess;
   private final String professionToGuess;
   private final Map<String, String> rectanglesToProfession;
-  private final GameStarted gameStartedState;
-  private final Guessing guessingState;
-  private final GameOver gameOverState;
-  private GameState gameState;
 
-  /** Constructs a new GameStateContext and initializes the game states and professions. */
+  // UI/controller hooks (injected after FXML load)
+  private ChatController chatController;
+  private RoomUiFacade roomUi;
+
+  // Optional status presenter
+  private java.util.function.Consumer<String> statusSink;
+
   public GameStateContext() {
-    gameStartedState = new GameStarted(this);
-    guessingState = new Guessing(this);
-    gameOverState = new GameOver(this);
-
-    gameState = gameStartedState; // Initial state
+    // Load professions.yaml (optional; keep if you still randomize labels)
     Map<String, Object> obj = null;
     Yaml yaml = new Yaml();
     try (InputStream inputStream =
         GameStateContext.class.getClassLoader().getResourceAsStream("data/professions.yaml")) {
       if (inputStream == null) {
-        throw new IllegalStateException("File not found!");
+        throw new IllegalStateException("File not found: data/professions.yaml");
       }
       obj = yaml.load(inputStream);
     } catch (IOException e) {
@@ -49,108 +52,125 @@ public class GameStateContext {
     }
 
     @SuppressWarnings("unchecked")
-    List<String> professions = (List<String>) obj.get("professions");
+    List<String> professions = obj != null ? (List<String>) obj.get("professions") : List.of("Defendant","AI Witness","Human Witness");
 
     Random random = new Random();
     Set<String> randomProfessions = new HashSet<>();
-    while (randomProfessions.size() < 3) {
+    while (randomProfessions.size() < 3 && !professions.isEmpty()) {
       String profession = professions.get(random.nextInt(professions.size()));
       randomProfessions.add(profession);
     }
 
     String[] randomProfessionsArray = randomProfessions.toArray(new String[3]);
     rectanglesToProfession = new HashMap<>();
-    rectanglesToProfession.put("rectPerson1", randomProfessionsArray[0]);
-    rectanglesToProfession.put("rectPerson2", randomProfessionsArray[1]);
-    rectanglesToProfession.put("rectPerson3", randomProfessionsArray[2]);
+    rectanglesToProfession.put("rectPerson1", safeArray(randomProfessionsArray, 0, "Defendant"));
+    rectanglesToProfession.put("rectPerson2", safeArray(randomProfessionsArray, 1, "AI Witness"));
+    rectanglesToProfession.put("rectPerson3", safeArray(randomProfessionsArray, 2, "Human Witness"));
 
     int randomNumber = random.nextInt(3);
     rectIdToGuess =
-        randomNumber == 0 ? "rectPerson1" : ((randomNumber == 1) ? "rectPerson2" : "rectPerson3");
+        randomNumber == 0 ? "rectPerson1" : (randomNumber == 1 ? "rectPerson2" : "rectPerson3");
     professionToGuess = rectanglesToProfession.get(rectIdToGuess);
   }
 
-  /**
-   * Sets the current state of the game.
-   *
-   * @param state the new state to set
-   */
-  public void setState(GameState state) {
-    this.gameState = state;
-  }
+  // -------------------- Game data accessors (optional) --------------------
 
-  /**
-   * Gets the initial game started state.
-   *
-   * @return the game started state
-   */
-  public GameState getGameStartedState() {
-    return gameStartedState;
-  }
-
-  /**
-   * Gets the guessing state.
-   *
-   * @return the guessing state
-   */
-  public GameState getGuessingState() {
-    return guessingState;
-  }
-
-  /**
-   * Gets the game over state.
-   *
-   * @return the game over state
-   */
-  public GameState getGameOverState() {
-    return gameOverState;
-  }
-
-  /**
-   * Gets the profession to be guessed.
-   *
-   * @return the profession to guess
-   */
   public String getProfessionToGuess() {
     return professionToGuess;
   }
 
-  /**
-   * Gets the ID of the rectangle to be guessed.
-   *
-   * @return the rectangle ID to guess
-   */
   public String getRectIdToGuess() {
     return rectIdToGuess;
   }
 
-  /**
-   * Gets the profession associated with a specific rectangle ID.
-   *
-   * @param rectangleId the rectangle ID
-   * @return the profession associated with the rectangle ID
-   */
   public String getProfession(String rectangleId) {
     return rectanglesToProfession.get(rectangleId);
   }
 
-  /**
-   * Handles the event when a rectangle is clicked.
-   *
-   * @param event the mouse event triggered by clicking a rectangle
-   * @param rectangleId the ID of the clicked rectangle
-   * @throws IOException if there is an I/O error
-   */
-  public void handleRectangleClick(MouseEvent event, String rectangleId) throws IOException {
-    gameState.handleRectangleClick(event, rectangleId);
+  // -------------------- UI/controller integration --------------------
+
+  public void setChatController(ChatController controller) {
+    this.chatController = controller;
   }
 
-  /**
-   * Handles the event when the guess button is clicked.
-   *
-   * @throws IOException if there is an I/O error
-   */
-  public void handleGuessClick() throws IOException {
-    gameState.handleGuessClick();
+  public void setRoomUi(RoomUiFacade roomUi) {
+    this.roomUi = roomUi;
+  }
+
+  public void setStatusSink(java.util.function.Consumer<String> sink) {
+    this.statusSink = sink;
+  }
+
+  public void showChatPane() {
+    // If your UI hides the chat, unhide here (no-op by default)
+  }
+
+  public void focusChatFor(String rectangleId) {
+    if (chatController == null) return;
+    Participant p = mapRectangleToParticipant(rectangleId, rectanglesToProfession.get(rectangleId));
+    Platform.runLater(() -> chatController.selectParticipant(p));
+  }
+
+  public void lockChat() {
+    if (chatController == null) return;
+    Platform.runLater(chatController::lock);
+  }
+
+  public void unlockChat() {
+    if (chatController == null) return;
+    Platform.runLater(chatController::unlock);
+  }
+
+  public void lockRoom() {
+    if (roomUi == null) return;
+    Platform.runLater(roomUi::lockInteractions);
+  }
+
+  public void unlockRoom() {
+    if (roomUi == null) return;
+    Platform.runLater(roomUi::unlockInteractions);
+  }
+
+  public void showStatus(String message) {
+    if (statusSink != null) {
+      Platform.runLater(() -> statusSink.accept(message));
+    }
+  }
+
+  public void requestOpeningMessage(ChatController.Participant p) {
+    if (chatController != null) {
+      chatController.requestOpeningMessageFromLlm(p);
+    }
+  }
+
+  // -------------------- Helpers --------------------
+
+  private static String safeArray(String[] arr, int idx, String fallback) {
+    if (arr == null || idx < 0 || idx >= arr.length) return fallback;
+    String v = arr[idx];
+    return (v == null || v.isBlank()) ? fallback : v;
+  }
+
+  private Participant mapRectangleToParticipant(String rectangleId, String professionLabel) {
+    // Explicit mapping by rectangle id
+    if ("rectPerson1".equals(rectangleId)) return Participant.DEFENDANT;
+    if ("rectPerson2".equals(rectangleId)) return Participant.AI_WITNESS;
+    if ("rectPerson3".equals(rectangleId)) return Participant.HUMAN_WITNESS;
+
+    // Fallback using label
+    if (professionLabel != null) {
+      String p = professionLabel.toLowerCase();
+      if (p.contains("defendant")) return Participant.DEFENDANT;
+      if (p.contains("ai") && p.contains("witness")) return Participant.AI_WITNESS;
+      if (p.contains("human") && p.contains("witness")) return Participant.HUMAN_WITNESS;
+    }
+    return Participant.DEFENDANT;
+  }
+
+  // -------------------- Minimal facade for room interactions --------------------
+
+  public interface RoomUiFacade {
+    void lockInteractions();
+    void unlockInteractions();
   }
 }

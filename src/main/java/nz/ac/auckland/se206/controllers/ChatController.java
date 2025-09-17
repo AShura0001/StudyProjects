@@ -1,11 +1,19 @@
+
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionRequest;
@@ -19,116 +27,395 @@ import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 import nz.ac.auckland.se206.speech.TextToSpeech;
 
+
 /**
- * Controller class for the chat view. Handles user interactions and communication with the GPT
- * model via the API proxy.
+ * Controller for the chat interface. Handles participant switching, LLM requests,
+ * and UI updates for the chat window.
  */
+@SuppressWarnings("unused")
 public class ChatController {
+
+
+  /**
+   * Enum for chat participants.
+   */
+  public enum Participant {
+    DEFENDANT,
+    AI_WITNESS,
+    HUMAN_WITNESS
+  }
+
 
   @FXML private TextArea txtaChat;
   @FXML private TextField txtInput;
   @FXML private Button btnSend;
+  @FXML private Label lblStatus;
 
-  private ChatCompletionRequest chatCompletionRequest;
-  private String profession;
+  private boolean hasSelectedParticipant = false;
+
 
   /**
-   * Initializes the chat view.
-   *
-   * @throws ApiProxyException if there is an error communicating with the API proxy
+   * Thread state for each participant.
+   */
+  private static class ThreadState {
+    ChatCompletionRequest req;
+    final List<ChatMessage> history = new ArrayList<>(); // includes system/user/assistant
+    boolean openingSent = false;
+  }
+
+
+  private final Map<Participant, ThreadState> threads = new EnumMap<>(Participant.class);
+  private Participant currentParticipant = Participant.DEFENDANT;
+
+
+  private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
+    Thread t = new Thread(r, "chat-io");
+    t.setDaemon(true);
+    return t;
+  });
+
+
+  /**
+   * Initializes the chat controller after FXML load.
    */
   @FXML
   public void initialize() throws ApiProxyException {
-    // Any required initialization code can be placed here
+    lblStatus.setText("Click on a participant to chat");
+    setupThreads();
+    replayCurrentHistory();
   }
 
-  /**
-   * Generates the system prompt based on the profession.
-   *
-   * @return the system prompt string
-   */
-  private String getSystemPrompt() {
-    Map<String, String> map = new HashMap<>();
-    map.put("profession", profession);
-    return PromptEngineering.getPrompt("chat.txt", map);
-  }
 
   /**
-   * Sets the profession for the chat context and initializes the ChatCompletionRequest.
-   *
-   * @param profession the profession to set
+   * Initializes threads for all participants.
    */
-  public void setProfession(String profession) {
-    this.profession = profession;
-    try {
-      ApiProxyConfig config = ApiProxyConfig.readConfig();
-      chatCompletionRequest =
-          new ChatCompletionRequest(config).setN(1).setModel(Model.GPT_5_NANO).setMaxTokens(2000);
-      runGpt(new ChatMessage("system", getSystemPrompt()));
-    } catch (ApiProxyException e) {
-      e.printStackTrace();
+  private void setupThreads() throws ApiProxyException {
+    for (Participant p : Participant.values()) {
+      ensureThreadInitialized(p);
     }
   }
 
-  /**
-   * Appends a chat message to the chat text area.
-   *
-   * @param msg the chat message to append
-   */
-  private void appendChatMessage(ChatMessage msg) {
-    txtaChat.appendText(msg.getRole() + ": " + msg.getContent() + "\n\n");
-  }
 
   /**
-   * Runs the GPT model with a given chat message.
-   *
-   * @param msg the chat message to process
-   * @return the response chat message
-   * @throws ApiProxyException if there is an error communicating with the API proxy
+   * Ensures a thread is initialized for the given participant.
    */
-  private ChatMessage runGpt(ChatMessage msg) throws ApiProxyException {
-    chatCompletionRequest.addMessage(msg);
-    try {
-      ChatCompletionResult chatCompletionResult = chatCompletionRequest.execute();
-      Choice result = chatCompletionResult.getChoices().iterator().next();
-      chatCompletionRequest.addMessage(result.getChatMessage());
-      appendChatMessage(result.getChatMessage());
-      TextToSpeech.speak(result.getChatMessage().getContent());
-      return result.getChatMessage();
-    } catch (ApiProxyException e) {
-      e.printStackTrace();
-      return null;
+  private void ensureThreadInitialized(Participant p) throws ApiProxyException {
+    if (threads.containsKey(p)) {
+      return;
+    }
+    ApiProxyConfig config = ApiProxyConfig.readConfig();
+    ChatCompletionRequest req = new ChatCompletionRequest(config)
+      .setN(1)
+      .setTemperature(0.3)
+      .setTopP(0.8)
+      .setModel(Model.GPT_4_1_MINI)
+      .setMaxTokens(160);
+
+    ThreadState state = new ThreadState();
+    state.req = req;
+
+    ChatMessage sys = new ChatMessage("system", getSystemPromptFor(p));
+    state.history.add(sys);
+    req.addMessage(sys);
+
+    threads.put(p, state);
+  }
+
+
+  /**
+   * Loads the system prompt for the given participant.
+   */
+  private String getSystemPromptFor(Participant p) {
+    Map<String, String> map = new java.util.HashMap<>();
+    String promptId;
+    switch (p) {
+      case DEFENDANT:
+        promptId = "defendant.txt";
+        break;
+      case AI_WITNESS:
+        promptId = "ai_witness.txt";
+        break;
+      case HUMAN_WITNESS:
+        promptId = "human_witness.txt";
+        break;
+      default:
+        promptId = "chat.txt";
+        break;
+    }
+    System.out.println("Loading prompt for " + p + " -> id=" + promptId);
+    String prompt = PromptEngineering.getPrompt(promptId, map);
+    if (!prompt.toLowerCase().contains("you are")) {
+      System.out.println("Warning: suspect system prompt content for " + p);
+    }
+    return prompt;
+  }
+
+
+  /**
+   * Returns the display name for a participant.
+   */
+  private String displayName(Participant participant) {
+    switch (participant) {
+      case DEFENDANT:
+        return "Defendant";
+      case AI_WITNESS:
+        return "AI Witness";
+      case HUMAN_WITNESS:
+        return "Human Witness";
+      default:
+        return "Unknown";
     }
   }
 
+
+
   /**
-   * Sends a message to the GPT model.
-   *
-   * @param event the action event triggered by the send button
-   * @throws ApiProxyException if there is an error communicating with the API proxy
-   * @throws IOException if there is an I/O error
+   * Replays the chat history for the current participant.
+   */
+  private void replayCurrentHistory() {
+    txtaChat.clear();
+    ThreadState state = threads.get(currentParticipant);
+    if (state == null) {
+      return;
+    }
+    for (ChatMessage msg : state.history) {
+      if ("system".equalsIgnoreCase(msg.getRole())) {
+        continue; // don’t show system rows
+      }
+      appendChatMessage(currentParticipant, msg);
+    }
+  }
+
+
+  /**
+   * Appends a chat message to the chat area.
+   */
+  private void appendChatMessage(Participant p, ChatMessage msg) {
+    String who;
+    String role = msg.getRole();
+    if ("user".equalsIgnoreCase(role)) {
+      who = "You";
+    } else if ("assistant".equalsIgnoreCase(role)) {
+      who = displayName(p);
+    } else {
+      who = capitalize(role);
+    }
+    String line = who + ": " + msg.getContent() + "\n\n";
+    if (Platform.isFxApplicationThread()) {
+      txtaChat.appendText(line);
+    } else {
+      Platform.runLater(() -> txtaChat.appendText(line));
+    }
+  }
+
+
+  /**
+   * Capitalizes the first letter of a string.
+   */
+  private String capitalize(String s) {
+    if (s == null || s.isEmpty()) {
+      return s;
+    }
+    return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+  }
+
+
+  /**
+   * Appends a meta message to the chat area.
+   */
+  private void appendMeta(String text) {
+    String line = "— " + text + "\n";
+    if (Platform.isFxApplicationThread()) {
+      txtaChat.appendText(line);
+    } else {
+      Platform.runLater(() -> txtaChat.appendText(line));
+    }
+  }
+
+
+  /**
+   * Sends a user message to the LLM and handles the response.
+   */
+  private void sendToLlm(Participant p, ChatMessage userMsg) {
+    ThreadState state = threads.get(p);
+    if (state == null) {
+      appendMeta("No thread for " + displayName(p));
+      return;
+    }
+    // Record and send user message
+    state.history.add(userMsg);
+    state.req.addMessage(userMsg);
+    appendChatMessage(p, userMsg); // ensure it shows instantly
+
+    ioExecutor.submit(() -> {
+      try {
+        ChatCompletionResult result = state.req.execute();
+        Choice choice = result.getChoices().iterator().next();
+        ChatMessage assistant = choice.getChatMessage();
+        // Record assistant reply and add to request history
+        state.history.add(assistant);
+        state.req.addMessage(assistant);
+        appendChatMessage(p, assistant);
+        TextToSpeech.speak(assistant.getContent());
+      } catch (ApiProxyException ex) {
+        ex.printStackTrace();
+        appendMeta("Error contacting LLM.");
+      }
+    });
+  }
+
+
+  /**
+   * Handles the send button action from FXML.
    */
   @FXML
-  private void onSendMessage(ActionEvent event) throws ApiProxyException, IOException {
+  private void onSendMessage(ActionEvent event) throws IOException {
     String message = txtInput.getText().trim();
     if (message.isEmpty()) {
       return;
     }
     txtInput.clear();
-    ChatMessage msg = new ChatMessage("user", message);
-    appendChatMessage(msg);
-    runGpt(msg);
+    sendToLlm(currentParticipant, new ChatMessage("user", message));
   }
 
+
   /**
-   * Navigates back to the previous view.
-   *
-   * @param event the action event triggered by the go back button
-   * @throws ApiProxyException if there is an error communicating with the API proxy
-   * @throws IOException if there is an I/O error
+   * Handles the go back button action from FXML.
    */
   @FXML
-  private void onGoBack(ActionEvent event) throws ApiProxyException, IOException {
+  private void onGoBack(ActionEvent event) throws IOException {
     App.setRoot("room");
+  }
+
+  // Optional: expose visible history for current participant (excluding system)
+
+  /**
+   * Returns the visible chat history for the current participant.
+   */
+  public List<ChatMessage> getCurrentHistory() {
+    ThreadState state = threads.get(currentParticipant);
+    if (state == null) {
+      return List.of();
+    }
+    List<ChatMessage> visible = new ArrayList<>();
+    for (ChatMessage m : state.history) {
+      if (!"system".equalsIgnoreCase(m.getRole())) {
+        visible.add(m);
+      }
+    }
+    return visible;
+  }
+
+
+  /**
+   * Shuts down the IO executor.
+   */
+  public void shutdown() {
+    ioExecutor.shutdownNow();
+  }
+
+
+  /**
+   * Selects a participant and updates the UI.
+   */
+  public void selectParticipant(Participant participant) {
+    currentParticipant = participant;
+    hasSelectedParticipant = true;
+    lblStatus.setText(displayName(participant));
+    replayCurrentHistory();
+    focusInput();
+  }
+
+
+  /**
+   * Focuses the input field for better UX.
+   */
+  public void focusInput() {
+    Platform.runLater(() -> {
+      if (txtInput != null) {
+        txtInput.requestFocus();
+      }
+    });
+  }
+
+
+  /**
+   * Selects a participant by string ID.
+   */
+  public void selectParticipant(String id) {
+    if (id == null) {
+      selectParticipant(Participant.DEFENDANT);
+      return;
+    }
+    String v = id.toLowerCase().replace("-", "_").trim();
+    switch (v) {
+      case "defendant":
+      case "cookiemonster":
+      case "cookie_monster":
+        selectParticipant(Participant.DEFENDANT);
+        break;
+      case "ai_witness":
+        // Sentri-Guard is always mapped to AI_WITNESS, which uses ai_witness.txt prompt
+        selectParticipant(Participant.AI_WITNESS);
+        break;
+      case "human_witness":
+      case "casey":
+        selectParticipant(Participant.HUMAN_WITNESS);
+        break;
+      default:
+        selectParticipant(Participant.DEFENDANT);
+    }
+  }
+
+
+  /**
+   * Locks the chat input and send button.
+   */
+  public void lock() {
+    txtInput.setDisable(true);
+    btnSend.setDisable(true);
+  }
+
+
+  /**
+   * Unlocks the chat input and send button.
+   */
+  public void unlock() {
+    txtInput.setDisable(false);
+    btnSend.setDisable(false);
+  }
+
+
+  /**
+   * Requests the opening message from the LLM for a participant.
+   */
+  public void requestOpeningMessageFromLlm(Participant participant) {
+    ThreadState state = threads.get(participant);
+    selectParticipant(participant);
+    if (state == null || state.openingSent) {
+      return;
+    }
+    ioExecutor.submit(() -> {
+      try {
+        ChatMessage userMsg = new ChatMessage("user", "Please introduce yourself and explain the situation.");
+        state.history.add(userMsg);
+        state.req.addMessage(userMsg);
+        appendChatMessage(participant, userMsg);
+        ChatCompletionResult result = state.req.execute();
+        Choice choice = result.getChoices().iterator().next();
+        ChatMessage assistant = choice.getChatMessage();
+        state.history.add(assistant);
+        state.req.addMessage(assistant);
+        appendChatMessage(participant, assistant);
+        TextToSpeech.speak(assistant.getContent());
+        state.openingSent = true; // only set after success
+      } catch (ApiProxyException ex) {
+        ex.printStackTrace();
+        appendMeta("Error contacting LLM for opening message.");
+        if (state != null) {
+          state.openingSent = false;
+        }
+      }
+    });
   }
 }
