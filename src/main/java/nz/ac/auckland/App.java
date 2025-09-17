@@ -49,12 +49,12 @@ public class App {
 
             // Store the response in a JSON object
             JSONObject outputObj = new JSONObject();
-            outputObj.put("US_ID", userStory.get("US_ID"));
-            
             JSONParser innerParser = new JSONParser();
             JSONObject responseObj = (JSONObject) innerParser.parse(response);
-            outputObj.put("response", responseObj); // <-- nested object, not string
-
+            // Add each key-value pair from responseObj to outputObj
+            for (Object key : responseObj.keySet()) {
+                outputObj.put(key, responseObj.get(key));
+            }
             outputArray.add(outputObj);
         }
 
