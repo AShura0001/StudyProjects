@@ -1,6 +1,9 @@
 # apiproxy
 apiproxy.config
 
+#temp files
+src\main\resources\input\temp.txt
+
 # Java
 *.class
 *.jar
