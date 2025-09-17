@@ -22,7 +22,7 @@ IDs and choose the highest priority problem for that story.
 
 now based on the final chosen problem type, provide a short output in the format
 {
-"us_id": <story ID>,
+"us_id": <story ID (integer)>,
 "estimated_problem_id": <0–6>,
 "corrected_us": "<rewritten version of the story with the problem fixed>",
 "optional_explanation": "<brief explanation of why this problem was identified>"

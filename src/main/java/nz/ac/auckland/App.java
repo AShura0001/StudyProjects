@@ -10,6 +10,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import nz.ac.auckland.apiproxy.chat.openai.ChatCompletionResult;
 import nz.ac.auckland.apiproxy.chat.openai.ChatMessage;
@@ -78,5 +79,42 @@ public class App {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+        FileReader output_file = new FileReader("target\\output\\output.json");
+    FileReader truth_file = new FileReader("src\\main\\resources\\ground_truth\\ground_truth_labels.json");
+    JSONObject outputWrapperObj = (JSONObject) parser.parse(output_file);
+    JSONArray output_json = (JSONArray) outputWrapperObj.get("results");
+    JSONArray truth_json = (JSONArray) parser.parse(truth_file);
+
+        HashMap<String, Integer> responseValues = new HashMap<>();
+        HashMap<String, Integer> truthValues = new HashMap<>();
+
+        int correctEstimates = 0;
+        int count = 0;
+
+        for (Object objNotJson : output_json) {
+            JSONObject obj = (JSONObject) objNotJson;
+            String key = "us" + obj.get("us_id").toString();
+            int value = Integer.parseInt(obj.get("estimated_problem_id").toString());
+            responseValues.put(key, value);
+        }
+
+        for (Object objNotJson : truth_json) {
+            JSONObject obj = (JSONObject) objNotJson;
+            String key = obj.get("us_id").toString();
+            int value = Integer.parseInt(obj.get("ground_truth_problem_id").toString());
+            truthValues.put(key, value);
+        }
+
+        for (String key : truthValues.keySet()) {
+            if (truthValues.get(key).equals(responseValues.get(key))) {
+                correctEstimates++;
+            }
+            count++;
+        }
+
+        int accuracy = (correctEstimates * 100) / count;
+        System.out.println("Accuracy: " + accuracy + "%");
     }
 }
