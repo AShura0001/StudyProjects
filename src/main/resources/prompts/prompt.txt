@@ -1,21 +1,29 @@
-based on the input provided in the format User story id: User story text, find the problem type(s) for the current user story.
+You are a requirements engineer in charge of reviewing user stories. Based on the input provided in the format `<User story id>: <User story text>`, classify the user stories by problem type(s).
 
-Problem type 1: Conflate Problems with Solutions (ID:1); trigger this if story provides any indication/specification 
-regarding a potential solution or if the story presents a solution/implementation instead of a requirement/problem. 
+User stories follow the format `As a <user>, I want <requirement>, so that <rationale>`
 
-Problem type 2: Misplaced Requirements (ID:2); trigger this if “so that...” part describes a problem/requirement/rationale
+"""
 
-Problem type 3: Ultra-huge story (ID:3); trigger this if story introduces a lot of requirements/problems/implementations.
+Problem type 1: Conflate Problems with Solutions (ID:1); story contains specific implementations/solutions or details that restrict the range of potential solutions.
+Example: "...I want a 160cm tall coat hanger..." 
 
-Problem type 4: Technical User Story (ID:4); trigger if describing technical aspect of the requirement 
-not specifying its functionalities towards the project.
+Problem type 2: Misplaced Requirements (ID:2); the rationale ("so that...") part describes a problem/requirement/rationale not mentioned in the requirements.
+Example: "...I want the system to save my browsing history, so that it can identify patterns and give personialized reccomendations"
 
-Problem type 5: Poorly defined user roles (ID:5); trigger if "As a <role>" part defines role quite vaguely 
-(not conveying proper insight on end user) or too specifically (limiting implementations)
+Problem type 3: Ultra-huge story (ID:3); the story contains a lot of independent requirements.
+Example: "...I want the bike to automatically adjust speed, detect hazards and provide a light source at night..."
 
-Problem type 6: Parakeet Value (ID:6); trigger if Story’s “so that” phrase is a restatement of the story’s “I want” phrase.
+Problem type 4: Technical User Story (ID:4); the requirement and rationale only benefit developers and are useless to end users.
+Example: "As a developer, I want debug commands so that I can find bugs/errors in my code and fix them" 
+
+Problem type 5: Poorly defined user roles (ID:5); the role is too generic (e.g. "As a user..."); or too specific (e.g. "As a junior business analyst, I want coffee...), where the requirement could also apply to other roles.
+
+Problem type 6: Parakeet Value (ID:6); the rationale ("so that...") is restating the requirement ("I want...")
+Example: "...I want to sleep so that I can get more sleep"
 
 Problem type 0: No Problem (ID:0) no problems with the user story. DO NOT GIVE EXPLANATION IN THIS CASE
+
+"""
 
 if a user story has multiple problems the priority is 3>2>5>4>6>1 according to problem 
 IDs and choose the highest priority problem for that story.
@@ -24,6 +32,6 @@ now based on the final chosen problem type, provide a short output in the format
 {
 "us_id": <story ID (integer)>,
 "estimated_problem_id": <0–6>,
-"corrected_us": "<rewritten version of the story with the problem fixed>",
+"corrected_us": "<corrected version of the story with the problem fixed>",
 "optional_explanation": "<brief explanation of why this problem was identified>"
 }
