@@ -44,7 +44,7 @@ public class App {
             messages.add(new ChatMessage("system", systemPrompt));
             messages.add(new ChatMessage("user", input_content));
 
-            ChatCompletionResult result = client.runOnce(messages, 1, 0.2, 1.0, 2000);
+            ChatCompletionResult result = client.runOnce(messages, 1, 1, 1.0, 2000);
             String response = result.getFirstChoice().getChatMessage().getContent();
             System.out.println(response);
 
