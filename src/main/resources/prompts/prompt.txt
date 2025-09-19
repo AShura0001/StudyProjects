@@ -25,8 +25,7 @@ Problem type 0: No Problem (ID:0) no problems with the user story. DO NOT GIVE E
 
 """
 
-if a user story has multiple problems the priority is 3>2>5>4>6>1 according to problem 
-IDs and choose the highest priority problem for that story.
+if a user story has multiple problems, select the most significant problem
 
 now based on the final chosen problem type, provide a short output in the format
 {
