@@ -1,7 +1,5 @@
 package nz.ac.auckland.se206.controllers;
 
-import javafx.scene.layout.VBox;
-
 import java.io.IOException;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -12,6 +10,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 public class RoomFrameController {
@@ -22,7 +21,7 @@ public class RoomFrameController {
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
-  @FXML private Button btnEndGame; 
+  @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
   @FXML private VBox chatBox;
 
@@ -120,7 +119,8 @@ public class RoomFrameController {
           chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS;
           break;
         case 3:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS;
+          chatParticipant =
+              nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS;
           break;
         default:
           chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT;
@@ -128,7 +128,8 @@ public class RoomFrameController {
       }
       // Find ChatController and switch participant
       // This assumes you have a reference to ChatController, e.g. via GameStateContext
-      nz.ac.auckland.se206.GameStateContext gameState = nz.ac.auckland.se206.App.getGameStateContext();
+      nz.ac.auckland.se206.GameStateContext gameState =
+          nz.ac.auckland.se206.App.getGameStateContext();
       if (gameState != null) {
         gameState.focusChatForParticipant(chatParticipant);
       }
@@ -159,19 +160,19 @@ public class RoomFrameController {
   private void setupTimer() {
     if (timeline != null) timeline.stop();
     timeline =
-      new Timeline(
-        new KeyFrame(
-          Duration.seconds(1),
-          e -> {
-            remaining = Math.max(0, remaining - 1);
-            updateTimerLabel(remaining);
-            if (remaining == 0) {
-              timeline.stop();
-              // Show overlay on time up
-              showOverlay();
-              showVerdictQuestion("the AI defendant"); // pass your subject/context if needed
-            }
-          }));
+        new Timeline(
+            new KeyFrame(
+                Duration.seconds(1),
+                e -> {
+                  remaining = Math.max(0, remaining - 1);
+                  updateTimerLabel(remaining);
+                  if (remaining == 0) {
+                    timeline.stop();
+                    // Show overlay on time up
+                    showOverlay();
+                    showVerdictQuestion("the AI defendant"); // pass your subject/context if needed
+                  }
+                }));
     timeline.setCycleCount(Timeline.INDEFINITE);
   }
 
@@ -253,7 +254,6 @@ public class RoomFrameController {
       overlayRoot.getChildren().clear();
     }
   }
-
 
   // ----------------- Cleanup -----------------
 

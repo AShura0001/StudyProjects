@@ -1,4 +1,3 @@
-
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
@@ -12,7 +11,6 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -27,24 +25,19 @@ import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 import nz.ac.auckland.se206.speech.TextToSpeech;
 
-
 /**
- * Controller for the chat interface. Handles participant switching, LLM requests,
- * and UI updates for the chat window.
+ * Controller for the chat interface. Handles participant switching, LLM requests, and UI updates
+ * for the chat window.
  */
 @SuppressWarnings("unused")
 public class ChatController {
 
-
-  /**
-   * Enum for chat participants.
-   */
+  /** Enum for chat participants. */
   public enum Participant {
     DEFENDANT,
     AI_WITNESS,
     HUMAN_WITNESS
   }
-
 
   @FXML private TextArea txtaChat;
   @FXML private TextField txtInput;
@@ -53,31 +46,25 @@ public class ChatController {
 
   private boolean hasSelectedParticipant = false;
 
-
-  /**
-   * Thread state for each participant.
-   */
+  /** Thread state for each participant. */
   private static class ThreadState {
     ChatCompletionRequest req;
     final List<ChatMessage> history = new ArrayList<>(); // includes system/user/assistant
     boolean openingSent = false;
   }
 
-
   private final Map<Participant, ThreadState> threads = new EnumMap<>(Participant.class);
   private Participant currentParticipant = Participant.DEFENDANT;
 
+  private final ExecutorService ioExecutor =
+      Executors.newSingleThreadExecutor(
+          r -> {
+            Thread t = new Thread(r, "chat-io");
+            t.setDaemon(true);
+            return t;
+          });
 
-  private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
-    Thread t = new Thread(r, "chat-io");
-    t.setDaemon(true);
-    return t;
-  });
-
-
-  /**
-   * Initializes the chat controller after FXML load.
-   */
+  /** Initializes the chat controller after FXML load. */
   @FXML
   public void initialize() throws ApiProxyException {
     lblStatus.setText("Click on a participant to chat");
@@ -85,31 +72,26 @@ public class ChatController {
     replayCurrentHistory();
   }
 
-
-  /**
-   * Initializes threads for all participants.
-   */
+  /** Initializes threads for all participants. */
   private void setupThreads() throws ApiProxyException {
     for (Participant p : Participant.values()) {
       ensureThreadInitialized(p);
     }
   }
 
-
-  /**
-   * Ensures a thread is initialized for the given participant.
-   */
+  /** Ensures a thread is initialized for the given participant. */
   private void ensureThreadInitialized(Participant p) throws ApiProxyException {
     if (threads.containsKey(p)) {
       return;
     }
     ApiProxyConfig config = ApiProxyConfig.readConfig();
-    ChatCompletionRequest req = new ChatCompletionRequest(config)
-      .setN(1)
-      .setTemperature(0.3)
-      .setTopP(0.8)
-      .setModel(Model.GPT_4_1_MINI)
-      .setMaxTokens(160);
+    ChatCompletionRequest req =
+        new ChatCompletionRequest(config)
+            .setN(1)
+            .setTemperature(0.3)
+            .setTopP(0.8)
+            .setModel(Model.GPT_4_1_MINI)
+            .setMaxTokens(160);
 
     ThreadState state = new ThreadState();
     state.req = req;
@@ -121,10 +103,7 @@ public class ChatController {
     threads.put(p, state);
   }
 
-
-  /**
-   * Loads the system prompt for the given participant.
-   */
+  /** Loads the system prompt for the given participant. */
   private String getSystemPromptFor(Participant p) {
     Map<String, String> map = new java.util.HashMap<>();
     String promptId;
@@ -150,10 +129,7 @@ public class ChatController {
     return prompt;
   }
 
-
-  /**
-   * Returns the display name for a participant.
-   */
+  /** Returns the display name for a participant. */
   private String displayName(Participant participant) {
     switch (participant) {
       case DEFENDANT:
@@ -167,11 +143,7 @@ public class ChatController {
     }
   }
 
-
-
-  /**
-   * Replays the chat history for the current participant.
-   */
+  /** Replays the chat history for the current participant. */
   private void replayCurrentHistory() {
     txtaChat.clear();
     ThreadState state = threads.get(currentParticipant);
@@ -186,10 +158,7 @@ public class ChatController {
     }
   }
 
-
-  /**
-   * Appends a chat message to the chat area.
-   */
+  /** Appends a chat message to the chat area. */
   private void appendChatMessage(Participant p, ChatMessage msg) {
     String who;
     String role = msg.getRole();
@@ -208,10 +177,7 @@ public class ChatController {
     }
   }
 
-
-  /**
-   * Capitalizes the first letter of a string.
-   */
+  /** Capitalizes the first letter of a string. */
   private String capitalize(String s) {
     if (s == null || s.isEmpty()) {
       return s;
@@ -219,10 +185,7 @@ public class ChatController {
     return Character.toUpperCase(s.charAt(0)) + s.substring(1);
   }
 
-
-  /**
-   * Appends a meta message to the chat area.
-   */
+  /** Appends a meta message to the chat area. */
   private void appendMeta(String text) {
     String line = "— " + text + "\n";
     if (Platform.isFxApplicationThread()) {
@@ -232,10 +195,7 @@ public class ChatController {
     }
   }
 
-
-  /**
-   * Sends a user message to the LLM and handles the response.
-   */
+  /** Sends a user message to the LLM and handles the response. */
   private void sendToLlm(Participant p, ChatMessage userMsg) {
     ThreadState state = threads.get(p);
     if (state == null) {
@@ -247,27 +207,25 @@ public class ChatController {
     state.req.addMessage(userMsg);
     appendChatMessage(p, userMsg); // ensure it shows instantly
 
-    ioExecutor.submit(() -> {
-      try {
-        ChatCompletionResult result = state.req.execute();
-        Choice choice = result.getChoices().iterator().next();
-        ChatMessage assistant = choice.getChatMessage();
-        // Record assistant reply and add to request history
-        state.history.add(assistant);
-        state.req.addMessage(assistant);
-        appendChatMessage(p, assistant);
-        TextToSpeech.speak(assistant.getContent());
-      } catch (ApiProxyException ex) {
-        ex.printStackTrace();
-        appendMeta("Error contacting LLM.");
-      }
-    });
+    ioExecutor.submit(
+        () -> {
+          try {
+            ChatCompletionResult result = state.req.execute();
+            Choice choice = result.getChoices().iterator().next();
+            ChatMessage assistant = choice.getChatMessage();
+            // Record assistant reply and add to request history
+            state.history.add(assistant);
+            state.req.addMessage(assistant);
+            appendChatMessage(p, assistant);
+            TextToSpeech.speak(assistant.getContent());
+          } catch (ApiProxyException ex) {
+            ex.printStackTrace();
+            appendMeta("Error contacting LLM.");
+          }
+        });
   }
 
-
-  /**
-   * Handles the send button action from FXML.
-   */
+  /** Handles the send button action from FXML. */
   @FXML
   private void onSendMessage(ActionEvent event) throws IOException {
     String message = txtInput.getText().trim();
@@ -278,10 +236,7 @@ public class ChatController {
     sendToLlm(currentParticipant, new ChatMessage("user", message));
   }
 
-
-  /**
-   * Handles the go back button action from FXML.
-   */
+  /** Handles the go back button action from FXML. */
   @FXML
   private void onGoBack(ActionEvent event) throws IOException {
     App.setRoot("room");
@@ -289,9 +244,7 @@ public class ChatController {
 
   // Optional: expose visible history for current participant (excluding system)
 
-  /**
-   * Returns the visible chat history for the current participant.
-   */
+  /** Returns the visible chat history for the current participant. */
   public List<ChatMessage> getCurrentHistory() {
     ThreadState state = threads.get(currentParticipant);
     if (state == null) {
@@ -306,18 +259,12 @@ public class ChatController {
     return visible;
   }
 
-
-  /**
-   * Shuts down the IO executor.
-   */
+  /** Shuts down the IO executor. */
   public void shutdown() {
     ioExecutor.shutdownNow();
   }
 
-
-  /**
-   * Selects a participant and updates the UI.
-   */
+  /** Selects a participant and updates the UI. */
   public void selectParticipant(Participant participant) {
     currentParticipant = participant;
     hasSelectedParticipant = true;
@@ -326,22 +273,17 @@ public class ChatController {
     focusInput();
   }
 
-
-  /**
-   * Focuses the input field for better UX.
-   */
+  /** Focuses the input field for better UX. */
   public void focusInput() {
-    Platform.runLater(() -> {
-      if (txtInput != null) {
-        txtInput.requestFocus();
-      }
-    });
+    Platform.runLater(
+        () -> {
+          if (txtInput != null) {
+            txtInput.requestFocus();
+          }
+        });
   }
 
-
-  /**
-   * Selects a participant by string ID.
-   */
+  /** Selects a participant by string ID. */
   public void selectParticipant(String id) {
     if (id == null) {
       selectParticipant(Participant.DEFENDANT);
@@ -367,55 +309,48 @@ public class ChatController {
     }
   }
 
-
-  /**
-   * Locks the chat input and send button.
-   */
+  /** Locks the chat input and send button. */
   public void lock() {
     txtInput.setDisable(true);
     btnSend.setDisable(true);
   }
 
-
-  /**
-   * Unlocks the chat input and send button.
-   */
+  /** Unlocks the chat input and send button. */
   public void unlock() {
     txtInput.setDisable(false);
     btnSend.setDisable(false);
   }
 
-
-  /**
-   * Requests the opening message from the LLM for a participant.
-   */
+  /** Requests the opening message from the LLM for a participant. */
   public void requestOpeningMessageFromLlm(Participant participant) {
     ThreadState state = threads.get(participant);
     selectParticipant(participant);
     if (state == null || state.openingSent) {
       return;
     }
-    ioExecutor.submit(() -> {
-      try {
-        ChatMessage userMsg = new ChatMessage("user", "Please introduce yourself and explain the situation.");
-        state.history.add(userMsg);
-        state.req.addMessage(userMsg);
-        appendChatMessage(participant, userMsg);
-        ChatCompletionResult result = state.req.execute();
-        Choice choice = result.getChoices().iterator().next();
-        ChatMessage assistant = choice.getChatMessage();
-        state.history.add(assistant);
-        state.req.addMessage(assistant);
-        appendChatMessage(participant, assistant);
-        TextToSpeech.speak(assistant.getContent());
-        state.openingSent = true; // only set after success
-      } catch (ApiProxyException ex) {
-        ex.printStackTrace();
-        appendMeta("Error contacting LLM for opening message.");
-        if (state != null) {
-          state.openingSent = false;
-        }
-      }
-    });
+    ioExecutor.submit(
+        () -> {
+          try {
+            ChatMessage userMsg =
+                new ChatMessage("user", "Please introduce yourself and explain the situation.");
+            state.history.add(userMsg);
+            state.req.addMessage(userMsg);
+            appendChatMessage(participant, userMsg);
+            ChatCompletionResult result = state.req.execute();
+            Choice choice = result.getChoices().iterator().next();
+            ChatMessage assistant = choice.getChatMessage();
+            state.history.add(assistant);
+            state.req.addMessage(assistant);
+            appendChatMessage(participant, assistant);
+            TextToSpeech.speak(assistant.getContent());
+            state.openingSent = true; // only set after success
+          } catch (ApiProxyException ex) {
+            ex.printStackTrace();
+            appendMeta("Error contacting LLM for opening message.");
+            if (state != null) {
+              state.openingSent = false;
+            }
+          }
+        });
   }
 }
