@@ -28,7 +28,7 @@ public class App {
 
 
         JSONParser parser = new JSONParser();
-        FileReader input_file = new FileReader("src\\main\\resources\\input\\input.json");
+        FileReader input_file = new FileReader("src/main/resources/input/input.json");
         JSONArray input_json = (JSONArray) parser.parse(input_file);
         
         String systemPrompt = PromptEngineering.getPrompt("prompt");
@@ -81,8 +81,8 @@ public class App {
         }
 
 
-        FileReader output_file = new FileReader("target\\output\\output.json");
-    FileReader truth_file = new FileReader("src\\main\\resources\\ground_truth\\ground_truth_labels.json");
+        FileReader output_file = new FileReader("target/output/output.json");
+    FileReader truth_file = new FileReader("src/main/resources/ground_truth/ground_truth_labels.json");
     JSONObject outputWrapperObj = (JSONObject) parser.parse(output_file);
     JSONArray output_json = (JSONArray) outputWrapperObj.get("results");
     JSONArray truth_json = (JSONArray) parser.parse(truth_file);
