@@ -1,11 +1,13 @@
 package nz.ac.auckland.se206.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import nz.ac.auckland.se206.prompts.VerdictEvaluator;
 
 @SuppressWarnings("unused")
 public class VerdictController {
@@ -124,18 +126,47 @@ public class VerdictController {
         }
         playerRationale = rationale;
 
-        // User answered Yes (Cookie Monster is ethical) -- INCORRECT
-        showYesResult(
-            "You answered: Ethical (Incorrect)\n\n"
-                + "Your rationale: \""
-                + playerRationale
-                + "\"\n\n"
-                + "Auto-accepting non-essential cookies without explicit, informed, and freely"
-                + " given consent is ethically unsound. It prioritizes friction KPIs over user"
-                + " autonomy, violates reasonable expectations (most users prefer 'Necessary"
-                + " Only'), and causes foreseeable harm (targeted profiling). An ethical approach"
-                + " would default to Necessary Only, prompt just-in-time with clear choices,"
-                + " provide logs/undo, and honor explicit, granular opt-in.");
+        // Show loading message while evaluating
+        showEvaluatingMessage();
+
+        // Evaluate verdict asynchronously using LLM
+        VerdictEvaluator.evaluateVerdictAsync(true, playerRationale)
+            .thenAccept(
+                result ->
+                    Platform.runLater(
+                        () -> {
+                          String feedback =
+                              String.format(
+                                  "You answered: Ethical (%s)\n\n"
+                                      + "Your rationale: \"%s\"\n\n"
+                                      + "%s",
+                                  result.isCorrectVerdict() ? "Correct" : "Incorrect",
+                                  playerRationale,
+                                  result.getExplanation());
+                          showYesResult(feedback);
+                        }))
+            .exceptionally(
+                throwable -> {
+                  Platform.runLater(
+                      () -> {
+                        // Fallback to original feedback if LLM evaluation fails
+                        String fallbackFeedback =
+                            String.format(
+                                "You answered: Ethical (Incorrect)\n\n"
+                                    + "Your rationale: \"%s\"\n\n"
+                                    + "Auto-accepting non-essential cookies without explicit,"
+                                    + " informed, and freely given consent is ethically unsound. It"
+                                    + " prioritizes friction KPIs over user autonomy, violates"
+                                    + " reasonable expectations (most users prefer 'Necessary"
+                                    + " Only'), and causes foreseeable harm (targeted profiling)."
+                                    + " An ethical approach would default to Necessary Only, prompt"
+                                    + " just-in-time with clear choices, provide logs/undo, and"
+                                    + " honor explicit, granular opt-in.",
+                                playerRationale);
+                        showYesResult(fallbackFeedback);
+                      });
+                  return null;
+                });
         break;
       case YES_RESULT:
       case NO_RESULT:
@@ -162,18 +193,47 @@ public class VerdictController {
         }
         playerRationale = rationale;
 
-        // User answered No (Cookie Monster is NOT ethical) -- CORRECT
-        showNoResult(
-            "You answered: Unethical (Correct)\n\n"
-                + "Your rationale: \""
-                + playerRationale
-                + "\"\n\n"
-                + "Auto-accepting non-essential cookies without explicit, informed, and freely"
-                + " given consent is ethically unsound. It prioritizes friction KPIs over user"
-                + " autonomy, violates reasonable expectations (most users prefer 'Necessary"
-                + " Only'), and causes foreseeable harm (targeted profiling). An ethical approach"
-                + " would default to Necessary Only, prompt just-in-time with clear choices,"
-                + " provide logs/undo, and honor explicit, granular opt-in.");
+        // Show loading message while evaluating
+        showEvaluatingMessage();
+
+        // Evaluate verdict asynchronously using LLM
+        VerdictEvaluator.evaluateVerdictAsync(false, playerRationale)
+            .thenAccept(
+                result ->
+                    Platform.runLater(
+                        () -> {
+                          String feedback =
+                              String.format(
+                                  "You answered: Unethical (%s)\n\n"
+                                      + "Your rationale: \"%s\"\n\n"
+                                      + "%s",
+                                  result.isCorrectVerdict() ? "Correct" : "Incorrect",
+                                  playerRationale,
+                                  result.getExplanation());
+                          showNoResult(feedback);
+                        }))
+            .exceptionally(
+                throwable -> {
+                  Platform.runLater(
+                      () -> {
+                        // Fallback to original feedback if LLM evaluation fails
+                        String fallbackFeedback =
+                            String.format(
+                                "You answered: Unethical (Correct)\n\n"
+                                    + "Your rationale: \"%s\"\n\n"
+                                    + "Auto-accepting non-essential cookies without explicit,"
+                                    + " informed, and freely given consent is ethically unsound. It"
+                                    + " prioritizes friction KPIs over user autonomy, violates"
+                                    + " reasonable expectations (most users prefer 'Necessary"
+                                    + " Only'), and causes foreseeable harm (targeted profiling)."
+                                    + " An ethical approach would default to Necessary Only, prompt"
+                                    + " just-in-time with clear choices, provide logs/undo, and"
+                                    + " honor explicit, granular opt-in.",
+                                playerRationale);
+                        showNoResult(fallbackFeedback);
+                      });
+                  return null;
+                });
         break;
       case YES_RESULT:
       case NO_RESULT:
@@ -221,5 +281,18 @@ public class VerdictController {
     alert.setHeaderText("Please provide your rationale");
     alert.setContentText("You must explain your reasoning for your verdict before proceeding.");
     alert.showAndWait();
+  }
+
+  private void showEvaluatingMessage() {
+    titleLabel.setText("Evaluating Your Response...");
+    detailLabel.setText("Please wait while we analyze your verdict and rationale using AI.");
+
+    // Disable buttons during evaluation
+    questionActions.setVisible(false);
+    questionActions.setManaged(false);
+
+    // Hide rationale input during evaluation
+    rationaleBox.setVisible(false);
+    rationaleBox.setManaged(false);
   }
 }
