@@ -22,6 +22,7 @@ import nz.ac.auckland.apiproxy.chat.openai.Choice;
 import nz.ac.auckland.apiproxy.config.ApiProxyConfig;
 import nz.ac.auckland.apiproxy.exceptions.ApiProxyException;
 import nz.ac.auckland.se206.App;
+import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 import nz.ac.auckland.se206.speech.TextToSpeech;
 
@@ -56,6 +57,9 @@ public class ChatController {
   private final Map<Participant, ThreadState> threads = new EnumMap<>(Participant.class);
   private Participant currentParticipant = Participant.DEFENDANT;
 
+  // Reference to game context for tracking participant interactions
+  private GameStateContext gameContext;
+
   private final ExecutorService ioExecutor =
       Executors.newSingleThreadExecutor(
           r -> {
@@ -66,10 +70,18 @@ public class ChatController {
 
   /** Initializes the chat controller after FXML load. */
   @FXML
-  public void initialize() throws ApiProxyException {
+  public void initialize() {
     lblStatus.setText("Click on a participant to chat");
-    setupThreads();
+    try {
+      setupThreads();
+    } catch (ApiProxyException e) {
+      System.err.println("Warning: Could not initialize API configuration: " + e.getMessage());
+      lblStatus.setText("API configuration not available - limited functionality");
+    }
     replayCurrentHistory();
+
+    // Get reference to game context for participant tracking
+    gameContext = App.getGameStateContext();
   }
 
   /** Initializes threads for all participants. */
@@ -233,6 +245,12 @@ public class ChatController {
       return;
     }
     txtInput.clear();
+
+    // Mark participant as contacted when player sends a message
+    if (gameContext != null) {
+      gameContext.markParticipantContacted(currentParticipant);
+    }
+
     sendToLlm(currentParticipant, new ChatMessage("user", message));
   }
 
