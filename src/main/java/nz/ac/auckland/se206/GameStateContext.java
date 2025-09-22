@@ -9,14 +9,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import javafx.application.Platform;
-import javafx.scene.input.MouseEvent;
 import nz.ac.auckland.se206.controllers.ChatController;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Context for managing the game state. This version removes the old Guessing state and focuses
- * on gameplay with chat and room interactions only.
+ * Context for managing the game state. This version removes the old Guessing state and focuses on
+ * gameplay with chat and room interactions only.
  */
 @SuppressWarnings("unused")
 public class GameStateContext {
@@ -37,6 +36,9 @@ public class GameStateContext {
   // Optional status presenter
   private java.util.function.Consumer<String> statusSink;
 
+  // Track which participants have been contacted
+  private final Set<Participant> contactedParticipants = new HashSet<>();
+
   public GameStateContext() {
     // Load professions.yaml (optional; keep if you still randomize labels)
     Map<String, Object> obj = null;
@@ -52,7 +54,10 @@ public class GameStateContext {
     }
 
     @SuppressWarnings("unchecked")
-    List<String> professions = obj != null ? (List<String>) obj.get("professions") : List.of("Defendant","AI Witness","Human Witness");
+    List<String> professions =
+        obj != null
+            ? (List<String>) obj.get("professions")
+            : List.of("Defendant", "AI Witness", "Human Witness");
 
     Random random = new Random();
     Set<String> randomProfessions = new HashSet<>();
@@ -65,7 +70,8 @@ public class GameStateContext {
     rectanglesToProfession = new HashMap<>();
     rectanglesToProfession.put("rectPerson1", safeArray(randomProfessionsArray, 0, "Defendant"));
     rectanglesToProfession.put("rectPerson2", safeArray(randomProfessionsArray, 1, "AI Witness"));
-    rectanglesToProfession.put("rectPerson3", safeArray(randomProfessionsArray, 2, "Human Witness"));
+    rectanglesToProfession.put(
+        "rectPerson3", safeArray(randomProfessionsArray, 2, "Human Witness"));
 
     int randomNumber = random.nextInt(3);
     rectIdToGuess =
@@ -143,6 +149,34 @@ public class GameStateContext {
     }
   }
 
+  // -------------------- Participant tracking methods --------------------
+
+  /** Marks a participant as contacted (player has sent at least one message). */
+  public void markParticipantContacted(Participant participant) {
+    contactedParticipants.add(participant);
+  }
+
+  /** Returns true if all three participants have been contacted. */
+  public boolean hasContactedAllParticipants() {
+    return contactedParticipants.size() >= 3;
+  }
+
+  /** Returns the set of participants that haven't been contacted yet. */
+  public Set<Participant> getUncontactedParticipants() {
+    Set<Participant> uncontacted = new HashSet<>();
+    for (Participant p : Participant.values()) {
+      if (!contactedParticipants.contains(p)) {
+        uncontacted.add(p);
+      }
+    }
+    return uncontacted;
+  }
+
+  /** Returns the number of participants contacted. */
+  public int getContactedCount() {
+    return contactedParticipants.size();
+  }
+
   // -------------------- Helpers --------------------
 
   private static String safeArray(String[] arr, int idx, String fallback) {
@@ -171,6 +205,7 @@ public class GameStateContext {
 
   public interface RoomUiFacade {
     void lockInteractions();
+
     void unlockInteractions();
   }
 }

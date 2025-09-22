@@ -70,6 +70,24 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>21</release>
+        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>3.8.0</version>
+      </plugin>
+      <plugin>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>nz.ac.auckland.se206.App</mainClass>
+        </configuration>
+        <groupId>org.openjfx</groupId>
+        <version>0.0.3</version>
+      </plugin>
+    </plugins>
   </build>
   <dependencies>
     <dependency>
