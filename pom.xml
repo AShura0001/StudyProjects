@@ -20,56 +20,6 @@
   </properties>
 
   <build>
-    <plugins>
-      <!-- Ensure compilation uses Java 21 -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
-        <configuration>
-          <release>${maven.compiler.release}</release>
-        </configuration>
-      </plugin>
-
-      <!-- Modern JavaFX plugin (0.0.8). Older 0.0.3 forces Java 11 behavior. -->
-      <plugin>
-        <groupId>org.openjfx</groupId>
-        <artifactId>javafx-maven-plugin</artifactId>
-        <version>0.0.8</version>
-        <configuration>
-          <mainClass>nz.ac.auckland.se206.App</mainClass>
-        </configuration>
-      </plugin>
-
-      <!-- (Optional) Keep surefire if you use tests -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
-      </plugin>
-
-      <!-- (Optional) style runner you already had -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <executions>
-          <execution>
-            <id>style</id>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <configuration>
-              <includeProjectDependencies>true</includeProjectDependencies>
-              <classpathScope>compile</classpathScope>
-              <mainClass>nz.ac.auckland.gradestyle.RunGradeStyle</mainClass>
-              <arguments>
-                <argument>${project.groupId}</argument>
-                <argument>${project.artifactId}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
