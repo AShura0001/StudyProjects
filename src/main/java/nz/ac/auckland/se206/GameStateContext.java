@@ -99,6 +99,10 @@ public class GameStateContext {
     this.chatController = controller;
   }
 
+  public ChatController getChatController() {
+    return this.chatController;
+  }
+
   public void setRoomUi(RoomUiFacade roomUi) {
     this.roomUi = roomUi;
   }

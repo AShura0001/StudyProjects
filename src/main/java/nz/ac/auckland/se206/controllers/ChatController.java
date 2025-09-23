@@ -184,8 +184,19 @@ public class ChatController {
     String line = who + ": " + msg.getContent() + "\n\n";
     if (Platform.isFxApplicationThread()) {
       txtaChat.appendText(line);
+      // Update flashback components if they exist
+      if (flashbackTxtaChat != null) {
+        flashbackTxtaChat.appendText(line);
+      }
     } else {
-      Platform.runLater(() -> txtaChat.appendText(line));
+      Platform.runLater(
+          () -> {
+            txtaChat.appendText(line);
+            // Update flashback components if they exist
+            if (flashbackTxtaChat != null) {
+              flashbackTxtaChat.appendText(line);
+            }
+          });
     }
   }
 
@@ -288,6 +299,9 @@ public class ChatController {
     hasSelectedParticipant = true;
     lblStatus.setText(displayName(participant));
     replayCurrentHistory();
+
+    // Update flashback components if they exist
+    updateFlashbackComponents();
     focusInput();
   }
 
@@ -370,5 +384,51 @@ public class ChatController {
             }
           }
         });
+  }
+
+  // Flashback chat components
+  private Label flashbackLblStatus;
+  private TextArea flashbackTxtaChat;
+  private TextField flashbackTxtInput;
+  private Button flashbackBtnSend;
+
+  /** Sets the flashback chat components for direct interaction from FlashbackController. */
+  public void setFlashbackChatComponents(
+      Label lblStatus, TextArea txtaChat, TextField txtInput, Button btnSend) {
+    this.flashbackLblStatus = lblStatus;
+    this.flashbackTxtaChat = txtaChat;
+    this.flashbackTxtInput = txtInput;
+    this.flashbackBtnSend = btnSend;
+
+    // Update flashback components with current state
+    updateFlashbackComponents();
+  }
+
+  /** Updates the flashback chat components to reflect current chat state. */
+  private void updateFlashbackComponents() {
+    if (flashbackLblStatus != null) {
+      flashbackLblStatus.setText(displayName(currentParticipant));
+    }
+    if (flashbackTxtaChat != null) {
+      flashbackTxtaChat.setText(txtaChat.getText());
+    }
+  }
+
+  /** Handles send message for flashback chat components. */
+  public void onSendMessage() {
+    if (flashbackTxtInput != null) {
+      String message = flashbackTxtInput.getText().trim();
+      if (message.isEmpty()) {
+        return;
+      }
+      flashbackTxtInput.clear();
+
+      // Mark participant as contacted when player sends a message
+      if (gameContext != null) {
+        gameContext.markParticipantContacted(currentParticipant);
+      }
+
+      sendToLlm(currentParticipant, new ChatMessage("user", message));
+    }
   }
 }

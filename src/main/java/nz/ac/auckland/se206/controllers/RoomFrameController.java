@@ -93,17 +93,17 @@ public class RoomFrameController {
 
   // Swap in a flashback by index (1..3)
   public void showFlashback(int index) {
-    // Only allow flashback if not already viewed
+    // Allow any valid flashback index
     if (index < 1 || index > 3) {
       showRoom();
       return;
     }
-    if (flashbackViewed[index - 1]) {
-      // Already viewed, do nothing
-      return;
+
+    // Mark as viewed (for tracking purposes, but don't prevent re-viewing)
+    if (index >= 1 && index <= 3) {
+      flashbackViewed[index - 1] = true;
     }
-    // Mark as viewed
-    flashbackViewed[index - 1] = true;
+
     String path = "/fxml/flashback" + index + ".fxml";
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
@@ -113,6 +113,13 @@ public class RoomFrameController {
       Object ctl = loader.getController();
       if (ctl instanceof FlashbackController) {
         ((FlashbackController) ctl).setParent(this);
+
+        // Pass GameStateContext to FlashbackController for chat integration
+        nz.ac.auckland.se206.GameStateContext gameState =
+            nz.ac.auckland.se206.App.getGameStateContext();
+        if (gameState != null) {
+          ((FlashbackController) ctl).setGameStateContext(gameState);
+        }
       }
       // Switch chat participant in ChatController
       nz.ac.auckland.se206.controllers.ChatController.Participant chatParticipant;
