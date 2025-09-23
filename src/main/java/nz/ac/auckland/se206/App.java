@@ -54,14 +54,14 @@ public class App extends Application {
    */
   @Override
   public void start(final Stage stage) throws IOException {
-  gameStateContext = new GameStateContext();
-  Parent root = loadFxml("room_frame");
-  scene = new Scene(root);
-  stage.setScene(scene);
-  stage.setWidth(1200);
-  stage.setHeight(800);
-  stage.show();
-  root.requestFocus();
+    gameStateContext = new GameStateContext();
+    Parent root = loadFxml("room_frame");
+    scene = new Scene(root);
+    stage.setScene(scene);
+    stage.setWidth(1200);
+    stage.setHeight(800);
+    stage.show();
+    root.requestFocus();
   }
 
   // Optionally inject controllers after FXML load if needed
@@ -71,5 +71,16 @@ public class App extends Application {
   public static GameStateContext getGameStateContext() {
     return gameStateContext;
   }
-  }
 
+  /**
+   * Resets the game state by creating a new GameStateContext and reloading the main room frame.
+   * This allows for a clean restart without creating new application instances.
+   */
+  public static void resetGameState() throws IOException {
+    // Create new game state context
+    gameStateContext = new GameStateContext();
+
+    // Reload the main room frame to reset all UI components
+    setRoot("room_frame");
+  }
+}

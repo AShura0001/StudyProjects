@@ -49,6 +49,18 @@ public class RoomFrameController {
 
     // Manually load chat.fxml to get the controller instance and inject it
     try {
+      loadAndInjectChatController();
+    } catch (IOException e) {
+      System.err.println("Failed to load chat controller: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Loads the chat.fxml and injects the ChatController into the GameStateContext. This is used both
+   * during initialization and when resetting the game.
+   */
+  private void loadAndInjectChatController() throws IOException {
+    try {
       FXMLLoader chatLoader = new FXMLLoader(getClass().getResource("/fxml/chat.fxml"));
       VBox chatPanel = chatLoader.load();
       ChatController chatController = chatLoader.getController();
@@ -59,6 +71,7 @@ public class RoomFrameController {
       }
     } catch (Exception e) {
       System.err.println("Failed to inject ChatController: " + e.getMessage());
+      throw new IOException("Failed to load chat controller", e);
     }
   }
 
@@ -333,6 +346,52 @@ public class RoomFrameController {
         return "Casey (Human Witness)";
       default:
         return "Unknown Participant";
+    }
+  }
+
+  // ----------------- Game Reset -----------------
+
+  /**
+   * Resets the game to the initial state with timer and start button visible. Called when player
+   * chooses to replay after completing a game.
+   */
+  public void resetToMainRoom() {
+    // Reset flashback tracking
+    flashbackViewed = new boolean[] {false, false, false};
+
+    // Reset timer
+    remaining = START_SECONDS;
+    updateTimerLabel(remaining);
+    if (timeline != null) {
+      timeline.stop();
+    }
+    setupTimer();
+
+    // Reset UI to initial state
+    contentHost.getChildren().setAll(placeholderNode("Waiting to start..."));
+    contentHost.setDisable(true);
+    btnStart.setVisible(true);
+    btnStart.setManaged(true);
+    btnEndGame.setVisible(false);
+    btnEndGame.setManaged(false);
+
+    // Hide any overlays
+    hideOverlay();
+    if (overlayRoot != null) {
+      overlayRoot.getChildren().clear();
+    }
+
+    // Reset chat controller through game state context
+    GameStateContext gameState = App.getGameStateContext();
+    if (gameState != null && gameState.getChatController() != null) {
+      // The chat controller will be reset when the new GameStateContext is created
+      // but we ensure the UI is properly reset here
+      try {
+        // Reload chat.fxml to reset chat UI components
+        loadAndInjectChatController();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
