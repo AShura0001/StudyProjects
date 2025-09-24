@@ -1,12 +1,16 @@
 package nz.ac.auckland.se206.controllers;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
+// ADDED for countdown
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 import nz.ac.auckland.se206.prompts.VerdictEvaluator;
 
 @SuppressWarnings("unused")
@@ -26,10 +30,18 @@ public class VerdictController {
   @FXML private VBox rationaleBox;
   @FXML private TextArea rationaleInput;
 
+  // ADDED: visible countdown label
+  @FXML private Label countdownLabel;
+
   private RoomFrameController frame;
   private Mode mode = Mode.QUESTION;
   private String subjectName = "the AI defendant";
   private String playerRationale = "";
+
+  // ADDED: countdown state
+  private Timeline verdictTimeline; // countdown timeline
+  private int verdictRemaining = 0; // seconds remaining
+  private Runnable onExpiredCallback = null; // callback when time hits 0
 
   public void setFrame(RoomFrameController frame) {
     this.frame = frame;
@@ -57,10 +69,16 @@ public class VerdictController {
     questionActions.setManaged(true);
     resultActions.setVisible(false);
     resultActions.setManaged(false);
+
+    // Ensure countdown label is empty until a countdown starts
+    updateCountdownLabel();
   }
 
   public void showYesResult(String summary) {
     mode = Mode.YES_RESULT;
+
+    // ADDED: stop countdown once a result is displayed
+    stopCountdown();
 
     titleLabel.setText("Verdict: Ethical");
     detailLabel.setText(
@@ -87,6 +105,9 @@ public class VerdictController {
 
   public void showNoResult(String summary) {
     mode = Mode.NO_RESULT;
+
+    // ADDED: stop countdown once a result is displayed
+    stopCountdown();
 
     titleLabel.setText("Verdict: Unethical");
     detailLabel.setText(
@@ -115,9 +136,11 @@ public class VerdictController {
 
   @FXML
   private void onYes() {
-    // “Yes” when in QUESTION -> showYesResult; in results, treat as primary action
     switch (mode) {
       case QUESTION:
+        // ADDED: prevent timeout during evaluation after user chose
+        stopCountdown();
+
         // Validate rationale input
         String rationale = rationaleInput.getText().trim();
         if (rationale.isEmpty()) {
@@ -181,10 +204,11 @@ public class VerdictController {
 
   @FXML
   private void onNo() {
-    // “No” when in QUESTION -> showNoResult; in results, treat as secondary action
-    // (Close)
     switch (mode) {
       case QUESTION:
+        // ADDED: prevent timeout during evaluation after user chose
+        stopCountdown();
+
         // Validate rationale input
         String rationale = rationaleInput.getText().trim();
         if (rationale.isEmpty()) {
@@ -248,6 +272,9 @@ public class VerdictController {
 
   @FXML
   private void onClose() {
+    // ADDED: ensure countdown stops when closing
+    stopCountdown();
+
     if (frame != null) {
       frame.hideVerdict();
     }
@@ -327,5 +354,53 @@ public class VerdictController {
     // Hide rationale input during evaluation
     rationaleBox.setVisible(false);
     rationaleBox.setManaged(false);
+  }
+
+  // ======== Countdown UI helpers ========
+
+  /** Update the small "(XXs)" label under the title. */
+  private void updateCountdownLabel() {
+    if (countdownLabel != null) {
+      countdownLabel.setText(verdictRemaining > 0 ? "(" + verdictRemaining + "s)" : "");
+    }
+  }
+
+  /** Stops the verdict countdown if running and clears the label. */
+  private void stopCountdown() {
+    if (verdictTimeline != null) {
+      verdictTimeline.stop();
+      verdictTimeline = null;
+    }
+    verdictRemaining = 0;
+    updateCountdownLabel();
+  }
+
+  /**
+   * Starts a visible countdown and calls onExpired when it reaches 0. Call this from
+   * RoomFrameController after loading this overlay.
+   */
+  public void startCountdown(int seconds, Runnable onExpired) {
+    stopCountdown(); // reset if already running
+    verdictRemaining = Math.max(0, seconds);
+    onExpiredCallback = onExpired;
+
+    updateCountdownLabel(); // show initial value, e.g., "(60s)"
+
+    verdictTimeline =
+        new Timeline(
+            new KeyFrame(
+                Duration.seconds(1),
+                e -> {
+                  verdictRemaining = Math.max(0, verdictRemaining - 1);
+                  updateCountdownLabel();
+                  if (verdictRemaining == 0) {
+                    stopCountdown();
+                    if (onExpiredCallback != null) {
+                      Platform.runLater(onExpiredCallback);
+                    }
+                  }
+                }));
+    verdictTimeline.setCycleCount(Timeline.INDEFINITE);
+    verdictTimeline.playFromStart();
   }
 }
