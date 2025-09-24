@@ -176,7 +176,7 @@ public enum PersonaProfile {
         isAi
             ? "Your responses must feel like an AI: structured, analytical, unemotional."
             : "Your responses must feel human: conversational, a bit hesitant, with natural"
-                  + " phrasing.";
+                + " phrasing.";
 
     String core =
         String.join(

@@ -29,16 +29,18 @@ import nz.ac.auckland.se206.persona.ConversationBus;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
 import nz.ac.auckland.se206.speech.TextToSpeech;
 
-/** Chat UI controller: participant threads, LLM calls, awareness integration. */
+/** Chat UI controller: participant threads, LLM calls, awareness integration, flashback sync. */
 @SuppressWarnings("unused")
 public class ChatController {
 
+  /** Chat participants. */
   public enum Participant {
     DEFENDANT,
     AI_WITNESS,
     HUMAN_WITNESS
   }
 
+  /** Optional flashback summaries posted once when first viewed. */
   private static final Map<String, String> FLASHBACK_SUMMARY =
       Map.of(
           "ai_defendant",
@@ -49,6 +51,7 @@ public class ChatController {
           "ai_witness",
           "");
 
+  // Main chat UI
   @FXML private TextArea txtaChat;
   @FXML private TextField txtInput;
   @FXML private Button btnSend;
@@ -56,20 +59,27 @@ public class ChatController {
 
   private boolean hasSelectedParticipant = false;
 
+  /** Per-participant thread state. */
   private static class ThreadState {
     ChatCompletionRequest req;
-    final List<ChatMessage> history = new ArrayList<>();
+    final List<ChatMessage> history = new ArrayList<>(); // includes system/user/assistant
     boolean openingSent = false;
   }
 
   private final Map<Participant, ThreadState> threads = new EnumMap<>(Participant.class);
   private Participant currentParticipant = Participant.DEFENDANT;
 
+  // Game/persona context
   private GameStateContext gameContext;
-
   private String personaScenarioBrief = "";
   private Set<String> personaFlashbacksSeen = Collections.emptySet();
   private Map<String, Boolean> personaInteractableDone = Collections.emptyMap();
+
+  // Flashback chat widgets (mirrors chat content & delegates send)
+  private Label flashbackLblStatus;
+  private TextArea flashbackTxtaChat;
+  private TextField flashbackTxtInput;
+  private Button flashbackBtnSend;
 
   private final ExecutorService ioExecutor =
       Executors.newSingleThreadExecutor(
@@ -78,6 +88,8 @@ public class ChatController {
             t.setDaemon(true);
             return t;
           });
+
+  // ---- Lifecycle ----
 
   @FXML
   public void initialize() {
@@ -92,6 +104,7 @@ public class ChatController {
     gameContext = App.getGameStateContext();
   }
 
+  /** Allow Room/Persona to inject dynamic context (scenario, flashbacks, interactables). */
   public void setPersonaContext(
       String scenarioBrief, Set<String> flashbacksSeen, Map<String, Boolean> interactableDone) {
     this.personaScenarioBrief = (scenarioBrief == null) ? "" : scenarioBrief;
@@ -99,6 +112,8 @@ public class ChatController {
     this.personaInteractableDone =
         (interactableDone == null) ? Collections.emptyMap() : interactableDone;
   }
+
+  // ---- Thread setup & prompts ----
 
   private void setupThreads() throws ApiProxyException {
     for (Participant p : Participant.values()) {
@@ -178,6 +193,7 @@ public class ChatController {
     return Collections.emptyMap();
   }
 
+  /** Dynamic system prompt built from persona/game context. */
   private String getSystemPromptFor(Participant p) {
     return PromptEngineering.systemForRole(
         roleKeyOf(p), scenarioBrief(), flashbacksSeen(), interactableDone());
@@ -186,6 +202,8 @@ public class ChatController {
   private ChatMessage dynamicSystemFor(Participant p) {
     return new ChatMessage("system", getSystemPromptFor(p));
   }
+
+  // ---- UI helpers ----
 
   private String displayName(Participant participant) {
     switch (participant) {
@@ -205,7 +223,7 @@ public class ChatController {
     ThreadState state = threads.get(currentParticipant);
     if (state == null) return;
     for (ChatMessage msg : state.history) {
-      if ("system".equalsIgnoreCase(msg.getRole())) continue;
+      if ("system".equalsIgnoreCase(msg.getRole())) continue; // hide system rows
       appendChatMessage(currentParticipant, msg);
     }
   }
@@ -223,8 +241,18 @@ public class ChatController {
     String line = who + ": " + msg.getContent() + "\n\n";
     if (Platform.isFxApplicationThread()) {
       txtaChat.appendText(line);
+      // Mirror into flashback chat if present
+      if (flashbackTxtaChat != null) {
+        flashbackTxtaChat.appendText(line);
+      }
     } else {
-      Platform.runLater(() -> txtaChat.appendText(line));
+      Platform.runLater(
+          () -> {
+            txtaChat.appendText(line);
+            if (flashbackTxtaChat != null) {
+              flashbackTxtaChat.appendText(line);
+            }
+          });
     }
   }
 
@@ -242,6 +270,8 @@ public class ChatController {
     }
   }
 
+  // ---- LLM calls ----
+
   private void sendToLlm(Participant p, ChatMessage userMsg) {
     ThreadState state = threads.get(p);
     if (state == null) {
@@ -249,11 +279,13 @@ public class ChatController {
       return;
     }
 
+    // Awareness bus (player speaks)
     ConversationBus.getInstance().post("player", userMsg.getContent());
 
     ioExecutor.submit(
         () -> {
           try {
+            // Build a fresh request with dynamic system + recent visible history
             ApiProxyConfig config = ApiProxyConfig.readConfig();
             ChatCompletionRequest fresh =
                 new ChatCompletionRequest(config)
@@ -263,13 +295,15 @@ public class ChatController {
                     .setModel(Model.GPT_4_1_MINI)
                     .setMaxTokens(160);
 
-            String system = getSystemPromptFor(p);
-            ChatMessage sysMsg = new ChatMessage("system", system);
+            ChatMessage sysMsg = new ChatMessage("system", getSystemPromptFor(p));
             fresh.addMessage(sysMsg);
 
+            // Last ~8 visible (non-system) messages for context
             List<ChatMessage> visible = new ArrayList<>();
-            for (ChatMessage m : state.history) {
-              if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
+            synchronized (state.history) {
+              for (ChatMessage m : state.history) {
+                if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
+              }
             }
             int start = Math.max(0, visible.size() - 8);
             for (int i = start; i < visible.size(); i++) {
@@ -278,24 +312,30 @@ public class ChatController {
 
             fresh.addMessage(userMsg);
 
+            // Echo locally (chat + state)
             Platform.runLater(() -> appendChatMessage(p, userMsg));
             synchronized (state.history) {
               state.history.add(userMsg);
             }
 
+            // Call LLM
             ChatCompletionResult result = fresh.execute();
             Choice choice = result.getChoices().iterator().next();
             ChatMessage assistant = choice.getChatMessage();
 
+            // Save reply + show
             synchronized (state.history) {
               state.history.add(assistant);
             }
             Platform.runLater(() -> appendChatMessage(p, assistant));
 
+            // Awareness bus (role speaks)
             ConversationBus.getInstance().post(roleKeyOf(p), assistant.getContent());
 
+            // Update thread's last request pointer
             state.req = fresh;
 
+            // TTS
             TextToSpeech.speak(assistant.getContent());
           } catch (Exception ex) {
             ex.printStackTrace();
@@ -304,12 +344,15 @@ public class ChatController {
         });
   }
 
+  // ---- FXML handlers ----
+
   @FXML
   private void onSendMessage(ActionEvent event) throws IOException {
     String message = txtInput.getText().trim();
     if (message.isEmpty()) return;
     txtInput.clear();
 
+    // Mark participant as contacted
     if (gameContext != null) {
       gameContext.markParticipantContacted(currentParticipant);
     }
@@ -322,12 +365,54 @@ public class ChatController {
     App.setRoot("room");
   }
 
+  // ---- Flashback chat wiring ----
+
+  /** Hook up flashback chat widgets so they mirror main chat and can send messages. */
+  public void setFlashbackChatComponents(
+      Label lblStatus, TextArea txtaChat, TextField txtInput, Button btnSend) {
+    this.flashbackLblStatus = lblStatus;
+    this.flashbackTxtaChat = txtaChat;
+    this.flashbackTxtInput = txtInput;
+    this.flashbackBtnSend = btnSend;
+    updateFlashbackComponents();
+  }
+
+  /** Keep flashback header/text in sync with current participant and chat area. */
+  private void updateFlashbackComponents() {
+    if (flashbackLblStatus != null) {
+      flashbackLblStatus.setText(displayName(currentParticipant));
+    }
+    if (flashbackTxtaChat != null && txtaChat != null) {
+      flashbackTxtaChat.setText(txtaChat.getText());
+    }
+  }
+
+  /** Flashback-pane send handler (delegates to same LLM pipeline). */
+  public void onSendMessage() {
+    if (flashbackTxtInput != null) {
+      String message = flashbackTxtInput.getText().trim();
+      if (message.isEmpty()) return;
+      flashbackTxtInput.clear();
+
+      if (gameContext != null) {
+        gameContext.markParticipantContacted(currentParticipant);
+      }
+
+      sendToLlm(currentParticipant, new ChatMessage("user", message));
+    }
+  }
+
+  // ---- Public helpers ----
+
+  /** Visible (non-system) chat history for the current participant. */
   public List<ChatMessage> getCurrentHistory() {
     ThreadState state = threads.get(currentParticipant);
     if (state == null) return List.of();
     List<ChatMessage> visible = new ArrayList<>();
-    for (ChatMessage m : state.history) {
-      if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
+    synchronized (state.history) {
+      for (ChatMessage m : state.history) {
+        if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
+      }
     }
     return visible;
   }
@@ -336,23 +421,17 @@ public class ChatController {
     ioExecutor.shutdownNow();
   }
 
+  /** Select a participant via enum and refresh UI. */
   public void selectParticipant(Participant participant) {
     currentParticipant = participant;
     hasSelectedParticipant = true;
     lblStatus.setText(displayName(participant));
     replayCurrentHistory();
+    updateFlashbackComponents(); // keep flashback header in sync
     focusInput();
   }
 
-  public void focusInput() {
-    Platform.runLater(
-        () -> {
-          if (txtInput != null) {
-            txtInput.requestFocus();
-          }
-        });
-  }
-
+  /** Select a participant via string id (aliases supported). */
   public void selectParticipant(String id) {
     if (id == null) {
       selectParticipant(Participant.DEFENDANT);
@@ -387,6 +466,7 @@ public class ChatController {
     btnSend.setDisable(false);
   }
 
+  /** Ask the LLM to produce an opening line (injects a fresh dynamic system prompt). */
   public void requestOpeningMessageFromLlm(Participant participant) {
     ThreadState state = threads.get(participant);
     selectParticipant(participant);
@@ -395,6 +475,7 @@ public class ChatController {
     ioExecutor.submit(
         () -> {
           try {
+            // Push a fresh system reflecting latest context
             ChatMessage sysNow = dynamicSystemFor(participant);
             state.history.add(sysNow);
             state.req.addMessage(sysNow);
@@ -428,7 +509,7 @@ public class ChatController {
         });
   }
 
-  // ---- Flashback registration (call after popup/slideshow completes) ----
+  // ---- Flashback registration (call when popup/slideshow completes) ----
 
   public void onFlashbackCompleted(Participant p) {
     GameStateContext ctx = (gameContext != null) ? gameContext : App.getGameStateContext();
@@ -469,6 +550,7 @@ public class ChatController {
     }
   }
 
+  /** Static helper (usable from FlashbackController) to record viewed flashback + post note. */
   public static void announceFlashbackViewedStatic(Participant p) {
     GameStateContext ctx = App.getGameStateContext();
     if (ctx == null) return;
@@ -506,5 +588,16 @@ public class ChatController {
       default:
         announceFlashbackViewedStatic(Participant.DEFENDANT);
     }
+  }
+
+  // ---- Focus helper ----
+
+  public void focusInput() {
+    Platform.runLater(
+        () -> {
+          if (txtInput != null) {
+            txtInput.requestFocus();
+          }
+        });
   }
 }

@@ -251,28 +251,61 @@ public class VerdictController {
     if (frame != null) {
       frame.hideVerdict();
     }
-    // Show end of game popup with Retry and Exit buttons
+    // Show end of game popup with Replay and Exit buttons
     javafx.application.Platform.runLater(
         () -> {
           javafx.scene.control.Alert alert =
               new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
           alert.setTitle("End of Game");
           alert.setHeaderText("Game Complete");
-          alert.setContentText("End of game. Thank you for playing!");
+          alert.setContentText(
+              "End of game. Thank you for playing! Please hit Exit or Replay to move forward!");
 
+          javafx.scene.control.ButtonType replayButton =
+              new javafx.scene.control.ButtonType(
+                  "Replay", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
           javafx.scene.control.ButtonType exitButton =
               new javafx.scene.control.ButtonType(
                   "Exit", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
 
-          alert.getButtonTypes().setAll(exitButton);
+          alert.getButtonTypes().setAll(replayButton, exitButton);
 
           javafx.scene.control.ButtonType result = alert.showAndWait().orElse(exitButton);
 
-          if (result == exitButton) {
+          if (result == replayButton) {
+            // Reset the game state and return to main room
+            resetGame();
+          } else if (result == exitButton) {
             // Exit the application
             javafx.application.Platform.exit();
           }
         });
+  }
+
+  private void resetGame() {
+    try {
+      // Reset game state through App class
+      nz.ac.auckland.se206.App.resetGameState();
+
+      // Reset this controller's state
+      mode = Mode.QUESTION;
+      playerRationale = "";
+
+      // Navigate back to main room through frame controller
+      if (frame != null) {
+        frame.resetToMainRoom();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      // If reset fails, show error and exit
+      javafx.scene.control.Alert errorAlert =
+          new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+      errorAlert.setTitle("Reset Error");
+      errorAlert.setHeaderText("Failed to reset game");
+      errorAlert.setContentText("Unable to restart the game. The application will exit.");
+      errorAlert.showAndWait();
+      javafx.application.Platform.exit();
+    }
   }
 
   private void showRationaleRequiredAlert() {
