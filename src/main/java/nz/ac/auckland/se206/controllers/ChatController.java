@@ -101,6 +101,23 @@ public class ChatController {
     }
     replayCurrentHistory();
     gameContext = App.getGameStateContext();
+
+    // Checks for enter key is pressed and sends the input if so!
+    if (txtInput != null) {
+      txtInput.setOnKeyPressed(
+          event -> {
+            if (event.getCode().toString().equals("ENTER")) {
+              if (!txtInput.isDisabled() && !btnSend.isDisabled()) {
+                try {
+                  onSendMessage(null);
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+              }
+              event.consume();
+            }
+          });
+    }
   }
 
   /** Allow Room/Persona to inject dynamic context (scenario, flashbacks, interactables). */
@@ -378,6 +395,18 @@ public class ChatController {
     this.flashbackTxtInput = txtInput;
     this.flashbackBtnSend = btnSend;
     updateFlashbackComponents();
+
+    if (this.flashbackTxtInput != null) {
+      this.flashbackTxtInput.setOnKeyPressed(
+          event -> {
+            if (event.getCode().toString().equals("ENTER")) {
+              if (!this.flashbackTxtInput.isDisabled() && !this.flashbackBtnSend.isDisabled()) {
+                onSendMessage();
+              }
+              event.consume();
+            }
+          });
+    }
   }
 
   /** Keep flashback header/text in sync with current participant and chat area. */
