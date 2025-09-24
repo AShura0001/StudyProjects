@@ -27,7 +27,6 @@ import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.persona.ConversationBus;
 import nz.ac.auckland.se206.prompts.PromptEngineering;
-import nz.ac.auckland.se206.speech.TextToSpeech;
 
 /** Chat UI controller: participant threads, LLM calls, awareness integration, flashback sync. */
 @SuppressWarnings("unused")
@@ -335,8 +334,8 @@ public class ChatController {
             // Update thread's last request pointer
             state.req = fresh;
 
-            // TTS
-            TextToSpeech.speak(assistant.getContent());
+            // TTS - disabled
+            // TextToSpeech.speak(assistant.getContent());
           } catch (Exception ex) {
             ex.printStackTrace();
             appendMeta("Error contacting LLM.");
@@ -475,29 +474,56 @@ public class ChatController {
     ioExecutor.submit(
         () -> {
           try {
-            // Push a fresh system reflecting latest context
-            ChatMessage sysNow = dynamicSystemFor(participant);
-            state.history.add(sysNow);
-            state.req.addMessage(sysNow);
+            // Build a fresh request with dynamic system + recent visible history
+            ApiProxyConfig config = ApiProxyConfig.readConfig();
+            ChatCompletionRequest fresh =
+                new ChatCompletionRequest(config)
+                    .setN(1)
+                    .setTemperature(0.3)
+                    .setTopP(0.8)
+                    .setModel(Model.GPT_4_1_MINI)
+                    .setMaxTokens(160);
+
+            ChatMessage sysMsg = new ChatMessage("system", getSystemPromptFor(participant));
+            fresh.addMessage(sysMsg);
+
+            // Last ~8 visible (non-system) messages for context
+            List<ChatMessage> visible = new ArrayList<>();
+            synchronized (state.history) {
+              for (ChatMessage m : state.history) {
+                if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
+              }
+            }
+            int start = Math.max(0, visible.size() - 8);
+            for (int i = start; i < visible.size(); i++) {
+              fresh.addMessage(visible.get(i));
+            }
 
             ChatMessage userMsg =
                 new ChatMessage("user", "Please introduce yourself and explain the situation.");
-            state.history.add(userMsg);
-            state.req.addMessage(userMsg);
-            appendChatMessage(participant, userMsg);
+            fresh.addMessage(userMsg);
 
             ConversationBus.getInstance().post("player", userMsg.getContent());
 
-            ChatCompletionResult result = state.req.execute();
+            // Call LLM
+            ChatCompletionResult result = fresh.execute();
             Choice choice = result.getChoices().iterator().next();
             ChatMessage assistant = choice.getChatMessage();
-            state.history.add(assistant);
-            state.req.addMessage(assistant);
-            appendChatMessage(participant, assistant);
 
+            Platform.runLater(() -> appendChatMessage(participant, userMsg));
+            Platform.runLater(() -> appendChatMessage(participant, assistant));
+
+            synchronized (state.history) {
+              state.history.add(userMsg);
+              state.history.add(assistant);
+            }
             ConversationBus.getInstance().post(roleKeyOf(participant), assistant.getContent());
 
-            TextToSpeech.speak(assistant.getContent());
+            // Update thread's last request pointer
+            state.req = fresh;
+
+            // TTS - disabled
+            // TextToSpeech.speak(assistant.getContent());
             state.openingSent = true;
           } catch (ApiProxyException ex) {
             ex.printStackTrace();
