@@ -41,6 +41,22 @@ public class FlashbackController {
           .getChatController()
           .setFlashbackChatComponents(lblStatus, txtaChat, txtInput, btnSend);
     }
+
+    applyCookieState();
+  }
+
+  // Displays UI based on the state of cookie acceptance
+  private void applyCookieState() {
+    if (gameStateContext != null && gameStateContext.isCookiesAccepted()) {
+      // Cookies already accepted - hide popup and enable chat
+      if (adContainer != null) {
+        adContainer.setVisible(false);
+      }
+      enableChatComponents();
+    } else {
+      // Cookies not accepted - disable chat until accepted
+      disableChatComponents();
+    }
   }
 
   @FXML
@@ -53,7 +69,10 @@ public class FlashbackController {
   /** Delegate the flashback chat send to ChatController. */
   @FXML
   private void onSendMessage() {
-    if (gameStateContext != null && gameStateContext.getChatController() != null) {
+    // only allows if cookies are accepted
+    if (gameStateContext != null
+        && gameStateContext.isCookiesAccepted()
+        && gameStateContext.getChatController() != null) {
       gameStateContext.getChatController().onSendMessage();
     }
   }
@@ -64,6 +83,12 @@ public class FlashbackController {
       btnAccept.setOnAction(
           e -> {
             announceFlashbackIfFirstTime();
+
+            // Makes sure the cookies accept ad is not shown again
+            if (gameStateContext != null) {
+              gameStateContext.acceptCookies();
+            }
+
             if (adContainer != null) {
               adContainer.setVisible(false);
             }
@@ -73,6 +98,9 @@ public class FlashbackController {
             if (btnExit != null) {
               btnExit.setDisable(true);
             }
+
+            // Enable chat if cookies are accepted
+            enableChatComponents();
           });
     }
 
@@ -87,6 +115,12 @@ public class FlashbackController {
               }
             } else {
               announceFlashbackIfFirstTime();
+
+              // Makes sure the cookies accept ad is not shown again
+              if (gameStateContext != null) {
+                gameStateContext.acceptCookies();
+              }
+
               if (adContainer != null) {
                 adContainer.setVisible(false);
               }
@@ -94,9 +128,14 @@ public class FlashbackController {
                 btnAccept.setDisable(true);
               }
               btnExit.setDisable(true);
+
+              enableChatComponents();
             }
           });
     }
+
+    // Apply cookie state after UI is fully initialized
+    javafx.application.Platform.runLater(() -> applyCookieState());
   }
 
   /** Ensures we only announce the flashback once. */
@@ -108,5 +147,27 @@ public class FlashbackController {
     // Notify ChatController that the DEFENDANT flashback was viewed
     // (Assumes a static helper exists in ChatController)
     ChatController.announceFlashbackViewedStatic(ChatController.Participant.DEFENDANT);
+  }
+
+  // Enable chat components when cookies are accepted
+  private void enableChatComponents() {
+    if (txtInput != null) {
+      txtInput.setDisable(false);
+      txtInput.setPromptText("Type your message...");
+    }
+    if (btnSend != null) {
+      btnSend.setDisable(false);
+    }
+  }
+
+  // Disable chat components until cookies are accepted
+  private void disableChatComponents() {
+    if (txtInput != null) {
+      txtInput.setDisable(true);
+      txtInput.setPromptText("Accept cookies to chat...");
+    }
+    if (btnSend != null) {
+      btnSend.setDisable(true);
+    }
   }
 }
