@@ -278,6 +278,8 @@ public class ChatController {
       return;
     }
 
+    setLoadingState();
+
     // Awareness bus (player speaks)
     ConversationBus.getInstance().post("player", userMsg.getContent());
 
@@ -336,9 +338,11 @@ public class ChatController {
 
             // TTS - disabled
             // TextToSpeech.speak(assistant.getContent());
+            clearLoadingState();
           } catch (Exception ex) {
             ex.printStackTrace();
             appendMeta("Error contacting LLM.");
+            clearLoadingState();
           }
         });
   }
@@ -465,11 +469,49 @@ public class ChatController {
     btnSend.setDisable(false);
   }
 
+  /** Set UI to loading state while waiting for LLM response */
+  private void setLoadingState() {
+    Platform.runLater(
+        () -> {
+          // Disable send button, flashback and input
+          btnSend.setDisable(true);
+          txtInput.setDisable(true);
+          txtInput.setPromptText("Waiting for response...");
+          if (flashbackBtnSend != null) {
+            flashbackBtnSend.setDisable(true);
+          }
+          if (flashbackTxtInput != null) {
+            flashbackTxtInput.setDisable(true);
+            flashbackTxtInput.setPromptText("Waiting for response...");
+          }
+        });
+  }
+
+  /** Reset UI from loading state */
+  private void clearLoadingState() {
+    Platform.runLater(
+        () -> {
+          // Re-enable send button, flashback and input
+          btnSend.setDisable(false);
+          txtInput.setDisable(false);
+          txtInput.setPromptText("Type your message...");
+          if (flashbackBtnSend != null) {
+            flashbackBtnSend.setDisable(false);
+          }
+          if (flashbackTxtInput != null) {
+            flashbackTxtInput.setDisable(false);
+            flashbackTxtInput.setPromptText("Type your message...");
+          }
+        });
+  }
+
   /** Ask the LLM to produce an opening line (injects a fresh dynamic system prompt). */
   public void requestOpeningMessageFromLlm(Participant participant) {
     ThreadState state = threads.get(participant);
     selectParticipant(participant);
     if (state == null || state.openingSent) return;
+
+    setLoadingState();
 
     ioExecutor.submit(
         () -> {
@@ -525,12 +567,14 @@ public class ChatController {
             // TTS - disabled
             // TextToSpeech.speak(assistant.getContent());
             state.openingSent = true;
+            clearLoadingState();
           } catch (ApiProxyException ex) {
             ex.printStackTrace();
             appendMeta("Error contacting LLM for opening message.");
             if (state != null) {
               state.openingSent = false;
             }
+            clearLoadingState();
           }
         });
   }
