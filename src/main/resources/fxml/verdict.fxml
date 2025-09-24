@@ -1,4 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?> <?import javafx.geometry.Insets?> <?import javafx.scene.control.Button?> <?import javafx.scene.control.Label?> <?import javafx.scene.control.TextArea?> <?import javafx.scene.layout.HBox?> <?import javafx.scene.layout.StackPane?> <?import javafx.scene.layout.VBox?> <?import javafx.scene.paint.Color?> <?import javafx.scene.shape.Rectangle?>
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.shape.Rectangle?>
+
 <StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
   fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
   <children>
@@ -8,7 +18,9 @@
       <fill>
         <Color fx:constant="BLACK" />
       </fill>
-    </Rectangle> <!-- Modal card -->
+    </Rectangle>
+
+    <!-- Modal card -->
     <VBox spacing="16" alignment="CENTER" maxWidth="560"
       style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 24; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0.2, 0, 4);">
       <children>
@@ -16,6 +28,10 @@
         <!-- Title -->
         <Label fx:id="titleLabel" text="Ethics Check"
           style="-fx-font-size: 22px; -fx-font-weight: bold;" />
+
+        <!-- ADDED: visible countdown (simple line under title) -->
+        <Label fx:id="countdownLabel" text=""
+          style="-fx-font-size: 12px; -fx-text-fill: #6B7280;" />
 
         <!-- Description / summary -->
         <Label fx:id="detailLabel"
@@ -49,8 +65,9 @@
           <padding>
             <Insets top="8" right="0" bottom="0" left="0" />
           </padding>
-        </HBox> <!--
-        Result action row -->
+        </HBox>
+
+        <!-- Result action row -->
         <HBox fx:id="resultActions" spacing="12" alignment="CENTER_RIGHT" prefWidth="500"
           visible="false" managed="false">
           <children>

@@ -1,6 +1,8 @@
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
+// ADDED
+import java.lang.reflect.Method;
 import java.util.Set;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -31,7 +33,8 @@ public class RoomFrameController {
   @FXML private VBox chatBox;
 
   // Timer
-  private static final int START_SECONDS = 120; // adjust as needed
+  // CHANGED: 120 -> 300 (5 minutes)
+  private static final int START_SECONDS = 300; // ADDED: set round to 5 minutes
   private int remaining = START_SECONDS;
   private Timeline timeline;
 
@@ -184,7 +187,9 @@ public class RoomFrameController {
 
     // Stop timer and open verdict overlay
     if (timeline != null) timeline.stop();
-    showVerdictQuestion("the AI defendant");
+    // ADDED: lock interactions + verdict with 60s countdown
+    lockRoomInteractions(); // ADDED
+    showVerdictWithCountdown(); // ADDED
   }
 
   // ----------------- Timer -----------------
@@ -206,8 +211,9 @@ public class RoomFrameController {
                       showGameOverAlert(gameState);
                     } else {
                       // Show overlay on time up
-                      showOverlay();
-                      showVerdictQuestion("the AI defendant");
+                      // ADDED: lock and open verdict with 60s countdown
+                      lockRoomInteractions(); // ADDED
+                      showVerdictWithCountdown(); // ADDED
                     }
                   }
                 }));
@@ -283,6 +289,57 @@ public class RoomFrameController {
     } catch (IOException ex) {
       ex.printStackTrace();
     }
+  }
+
+  // ADDED: Lock room/chat interactions once verdict stage begins
+  private void lockRoomInteractions() {
+    if (contentHost != null) {
+      contentHost.setDisable(true);
+    }
+    // If you need to disable chat inputs explicitly, do it via GameStateContext -> ChatController.
+  }
+
+  // ADDED: Open verdict overlay AND attempt to start a 60s countdown (if controller supports it)
+  private void showVerdictWithCountdown() {
+    try {
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/verdict.fxml"));
+      Node verdictNode = loader.load();
+
+      VerdictController controller = loader.getController();
+      controller.setFrame(this);
+      controller.showQuestion("the AI defendant");
+
+      overlayRoot.getChildren().setAll(verdictNode);
+      showOverlay();
+
+      // Try to call controller.startCountdown(60, Runnable) if it exists.
+      // This keeps this file self-contained; if you haven't added startCountdown yet,
+      // nothing breaks—the verdict just won’t auto-timeout.
+      try {
+        Method m = controller.getClass().getMethod("startCountdown", int.class, Runnable.class);
+        m.invoke(controller, 60, (Runnable) this::onVerdictTimeout);
+      } catch (NoSuchMethodException nsme) {
+        // Method not present yet: safe to ignore; you can add it later in VerdictController.
+      } catch (Exception reflectionError) {
+        reflectionError.printStackTrace();
+      }
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+  }
+
+  // ADDED: What to do when verdict 60s expires (if startCountdown calls back)
+  private void onVerdictTimeout() {
+    javafx.application.Platform.runLater(
+        () -> {
+          hideVerdict();
+          Alert alert =
+              new Alert(
+                  Alert.AlertType.INFORMATION, "Time’s up: no verdict was provided in 60 seconds.");
+          alert.setHeaderText("Game Over");
+          alert.showAndWait();
+          javafx.application.Platform.exit();
+        });
   }
 
   // Called by the verdict overlay to close itself safely
