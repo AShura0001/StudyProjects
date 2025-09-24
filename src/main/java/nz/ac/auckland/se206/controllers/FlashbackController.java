@@ -10,14 +10,18 @@ import nz.ac.auckland.se206.GameStateContext;
 
 public class FlashbackController {
   private RoomFrameController parent;
+
+  // Ad / flashback UI
   @FXML private VBox adContainer;
   @FXML private Button btnAccept;
   @FXML private Button btnExit;
-  private int exitAttempts = 0;
-  private static final int EXIT_BLOCKS = 5;
   @FXML private Label adMessage;
 
-  // Chat components
+  private int exitAttempts = 0;
+  private static final int EXIT_BLOCKS = 5;
+  private boolean flashbackAnnounced = false;
+
+  // Chat components (passed through to ChatController)
   @FXML private Label lblStatus;
   @FXML private TextArea txtaChat;
   @FXML private TextField txtInput;
@@ -32,7 +36,7 @@ public class FlashbackController {
   public void setGameStateContext(GameStateContext gameStateContext) {
     this.gameStateContext = gameStateContext;
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
-      // Connect chat components to the chat controller
+      // Connect flashback chat widgets to the main ChatController
       gameStateContext
           .getChatController()
           .setFlashbackChatComponents(lblStatus, txtaChat, txtInput, btnSend);
@@ -41,9 +45,12 @@ public class FlashbackController {
 
   @FXML
   private void onBack() {
-    if (parent != null) parent.backToRoom();
+    if (parent != null) {
+      parent.backToRoom();
+    }
   }
 
+  /** Delegate the flashback chat send to ChatController. */
   @FXML
   private void onSendMessage() {
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
@@ -56,9 +63,19 @@ public class FlashbackController {
     if (btnAccept != null) {
       btnAccept.setOnAction(
           e -> {
-            if (adContainer != null) adContainer.setVisible(false);
+            announceFlashbackIfFirstTime();
+            if (adContainer != null) {
+              adContainer.setVisible(false);
+            }
+            if (btnAccept != null) {
+              btnAccept.setDisable(true);
+            }
+            if (btnExit != null) {
+              btnExit.setDisable(true);
+            }
           });
     }
+
     if (btnExit != null) {
       btnExit.setOnAction(
           e -> {
@@ -69,9 +86,27 @@ public class FlashbackController {
                 adMessage.setText("Ad refuses to close. Please accept cookies or try again.");
               }
             } else {
-              if (adContainer != null) adContainer.setVisible(false);
+              announceFlashbackIfFirstTime();
+              if (adContainer != null) {
+                adContainer.setVisible(false);
+              }
+              if (btnAccept != null) {
+                btnAccept.setDisable(true);
+              }
+              btnExit.setDisable(true);
             }
           });
     }
+  }
+
+  /** Ensures we only announce the flashback once. */
+  private void announceFlashbackIfFirstTime() {
+    if (flashbackAnnounced) {
+      return;
+    }
+    flashbackAnnounced = true;
+    // Notify ChatController that the DEFENDANT flashback was viewed
+    // (Assumes a static helper exists in ChatController)
+    ChatController.announceFlashbackViewedStatic(ChatController.Participant.DEFENDANT);
   }
 }
