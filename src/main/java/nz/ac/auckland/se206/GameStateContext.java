@@ -13,8 +13,6 @@ import javafx.application.Platform;
 import nz.ac.auckland.se206.controllers.ChatController;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import org.yaml.snakeyaml.Yaml;
-
-/** Central game state: scenario brief, awareness, randomized data, and UI hooks. */
 @SuppressWarnings("unused")
 public class GameStateContext {
 
@@ -30,13 +28,9 @@ public class GameStateContext {
   public void setScenarioBrief(String brief) {
     this.scenarioBrief = (brief == null) ? "" : brief;
   }
-
-  /** Role keys seen: ai_defendant, ai_witness, human_witness */
   public Set<String> getFlashbacksSeen() {
     return Collections.unmodifiableSet(flashbacksSeen);
   }
-
-  /** Interactable flags: roleKey -> done? */
   public Map<String, Boolean> getInteractableDone() {
     return Collections.unmodifiableMap(interactableDone);
   }
@@ -55,29 +49,6 @@ public class GameStateContext {
     if (roleKey != null && !roleKey.isBlank()) {
       interactableDone.put(roleKey, true);
     }
-  }
-
-  public void markInteractableDone(Participant p) {
-    markInteractableDone(roleKeyOf(p));
-  }
-
-  public void resetAwareness() {
-    flashbacksSeen.clear();
-    interactableDone.clear();
-  }
-
-  private static String roleKeyOf(Participant p) {
-    if (p == null) return "ai_defendant";
-    switch (p) {
-      case HUMAN_WITNESS:
-        return "human_witness";
-      case AI_WITNESS:
-        return "ai_witness";
-      default:
-        return "ai_defendant";
-    }
-  }
-
   // -------- Legacy randomized gameplay data --------
   private final String rectIdToGuess;
   private final String professionToGuess;
@@ -91,7 +62,6 @@ public class GameStateContext {
   private final Set<Participant> contactedParticipants = new HashSet<>();
 
   public GameStateContext() {
-    // Load professions.yaml (optional)
     Map<String, Object> obj = null;
     Yaml yaml = new Yaml();
     try (InputStream inputStream =
@@ -161,8 +131,11 @@ public class GameStateContext {
     this.statusSink = sink;
   }
 
-  public void showChatPane() {
-    // If your UI hides the chat, unhide here (no-op by default)
+  public void showChatPane() {}
+
+  public void focusChatForParticipant(ChatController.Participant p) {
+    if (chatController == null) return;
+    Platform.runLater(() -> chatController.selectParticipant(p));
   }
 
   public void focusChatForParticipant(ChatController.Participant p) {
@@ -209,7 +182,6 @@ public class GameStateContext {
   }
 
   // -------- Participant tracking --------
-  /** Marks a participant as contacted (player has sent at least one message). */
   public void markParticipantContacted(Participant participant) {
     contactedParticipants.add(participant);
   }
@@ -240,12 +212,10 @@ public class GameStateContext {
   }
 
   private Participant mapRectangleToParticipant(String rectangleId, String professionLabel) {
-    // Explicit mapping by rectangle id
     if ("rectPerson1".equals(rectangleId)) return Participant.DEFENDANT;
     if ("rectPerson2".equals(rectangleId)) return Participant.AI_WITNESS;
     if ("rectPerson3".equals(rectangleId)) return Participant.HUMAN_WITNESS;
 
-    // Fallback using label
     if (professionLabel != null) {
       String p = professionLabel.toLowerCase();
       if (p.contains("defendant")) return Participant.DEFENDANT;

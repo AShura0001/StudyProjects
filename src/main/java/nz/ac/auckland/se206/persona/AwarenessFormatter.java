@@ -1,8 +1,6 @@
 package nz.ac.auckland.se206.persona;
 
 import java.util.*;
-
-// Turn session flags into a compact paragraph shared with personas.
 public class AwarenessFormatter {
   public static String fromSession(
       Set<String> flashbacksSeen, Map<String, Boolean> interactableDone) {

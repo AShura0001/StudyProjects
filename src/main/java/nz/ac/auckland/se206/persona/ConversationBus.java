@@ -19,8 +19,6 @@ public class ConversationBus {
     q.addLast(text.strip());
     while (q.size() > MAX_PER_ROLE) q.removeFirst();
   }
-
-  // Returns a compact summary of last remarks for everyone except excludeRole.
   public synchronized String summarizeForContext(String excludeRole) {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, Deque<String>> e : lastByRole.entrySet()) {
