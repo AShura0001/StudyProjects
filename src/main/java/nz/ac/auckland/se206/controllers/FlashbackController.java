@@ -3,9 +3,15 @@ package nz.ac.auckland.se206.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import nz.ac.auckland.se206.GameStateContext;
 
 public class FlashbackController {
   private RoomFrameController parent;
+
+  // Ad / flashback UI
   @FXML private VBox adContainer;
   @FXML private Button btnAccept;
   @FXML private Button btnExit;
@@ -14,6 +20,14 @@ public class FlashbackController {
   private int exitAttempts = 0;
   private static final int EXIT_BLOCKS = 5;
   private boolean flashbackAnnounced = false;
+
+  // Chat components (passed through to ChatController)
+  @FXML private Label lblStatus;
+  @FXML private TextArea txtaChat;
+  @FXML private TextField txtInput;
+  @FXML private Button btnSend;
+
+  private GameStateContext gameStateContext;
 
   public void setParent(RoomFrameController parent) {
     this.parent = parent;
@@ -50,6 +64,15 @@ public class FlashbackController {
       btnAccept.setOnAction(
           e -> {
             announceFlashbackIfFirstTime();
+            if (adContainer != null) {
+              adContainer.setVisible(false);
+            }
+            if (btnAccept != null) {
+              btnAccept.setDisable(true);
+            }
+            if (btnExit != null) {
+              btnExit.setDisable(true);
+            }
           });
     }
 
@@ -64,11 +87,26 @@ public class FlashbackController {
               }
             } else {
               announceFlashbackIfFirstTime();
+              if (adContainer != null) {
+                adContainer.setVisible(false);
+              }
+              if (btnAccept != null) {
+                btnAccept.setDisable(true);
+              }
               btnExit.setDisable(true);
             }
           });
     }
   }
+
+  /** Ensures we only announce the flashback once. */
+  private void announceFlashbackIfFirstTime() {
+    if (flashbackAnnounced) {
+      return;
+    }
+    flashbackAnnounced = true;
+    // Notify ChatController that the DEFENDANT flashback was viewed
+    // (Assumes a static helper exists in ChatController)
     ChatController.announceFlashbackViewedStatic(ChatController.Participant.DEFENDANT);
   }
 }

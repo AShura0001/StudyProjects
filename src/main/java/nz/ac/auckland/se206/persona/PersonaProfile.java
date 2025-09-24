@@ -1,4 +1,10 @@
 package nz.ac.auckland.se206.persona;
+
+/**
+ * Persona configuration and system prompt builder. This version inlines the user's detailed prompts
+ * per role and appends them to the co-present + awareness core so the model receives ONE system
+ * message.
+ */
 public enum PersonaProfile {
   AI_DEFENDANT(
       "AI Defendant",
@@ -160,11 +166,17 @@ public enum PersonaProfile {
         return AI_DEFENDANT;
     }
   }
+
+  /**
+   * Builds one system prompt that includes: - Co-present rule and brevity - Persona type style -
+   * Scenario brief + awareness + recent remarks - Role-specific policy block (from this enum)
+   */
   public String buildSystemPrompt(String scenario, String awareness, String recent) {
     String typeRule =
         isAi
             ? "Your responses must feel like an AI: structured, analytical, unemotional."
             : "Your responses must feel human: conversational, a bit hesitant, with natural"
+                + " phrasing.";
 
     String core =
         String.join(
