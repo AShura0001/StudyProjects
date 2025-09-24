@@ -295,6 +295,12 @@ public class ChatController {
       return;
     }
 
+    // IF cookies are not accepted, blocks ability to send messages to Cookie Monster
+    if (p == Participant.DEFENDANT && gameContext != null && !gameContext.isCookiesAccepted()) {
+      appendMeta("Accept cookies to chat with Cookie Monster!");
+      return;
+    }
+
     setLoadingState();
 
     // Awareness bus (player speaks)
@@ -539,6 +545,13 @@ public class ChatController {
     ThreadState state = threads.get(participant);
     selectParticipant(participant);
     if (state == null || state.openingSent) return;
+
+    // For initial introduction makes sure cookies are accepted in order to initiate chat
+    if (participant == Participant.DEFENDANT
+        && gameContext != null
+        && !gameContext.isCookiesAccepted()) {
+      return; // Don't send opening message until cookies are accepted
+    }
 
     setLoadingState();
 

@@ -66,6 +66,14 @@ public class GameStateContext {
     interactableDone.clear();
   }
 
+  public boolean isCookiesAccepted() {
+    return Boolean.TRUE.equals(interactableDone.get("cookies_accepted"));
+  }
+
+  public void acceptCookies() {
+    interactableDone.put("cookies_accepted", true);
+  }
+
   private static String roleKeyOf(Participant p) {
     if (p == null) return "ai_defendant";
     switch (p) {
