@@ -47,10 +47,10 @@ public class App extends Application {
   }
 
   /**
-   * This method is invoked when the application starts. It loads and shows the "room" scene.
+   * This method is invoked when the application starts. It loads and shows the main game frame.
    *
    * @param stage the primary stage of the application
-   * @throws IOException if the "src/main/resources/fxml/room.fxml" file is not found
+   * @throws IOException if the "src/main/resources/fxml/room_frame.fxml" file is not found
    */
   @Override
   public void start(final Stage stage) throws IOException {
@@ -58,8 +58,10 @@ public class App extends Application {
     Parent root = loadFxml("room_frame");
     scene = new Scene(root);
     stage.setScene(scene);
-    stage.setWidth(1200);
-    stage.setHeight(800);
+    // Disabled since it now fxml is sized permanently
+    // stage.setWidth(1200);
+    // stage.setHeight(800);
+    // stage.setResizable(false); // Prevent window resizing
     stage.show();
     root.requestFocus();
   }

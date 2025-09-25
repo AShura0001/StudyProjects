@@ -13,6 +13,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -21,16 +22,23 @@ import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 
 public class RoomFrameController {
-  // Track which flashbacks have been viewed (1-based index)
   private boolean[] flashbackViewed = new boolean[] {false, false, false};
 
-  // FXML refs
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
   @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
+  @FXML private Label introLabel;
   @FXML private VBox chatBox;
+  @FXML private ImageView roomImage;
+  @FXML private StackPane imageHost;
+  @FXML private Button hotspotA;
+  @FXML private Button hotspotB;
+  @FXML private Button hotspotC;
+
+  // Store original room content for restoration
+  private Node originalRoomContent;
 
   // Timer
   // CHANGED: 120 -> 300 (5 minutes)
@@ -40,8 +48,8 @@ public class RoomFrameController {
 
   @FXML
   public void initialize() {
-    contentHost.getChildren().setAll(placeholderNode("Waiting to start..."));
-    contentHost.setDisable(true);
+    initializeInitialState();
+
     updateTimerLabel(remaining);
     setupTimer();
 
@@ -50,12 +58,33 @@ public class RoomFrameController {
       overlayRoot.setManaged(false);
     }
 
-    // Manually load chat.fxml to get the controller instance and inject it
     try {
       loadAndInjectChatController();
     } catch (IOException e) {
       System.err.println("Failed to load chat controller: " + e.getMessage());
     }
+  }
+
+  private void initializeInitialState() {
+
+    if (contentHost.getChildren().size() > 0) {
+      originalRoomContent = contentHost.getChildren().get(0);
+    }
+
+    contentHost.setDisable(true);
+    contentHost.setVisible(false);
+    contentHost.setManaged(false);
+
+    btnEndGame.setVisible(false);
+    btnEndGame.setManaged(false);
+
+    introLabel.setVisible(false);
+    introLabel.setManaged(false);
+
+    btnStart.setVisible(true);
+    btnStart.setManaged(true);
+    timerLabel.setVisible(true);
+    timerLabel.setManaged(true);
   }
 
   /**
@@ -80,30 +109,31 @@ public class RoomFrameController {
 
   @FXML
   private void onStartGame() {
+    // Show and enable all game content
+    contentHost.setVisible(true);
+    contentHost.setManaged(true);
     contentHost.setDisable(false);
-    resetTimer();
-    startTimer();
+
+    btnEndGame.setVisible(true);
+    btnEndGame.setManaged(true);
+
+    introLabel.setVisible(true);
+    introLabel.setManaged(true);
+
     btnStart.setVisible(false);
     btnStart.setManaged(false);
 
-    // Load the room into the center when starting
-    showRoom();
+    resetTimer();
+    startTimer();
   }
 
-  // Load room.fxml and wire parent reference
   public void showRoom() {
-    try {
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/room.fxml"));
-      Parent node = loader.load();
-
-      RoomController room = loader.getController();
-      room.setParent(this); // allow room to request flashbacks
-
-      contentHost.getChildren().setAll(node);
-
-    } catch (IOException ex) {
-      contentHost.getChildren().setAll(placeholderNode("Failed to load room"));
-      ex.printStackTrace();
+    // Restore the original room content after returning from a flashback
+    if (originalRoomContent != null) {
+      contentHost.getChildren().setAll(originalRoomContent);
+    } else {
+      System.err.println("No original room content stored - this shouldn't happen");
+      contentHost.getChildren().setAll(placeholderNode("Failed to restore room"));
     }
   }
 
@@ -173,6 +203,49 @@ public class RoomFrameController {
   // Allow flashbacks to navigate back
   public void backToRoom() {
     showRoom();
+  }
+
+  // Hotspot handlers (wired from FXML onAction)
+  @FXML
+  private void onHotspotA() {
+    System.out.println("DEBUG: Hotspot A clicked - Human Witness");
+    // Navigate to flashback
+    showFlashback(1);
+    // Hotspot A is Human Witness
+    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+    if (gameState != null) {
+      gameState.focusChatForParticipant(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
+      gameState.requestOpeningMessage(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
+    }
+  }
+
+  @FXML
+  private void onHotspotB() {
+    System.out.println("DEBUG: Hotspot B clicked - AI Witness");
+    showFlashback(2);
+    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+    if (gameState != null) {
+      gameState.focusChatForParticipant(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
+      gameState.requestOpeningMessage(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
+    }
+  }
+
+  @FXML
+  private void onHotspotC() {
+    System.out.println("DEBUG: Hotspot C clicked - Defendant");
+    showFlashback(3);
+    // Hotspot C is Defendant
+    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+    if (gameState != null) {
+      gameState.focusChatForParticipant(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
+      gameState.requestOpeningMessage(
+          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
+    }
   }
 
   // NEW: End Game button handler
@@ -425,12 +498,7 @@ public class RoomFrameController {
     setupTimer();
 
     // Reset UI to initial state
-    contentHost.getChildren().setAll(placeholderNode("Waiting to start..."));
-    contentHost.setDisable(true);
-    btnStart.setVisible(true);
-    btnStart.setManaged(true);
-    btnEndGame.setVisible(false);
-    btnEndGame.setManaged(false);
+    initializeInitialState();
 
     // Hide any overlays
     hideOverlay();
