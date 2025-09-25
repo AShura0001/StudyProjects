@@ -101,6 +101,9 @@ public class FlashbackController {
 
             // Enable chat if cookies are accepted
             enableChatComponents();
+
+            // opening message with cookie monster
+            requestOpeningMessage();
           });
     }
 
@@ -130,6 +133,8 @@ public class FlashbackController {
               btnExit.setDisable(true);
 
               enableChatComponents();
+              // opening message with cookie monster
+              requestOpeningMessage();
             }
           });
     }
@@ -168,6 +173,16 @@ public class FlashbackController {
     }
     if (btnSend != null) {
       btnSend.setDisable(true);
+    }
+  }
+
+  // Request opening message from Cookie Monster after accepting cookies
+  private void requestOpeningMessage() {
+    if (gameStateContext != null && gameStateContext.getChatController() != null) {
+      gameStateContext.getChatController().selectParticipant(ChatController.Participant.DEFENDANT);
+      gameStateContext
+          .getChatController()
+          .requestOpeningMessageFromLlm(ChatController.Participant.DEFENDANT);
     }
   }
 }
