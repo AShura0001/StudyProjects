@@ -29,6 +29,7 @@ public class RoomFrameController {
   @FXML private Button btnStart;
   @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
+  @FXML private Label introLabel;
   @FXML private VBox chatBox;
   @FXML private ImageView roomImage;
   @FXML private StackPane imageHost;
@@ -77,6 +78,9 @@ public class RoomFrameController {
     btnEndGame.setVisible(false);
     btnEndGame.setManaged(false);
 
+    introLabel.setVisible(false);
+    introLabel.setManaged(false);
+
     btnStart.setVisible(true);
     btnStart.setManaged(true);
     timerLabel.setVisible(true);
@@ -112,6 +116,9 @@ public class RoomFrameController {
 
     btnEndGame.setVisible(true);
     btnEndGame.setManaged(true);
+
+    introLabel.setVisible(true);
+    introLabel.setManaged(true);
 
     btnStart.setVisible(false);
     btnStart.setManaged(false);

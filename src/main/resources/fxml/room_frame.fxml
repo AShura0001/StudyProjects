@@ -24,7 +24,7 @@
       </HBox>
     </top>
       <bottom>
-         <Label contentDisplay="BOTTOM" graphicTextGap="1.0" style="-fx-font-size: 30px; -fx-font-weight: bold;" text="In the Court of Common Clicks, Cookie Monster v2.3 is on trial for auto‑accepting cookies to reduce pop‑ups. Casey’s targeted ads and Sentri‑Guard’s audit reveal a friction‑first design that ignored consent, turning convenience into a question of accountability." wrapText="true" BorderPane.alignment="CENTER" />
+         <Label fx:id="introLabel" contentDisplay="BOTTOM" graphicTextGap="1.0" style="-fx-font-size: 30px; -fx-font-weight: bold;" text="In the Court of Common Clicks, Cookie Monster v2.3 is on trial for auto‑accepting cookies to reduce pop‑ups. Casey’s targeted ads and Sentri‑Guard’s audit reveal a friction‑first design that ignored consent, turning convenience into a question of accountability." wrapText="true" BorderPane.alignment="CENTER" />
       </bottom>
       <center> 
       <StackPane fx:id="contentHost" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
