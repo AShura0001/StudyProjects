@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.RoomFrameController"> <!-- Layer 1: App frame -->
-  <BorderPane fx:id="frameRoot" prefHeight="800.0" prefWidth="1200.0">
+<StackPane maxHeight="800.0" maxWidth="1200.0" minHeight="800.0" minWidth="1200.0" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.RoomFrameController"> <!-- Layer 1: App frame -->
+  <BorderPane fx:id="frameRoot" maxHeight="800.0" maxWidth="1200.0" minHeight="800.0" minWidth="1200.0" prefHeight="800.0" prefWidth="1200.0">
     <top>
       <HBox spacing="10" style="-fx-padding: 12 8 8 8;">
         <Button fx:id="btnStart" onAction="#onStartGame" prefHeight="31.0" prefWidth="229.0" text="Start" />
@@ -20,10 +26,43 @@
       <bottom>
          <Label contentDisplay="BOTTOM" graphicTextGap="1.0" style="-fx-font-size: 30px; -fx-font-weight: bold;" text="In the Court of Common Clicks, Cookie Monster v2.3 is on trial for auto‑accepting cookies to reduce pop‑ups. Casey’s targeted ads and Sentri‑Guard’s audit reveal a friction‑first design that ignored consent, turning convenience into a question of accountability." wrapText="true" BorderPane.alignment="CENTER" />
       </bottom>
-      <center> <!-- Swappable content area (room/flashbacks go here) -->
-      <StackPane fx:id="contentHost" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER" />
+      <center> 
+      <StackPane fx:id="contentHost" prefHeight="600.0" prefWidth="1200.0" BorderPane.alignment="CENTER">
+         <VBox alignment="CENTER" spacing="10">
+            <padding>
+               <Insets bottom="10" left="10" right="10" top="10" />
+            </padding>
+            <StackPane fx:id="imageHost" alignment="CENTER" prefHeight="470.0" prefWidth="700.0">
+               <children>
+                  <ImageView fx:id="roomImage" fitHeight="470.0" fitWidth="700.0" preserveRatio="true">
+                        <image>
+                           <Image url="@../images/courtRoom.png" />
+                        </image>
+                     </ImageView>
+                  <Pane fx:id="hotspotLayer" prefHeight="470.0" prefWidth="700.0">
+                     <Button fx:id="hotspotA" layoutX="291.0" layoutY="72.0" onAction="#onHotspotA" prefHeight="384.0" prefWidth="141.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-opacity: 0;" />
+                     <Button fx:id="hotspotB" layoutX="732.0" layoutY="64.0" onAction="#onHotspotB" prefHeight="387.0" prefWidth="193.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-opacity: 0;" />
+                     <Button fx:id="hotspotC" layoutX="500.0" layoutY="158.0" onAction="#onHotspotC" prefHeight="292.0" prefWidth="201.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-opacity: 0;" />
+                     <Label layoutX="547.0" layoutY="132.0" style="-fx-background-color: #ffffff;" text="Cookie Monster">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font></Label>
+                     <Label layoutX="805.0" layoutY="32.0" style="-fx-background-color: #ffffff;" text="Sentri-Guard">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font></Label>
+                     <Label layoutX="349.0" layoutY="55.0" style="-fx-background-color: #ffffff;" text="Casey">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                  </Pane>
+               </children>
+            </StackPane>
+            <VBox prefHeight="80" spacing="6" />
+         </VBox>
+      </StackPane>
       </center>
-  </BorderPane> <!-- Layer 2:
-  Overlays on top of everything (hidden by default) -->
+  </BorderPane> 
   <StackPane fx:id="overlayRoot" managed="false" prefWidth="0.0" style="-fx-background-color: rgba(0,0,0,0.45);" visible="false" />
 </StackPane>
