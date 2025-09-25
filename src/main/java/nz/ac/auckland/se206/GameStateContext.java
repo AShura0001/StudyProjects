@@ -222,6 +222,11 @@ public class GameStateContext {
     contactedParticipants.add(participant);
   }
 
+  /** Checks if this is the first interaction with a participant. */
+  public boolean isFirstInteraction(Participant participant) {
+    return !contactedParticipants.contains(participant);
+  }
+
   public boolean hasContactedAllParticipants() {
     return contactedParticipants.size() >= 3;
   }

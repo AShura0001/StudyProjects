@@ -22,8 +22,6 @@ import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 
 public class RoomFrameController {
-  private boolean[] flashbackViewed = new boolean[] {false, false, false};
-
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
@@ -137,114 +135,147 @@ public class RoomFrameController {
     }
   }
 
-  // Swap in a flashback by index (1..3)
-  public void showFlashback(int index) {
-    // Allow any valid flashback index
-    if (index < 1 || index > 3) {
-      showRoom();
-      return;
-    }
+  // Allow flashbacks to navigate back
+  public void backToRoom() {
+    showRoom();
+  }
 
-    // Mark as viewed (for tracking purposes, but don't prevent re-viewing)
-    if (index >= 1 && index <= 3) {
-      flashbackViewed[index - 1] = true;
-    }
-
-    String path = "/fxml/flashback" + index + ".fxml";
+  // Show slideshow for first-time interaction
+  public void showSlideshow(Participant participant) {
+    String path = "/fxml/slideshow.fxml";
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
       Parent node = loader.load();
 
-      // Give flashback controller a back reference
-      Object ctl = loader.getController();
-      if (ctl instanceof FlashbackController) {
-        ((FlashbackController) ctl).setParent(this);
+      // Configure slideshow controller
+      Object controller = loader.getController();
+      if (controller instanceof SlideshowController) {
+        SlideshowController slideshowController = (SlideshowController) controller;
+        slideshowController.setParent(this);
+        slideshowController.setGameStateContext(App.getGameStateContext());
+        slideshowController.setCurrentParticipant(participant);
+      }
 
-        // Pass GameStateContext to FlashbackController for chat integration
-        nz.ac.auckland.se206.GameStateContext gameState =
-            nz.ac.auckland.se206.App.getGameStateContext();
-        if (gameState != null) {
-          ((FlashbackController) ctl).setGameStateContext(gameState);
-        }
-      }
-      // Switch chat participant in ChatController
-      nz.ac.auckland.se206.controllers.ChatController.Participant chatParticipant;
-      switch (index) {
-        case 1:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT;
-          break;
-        case 2:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS;
-          break;
-        case 3:
-          chatParticipant =
-              nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS;
-          break;
-        default:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT;
-          break;
-      }
-      // Find ChatController and switch participant
-      // This assumes you have a reference to ChatController, e.g. via GameStateContext
-      nz.ac.auckland.se206.GameStateContext gameState =
-          nz.ac.auckland.se206.App.getGameStateContext();
-      if (gameState != null) {
-        gameState.focusChatForParticipant(chatParticipant);
+      // Store original content for restoration
+      if (originalRoomContent == null) {
+        originalRoomContent = contentHost.getChildren().get(0);
       }
 
       contentHost.getChildren().setAll(node);
 
-    } catch (IOException ex) {
-      contentHost.getChildren().setAll(placeholderNode("Failed to load flashback"));
+    } catch (Exception ex) {
+      contentHost.getChildren().setAll(placeholderNode("Failed to load slideshow"));
       ex.printStackTrace();
     }
   }
 
-  // Allow flashbacks to navigate back
-  public void backToRoom() {
-    showRoom();
+  // Show memory scene for participant
+  public void showMemoryForParticipant(Participant participant) {
+    String fxmlPath = getMemoryFxmlPath(participant);
+    try {
+      FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+      Parent node = loader.load();
+
+      // Configure memory controller
+      Object controller = loader.getController();
+      if (controller instanceof MemoryController) {
+        MemoryController memoryController = (MemoryController) controller;
+        memoryController.setParent(this);
+        memoryController.setGameStateContext(App.getGameStateContext());
+        memoryController.setCurrentParticipant(participant);
+      }
+
+      // Store original content for restoration if not already stored
+      if (originalRoomContent == null) {
+        originalRoomContent = contentHost.getChildren().get(0);
+      }
+
+      contentHost.getChildren().setAll(node);
+
+      // Set up chat for this participant
+      GameStateContext gameState = App.getGameStateContext();
+      if (gameState != null) {
+        gameState.focusChatForParticipant(participant);
+        gameState.requestOpeningMessage(participant);
+      }
+
+    } catch (Exception ex) {
+      contentHost.getChildren().setAll(placeholderNode("Failed to load memory scene"));
+      ex.printStackTrace();
+    }
+  }
+
+  private String getMemoryFxmlPath(Participant participant) {
+    switch (participant) {
+      case DEFENDANT:
+        return "/fxml/memory_defendant.fxml";
+      case AI_WITNESS:
+        return "/fxml/memory_ai_witness.fxml";
+      case HUMAN_WITNESS:
+        return "/fxml/memory_human_witness.fxml";
+      default:
+        return "/fxml/memory_defendant.fxml";
+    }
   }
 
   // Hotspot handlers (wired from FXML onAction)
   @FXML
   private void onHotspotA() {
     System.out.println("DEBUG: Hotspot A clicked - Human Witness");
-    // Navigate to flashback
-    showFlashback(1);
-    // Hotspot A is Human Witness
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.HUMAN_WITNESS;
+
     if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
+      if (gameState.isFirstInteraction(participant)) {
+        // First interaction - show slideshow
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        // Subsequent interaction - go directly to memory
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
   }
 
   @FXML
   private void onHotspotB() {
     System.out.println("DEBUG: Hotspot B clicked - AI Witness");
-    showFlashback(2);
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.AI_WITNESS;
+
     if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
+      if (gameState.isFirstInteraction(participant)) {
+        // First interaction - show slideshow
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        // Subsequent interaction - go directly to memory
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
   }
 
   @FXML
   private void onHotspotC() {
     System.out.println("DEBUG: Hotspot C clicked - Defendant");
-    showFlashback(3);
-    // Hotspot C is Defendant
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
+
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.DEFENDANT;
+
     if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
+      if (gameState.isFirstInteraction(participant)) {
+        // First interaction - show slideshow
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        // Subsequent interaction - go directly to memory
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
   }
 
@@ -486,9 +517,6 @@ public class RoomFrameController {
    * chooses to replay after completing a game.
    */
   public void resetToMainRoom() {
-    // Reset flashback tracking
-    flashbackViewed = new boolean[] {false, false, false};
-
     // Reset timer
     remaining = START_SECONDS;
     updateTimerLabel(remaining);
