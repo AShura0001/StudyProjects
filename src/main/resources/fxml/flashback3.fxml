@@ -10,7 +10,7 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 
-<BorderPane xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.FlashbackController">
+<BorderPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.FlashbackController">
 
     <center>
         <VBox alignment="CENTER" spacing="20">
@@ -19,14 +19,13 @@
                     <Image url="@/images/flashback3-cookieMonster.png" />
                 </image>
             </ImageView>
-            <!-- Simulated Ad Container -->
-            <VBox fx:id="adContainer" alignment="CENTER" spacing="10" style="-fx-background-color: #fffbe6; -fx-border-color: #e2c200; -fx-border-width: 2; -fx-padding: 24;">
-                <Label style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #222;" text="Cookie Consent" />
-                <Label style="-fx-font-size: 16px; -fx-text-fill: #444;" text="This site uses cookies to improve your experience. Accept all cookies?" />
-                <Label fx:id="adMessage" style="-fx-font-size: 14px; -fx-text-fill: #c00;" text="" />
-                <HBox alignment="CENTER" prefHeight="83.0" prefWidth="528.0" spacing="12">
-                    <Button fx:id="btnAccept" style="-fx-font-size: 24px; -fx-background-color: #ffe066; -fx-text-fill: #222; -fx-pref-width: 220; -fx-pref-height: 60; -fx-font-weight: bold;" text="Accept All" />
-                    <Button fx:id="btnExit" prefHeight="29.0" prefWidth="57.0" style="-fx-font-size: 10px; -fx-background-color: #eee; -fx-text-fill: #888; -fx-pref-width: 32; -fx-pref-height: 24; -fx-border-radius: 12;" text="✕" wrapText="true" />
+            <VBox fx:id="adContainer" alignment="CENTER" spacing="8" style="-fx-background-color: #fffbe6; -fx-border-color: #e2c200; -fx-border-width: 2; -fx-padding: 16;">
+                <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #222;" text="Cookie Consent" />
+                <Label style="-fx-font-size: 14px; -fx-text-fill: #444;" text="This site uses cookies to improve your experience. Accept all cookies?" />
+                <Label fx:id="adMessage" style="-fx-font-size: 12px; -fx-text-fill: #c00;" text="" />
+                <HBox alignment="CENTER" spacing="10">
+                    <Button fx:id="btnAccept" style="-fx-font-size: 18px; -fx-background-color: #ffe066; -fx-text-fill: #222; -fx-pref-width: 180; -fx-pref-height: 45; -fx-font-weight: bold;" text="Accept All" />
+                    <Button fx:id="btnExit" style="-fx-font-size: 10px; -fx-background-color: #eee; -fx-text-fill: #888; -fx-pref-width: 30; -fx-pref-height: 20; -fx-border-radius: 12;" text="✕" />
                 </HBox>
             </VBox>
         </VBox>
@@ -34,16 +33,15 @@
     
     <right>
         <VBox prefHeight="480.0" prefWidth="400.0" spacing="12" style="-fx-padding: 18; -fx-background-color: #f7f7f7;">
-            <!-- Header row with current participant only -->
+
             <HBox spacing="8" alignment="CENTER_LEFT">
                 <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-min-width: 120px;" text="Chat with" />
                 <Label fx:id="lblStatus" style="-fx-text-fill: #222; -fx-font-size: 18px; -fx-font-weight: bold; -fx-min-width: 180px;" />
             </HBox>
 
-            <!-- Messages area grows to fill vertical space -->
+
             <TextArea fx:id="txtaChat" editable="false" wrapText="true" VBox.vgrow="ALWAYS" prefWidth="380.0" prefHeight="320.0" style="-fx-font-size: 15px;" />
 
-            <!-- Input row -->
             <HBox spacing="6">
                 <TextField fx:id="txtInput" promptText="Type a message..." HBox.hgrow="ALWAYS" prefWidth="280.0" style="-fx-font-size: 15px;" />
                 <Button fx:id="btnSend" onAction="#onSendMessage" text="Send" prefWidth="80.0" style="-fx-font-size: 15px;" />
