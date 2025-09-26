@@ -84,7 +84,7 @@ public class MemoryController {
 
   // Aim training game state
   private int gameScore = 0;
-  private int consecutiveMisses = 0;
+  private int totalMisses = 0;
   private boolean gameRunning = false;
   private Timeline gameTimer;
   private Timeline targetSpawnTimer;
@@ -628,7 +628,7 @@ public class MemoryController {
 
     // Reset game state
     gameScore = 0;
-    consecutiveMisses = 0;
+    totalMisses = 0;
     gameRunning = true;
     gameStartTime = System.currentTimeMillis();
     activeTargets.clear();
@@ -714,7 +714,7 @@ public class MemoryController {
 
     // Update score
     gameScore++;
-    consecutiveMisses = 0; // Reset miss counter on successful hit
+    // Note: totalMisses is NOT reset on successful hit (unlike consecutive misses)
 
     updateGameStats();
 
@@ -735,11 +735,11 @@ public class MemoryController {
     activeTargets.remove(target);
 
     // Update miss counter
-    consecutiveMisses++;
+    totalMisses++;
     updateGameStats();
 
     // Check lose condition
-    if (consecutiveMisses >= 3) {
+    if (totalMisses >= 3) {
       endGame(false);
     }
   }
@@ -750,11 +750,11 @@ public class MemoryController {
       lblScore.setText(gameScore + "/10");
     }
     if (lblMisses != null) {
-      lblMisses.setText(consecutiveMisses + "/3");
+      lblMisses.setText(totalMisses + "/3");
       // Change color based on miss count
-      if (consecutiveMisses == 0) {
+      if (totalMisses == 0) {
         lblMisses.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #059669;");
-      } else if (consecutiveMisses == 1) {
+      } else if (totalMisses == 1) {
         lblMisses.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;");
       } else {
         lblMisses.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
