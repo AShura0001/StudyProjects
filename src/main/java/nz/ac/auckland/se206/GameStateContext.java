@@ -26,6 +26,15 @@ public class GameStateContext {
 
   // Track which owners’ flashbacks have already been broadcast
   private final Set<String> flashbackPrimedOwners = new HashSet<>();
+  private final Set<Participant> slideshowSeen = new HashSet<>();
+
+  public boolean hasSeenSlideshow(Participant p) {
+    return slideshowSeen.contains(p);
+  }
+
+  public void markSlideshowSeen(Participant p) {
+    slideshowSeen.add(p);
+  }
 
   public String getScenarioBrief() {
     return scenarioBrief;

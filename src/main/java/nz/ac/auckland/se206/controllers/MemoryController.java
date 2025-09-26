@@ -261,62 +261,40 @@ public class MemoryController {
 
   /** Updates cookie consent button visibility based on current state. */
   private void updateCookieConsentVisibility() {
-    // Only show cookie consent for defendant (Cookie Monster)
     if (currentParticipant == Participant.DEFENDANT && gameStateContext != null) {
       boolean cookiesAccepted = gameStateContext.isCookiesAccepted();
 
-      // Hide/show cookie consent buttons based on acceptance state
       if (btnAccept != null) {
         btnAccept.setVisible(!cookiesAccepted);
       }
       if (btnExit != null) {
         btnExit.setVisible(!cookiesAccepted);
       }
-
-      // Show/hide "ALL COOKIES ACCEPTED" label
       if (lblCookiesAccepted != null) {
         lblCookiesAccepted.setVisible(cookiesAccepted);
       }
 
-      // Control text input and send button based on cookie acceptance
       if (txtInput != null) {
         txtInput.setDisable(!cookiesAccepted);
-        if (!cookiesAccepted) {
-          txtInput.setPromptText("Accept cookies first to type in");
-        } else {
-          txtInput.setPromptText("Type your message here...");
-        }
+        txtInput.setPromptText(
+            cookiesAccepted ? "Type your message here..." : "Accept cookies first to type in");
       }
       if (btnSend != null) {
         btnSend.setDisable(!cookiesAccepted);
       }
-
-      // If cookies are already accepted, request opening message
-      if (cookiesAccepted) {
-        requestOpeningMessage();
-      }
     } else {
-      // For non-defendant participants, hide cookie buttons and labels
-      if (btnAccept != null) {
-        btnAccept.setVisible(false);
-      }
-      if (btnExit != null) {
-        btnExit.setVisible(false);
-      }
-      if (lblCookiesAccepted != null) {
-        lblCookiesAccepted.setVisible(false);
-      }
+      // For other participants
+      if (btnAccept != null) btnAccept.setVisible(false);
+      if (btnExit != null) btnExit.setVisible(false);
+      if (lblCookiesAccepted != null) lblCookiesAccepted.setVisible(false);
 
-      // Enable chat for other participants
       if (txtInput != null) {
         txtInput.setDisable(false);
         txtInput.setPromptText("Type your message here...");
       }
-      if (btnSend != null) {
-        btnSend.setDisable(false);
-      }
+      if (btnSend != null) btnSend.setDisable(false);
 
-      // Request opening message for other participants
+      // Keep opening message for others
       if (currentParticipant != null) {
         requestOpeningMessage();
       }
@@ -336,35 +314,21 @@ public class MemoryController {
     }
   }
 
-  /** Handles accepting cookies for the defendant memory scene. */
   @FXML
   private void onAcceptCookies() {
-    // Mark that the defendant has accepted cookies
     gameStateContext.acceptCookies();
 
-    // Hide the cookie consent buttons
-    if (btnAccept != null) {
-      btnAccept.setVisible(false);
-    }
-    if (btnExit != null) {
-      btnExit.setVisible(false);
-    }
+    if (btnAccept != null) btnAccept.setVisible(false);
+    if (btnExit != null) btnExit.setVisible(false);
+    if (lblCookiesAccepted != null) lblCookiesAccepted.setVisible(true);
 
-    // Show "ALL COOKIES ACCEPTED" label
-    if (lblCookiesAccepted != null) {
-      lblCookiesAccepted.setVisible(true);
-    }
-
-    // Enable chat input and send button
     if (txtInput != null) {
       txtInput.setDisable(false);
       txtInput.setPromptText("Type your message here...");
     }
-    if (btnSend != null) {
-      btnSend.setDisable(false);
-    }
+    if (btnSend != null) btnSend.setDisable(false);
 
-    // Request opening message from Cookie Monster
+    // ✅ Only here do we trigger the Defendant’s opening message once
     requestOpeningMessage();
   }
 

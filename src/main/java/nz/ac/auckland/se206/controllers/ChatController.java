@@ -102,7 +102,7 @@ public class ChatController {
     replayCurrentHistory();
     gameContext = App.getGameStateContext();
 
-    // Checks for enter key is pressed and sends the input if so!
+    // Send on Enter
     if (txtInput != null) {
       txtInput.setOnKeyPressed(
           event -> {
@@ -237,11 +237,16 @@ public class ChatController {
   private void replayCurrentHistory() {
     txtaChat.clear();
     ThreadState state = threads.get(currentParticipant);
-    if (state == null) return;
+    if (state == null) {
+      scrollToBottom(txtaChat);
+      return;
+    }
     for (ChatMessage msg : state.history) {
       if ("system".equalsIgnoreCase(msg.getRole())) continue; // hide system rows
       appendChatMessage(currentParticipant, msg);
     }
+    // ensure we land at the end even if no messages got appended above
+    scrollToBottom(txtaChat);
   }
 
   private void appendChatMessage(Participant p, ChatMessage msg) {
@@ -257,16 +262,20 @@ public class ChatController {
     String line = who + ": " + msg.getContent() + "\n\n";
     if (Platform.isFxApplicationThread()) {
       txtaChat.appendText(line);
+      scrollToBottom(txtaChat);
       // Mirror into flashback chat if present
       if (flashbackTxtaChat != null) {
         flashbackTxtaChat.appendText(line);
+        scrollToBottom(flashbackTxtaChat);
       }
     } else {
       Platform.runLater(
           () -> {
             txtaChat.appendText(line);
+            scrollToBottom(txtaChat);
             if (flashbackTxtaChat != null) {
               flashbackTxtaChat.appendText(line);
+              scrollToBottom(flashbackTxtaChat);
             }
           });
     }
@@ -281,9 +290,26 @@ public class ChatController {
     String line = "— " + text + "\n";
     if (Platform.isFxApplicationThread()) {
       txtaChat.appendText(line);
+      scrollToBottom(txtaChat);
     } else {
-      Platform.runLater(() -> txtaChat.appendText(line));
+      Platform.runLater(
+          () -> {
+            txtaChat.appendText(line);
+            scrollToBottom(txtaChat);
+          });
     }
+  }
+
+  /** Always jump TextArea caret to the end (works as scroll-to-bottom in JavaFX). */
+  private void scrollToBottom(TextArea area) {
+    if (area == null) return;
+    Platform.runLater(
+        () -> {
+          int len = area.getText() == null ? 0 : area.getText().length();
+          area.positionCaret(len);
+          area.selectPositionCaret(len); // nudges viewport
+          area.deselect(); // avoid selecting text
+        });
   }
 
   // ---- LLM calls ----
@@ -359,8 +385,6 @@ public class ChatController {
             // Update thread's last request pointer
             state.req = fresh;
 
-            // TTS - disabled
-            // TextToSpeech.speak(assistant.getContent());
             clearLoadingState();
           } catch (Exception ex) {
             ex.printStackTrace();
@@ -422,6 +446,7 @@ public class ChatController {
     }
     if (flashbackTxtaChat != null && txtaChat != null) {
       flashbackTxtaChat.setText(txtaChat.getText());
+      scrollToBottom(flashbackTxtaChat);
     }
   }
 
@@ -464,7 +489,7 @@ public class ChatController {
     currentParticipant = participant;
     hasSelectedParticipant = true;
     lblStatus.setText(displayName(participant));
-    replayCurrentHistory();
+    replayCurrentHistory(); // auto-scroll runs inside
     updateFlashbackComponents(); // keep flashback header in sync
     focusInput();
   }
@@ -508,7 +533,6 @@ public class ChatController {
   private void setLoadingState() {
     Platform.runLater(
         () -> {
-          // Disable send button, flashback and input
           btnSend.setDisable(true);
           txtInput.setDisable(true);
           txtInput.setPromptText("Waiting for response...");
@@ -526,7 +550,6 @@ public class ChatController {
   private void clearLoadingState() {
     Platform.runLater(
         () -> {
-          // Re-enable send button, flashback and input
           btnSend.setDisable(false);
           txtInput.setDisable(false);
           txtInput.setPromptText("Type your message...");
@@ -546,11 +569,11 @@ public class ChatController {
     selectParticipant(participant);
     if (state == null || state.openingSent) return;
 
-    // For initial introduction makes sure cookies are accepted in order to initiate chat
+    // For Cookie Monster: require cookies accepted before sending opener
     if (participant == Participant.DEFENDANT
         && gameContext != null
         && !gameContext.isCookiesAccepted()) {
-      return; // Don't send opening message until cookies are accepted
+      return;
     }
 
     setLoadingState();
@@ -558,7 +581,6 @@ public class ChatController {
     ioExecutor.submit(
         () -> {
           try {
-            // Build a fresh request with dynamic system + recent visible history
             ApiProxyConfig config = ApiProxyConfig.readConfig();
             ChatCompletionRequest fresh =
                 new ChatCompletionRequest(config)
@@ -571,7 +593,6 @@ public class ChatController {
             ChatMessage sysMsg = new ChatMessage("system", getSystemPromptFor(participant));
             fresh.addMessage(sysMsg);
 
-            // Last ~8 visible (non-system) messages for context
             List<ChatMessage> visible = new ArrayList<>();
             synchronized (state.history) {
               for (ChatMessage m : state.history) {
@@ -589,7 +610,6 @@ public class ChatController {
 
             ConversationBus.getInstance().post("player", userMsg.getContent());
 
-            // Call LLM
             ChatCompletionResult result = fresh.execute();
             Choice choice = result.getChoices().iterator().next();
             ChatMessage assistant = choice.getChatMessage();
@@ -603,11 +623,8 @@ public class ChatController {
             }
             ConversationBus.getInstance().post(roleKeyOf(participant), assistant.getContent());
 
-            // Update thread's last request pointer
             state.req = fresh;
 
-            // TTS - disabled
-            // TextToSpeech.speak(assistant.getContent());
             state.openingSent = true;
             clearLoadingState();
           } catch (ApiProxyException ex) {
@@ -702,13 +719,17 @@ public class ChatController {
     }
   }
 
-  // ---- Focus helper ----
+  // ---- Focus & scroll helpers ----
 
   public void focusInput() {
     Platform.runLater(
         () -> {
           if (txtInput != null) {
             txtInput.requestFocus();
+          }
+          scrollToBottom(txtaChat);
+          if (flashbackTxtaChat != null) {
+            scrollToBottom(flashbackTxtaChat);
           }
         });
   }

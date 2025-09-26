@@ -16,8 +16,7 @@
         <VBox alignment="CENTER" spacing="20">
             <!-- Back button positioned prominently at the top-right -->
             <HBox alignment="CENTER_RIGHT" style="-fx-padding: 10 20 0 20;">
-                <Button text="← Back to Room" onAction="#onBackToRoom" 
-                        style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2);" />
+                <Button onAction="#onBackToRoom" style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2);" text="← Back to Room" />
             </HBox>
             
             <ImageView fitHeight="240" preserveRatio="true">
@@ -27,7 +26,7 @@
             </ImageView>
             <VBox fx:id="adContainer" alignment="CENTER" spacing="8" style="-fx-background-color: #fffbe6; -fx-border-color: #e2c200; -fx-border-width: 2; -fx-padding: 16;">
                 <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #222;" text="Cookie Consent" />
-                <Label style="-fx-font-size: 14px; -fx-text-fill: #444;" text="This flashback feature requires you to accept all Cookies to start interaction" />
+                <Label style="-fx-font-size: 14px; -fx-text-fill: #444;" text="This web feature requires you to accept all Cookies to start interaction" />
                 <Label fx:id="adMessage" style="-fx-font-size: 12px; -fx-text-fill: #c00;" text="" />
                 <HBox alignment="CENTER" spacing="10">
                     <Button fx:id="btnAccept" onAction="#onAcceptCookies" style="-fx-font-size: 18px; -fx-background-color: #ffe066; -fx-text-fill: #222; -fx-pref-width: 180; -fx-pref-height: 45; -fx-font-weight: bold;" text="Accept All" />

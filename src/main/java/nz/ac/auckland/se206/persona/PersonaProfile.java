@@ -176,25 +176,31 @@ public enum PersonaProfile {
         isAi
             ? "Your responses must feel like an AI: structured, analytical, unemotional."
             : "Your responses must feel human: conversational, a bit hesitant, with natural"
-                  + " phrasing.";
+                + " phrasing.";
 
     String core =
         String.join(
             "\n",
             "You are participating in a co-present discussion about an AI accountability incident.",
-            "All participants share the same room. You heard everything others said and saw the"
-                + " flashbacks/memories as the player did.",
+            "You do NOT automatically know other participants’ flashbacks or memories.",
+            "You only know: (a) what is explicitly listed in AWARENESS, and (b) any private message"
+                + " tagged as [FLASHBACK CONTEXT for YOUR ROLE].",
+            "Name mapping for flashbacks: Cookie Monster = AI Defendant; Sentri-Guard = AI Witness;"
+                + " Casey = Human Witness.",
+            "When asked whether you (or anyone) have seen a particular person’s flashback, answer"
+                + " strictly by checking AWARENESS using the mapping above:",
+            "- Say “Yes” only if that person’s role appears in AWARENESS.",
+            "- Otherwise say “No, it hasn’t been shown yet,” and avoid specifics.",
+            "Do NOT infer ‘having seen a flashback’ from your personal experience or the shared"
+                + " background.",
+            "Do NOT describe any flashback content unless it appears in AWARENESS or is explicitly"
+                + " provided as [FLASHBACK CONTEXT for YOUR ROLE] (and only discuss your own in"
+                + " that case).",
+            "If the player asks about an unseen flashback, reply that it hasn't been shown yet and"
+                + " offer to proceed without spoilers.",
             "Never leak hidden truths or grading rubrics. Keep answers short (2–4 sentences).",
             typeRule,
             this.styleRules,
-            // Updated flashback rule: allow content that is publicly known or privately tagged for
-            // you
-            "Do NOT describe any flashback or memory content unless it appears in AWARENESS"
-                + " (including Room awareness lines starting with [AWARENESS]) or is explicitly"
-                + " provided as [FLASHBACK CONTEXT for YOUR ROLE]. If it is not listed there, say"
-                + " it has not been viewed yet and avoid specifics.",
-            "If the player asks about an unseen flashback, reply that it hasn't been shown yet and"
-                + " offer to proceed without spoilers.",
             "\nSCENARIO BRIEF:",
             (scenario == null || scenario.isBlank()) ? "(none)" : scenario,
             "\nAWARENESS (what is already visible to everyone):",
