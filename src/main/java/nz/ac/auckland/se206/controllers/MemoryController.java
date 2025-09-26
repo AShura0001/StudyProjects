@@ -1,15 +1,24 @@
 package nz.ac.auckland.se206.controllers;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
@@ -21,10 +30,12 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
+import nz.ac.auckland.se206.persona.AwarenessFormatter; // push rows/memory into AWARENESS
+import nz.ac.auckland.se206.persona.ConversationBus; // awareness broadcast bus
 
 /**
  * Controller for memory scenes where players interact with participants in their memory spaces with
- * unique interactable elements.
+ * unique interactable elements. Also implements the AI Witness "Simple Audit Log".
  */
 public class MemoryController {
   private RoomFrameController parent;
@@ -50,20 +61,28 @@ public class MemoryController {
 
 
 
-  // Frustration level components (for human witness memory)
+  // ===== Human witness: Frustration mini-game (supports BOTH UIs) =====
   @FXML private VBox frustrationSection;
   @FXML private Slider frustrationSlider;
   @FXML private Label frustrationValueLabel;
-  @FXML private Button btnUnderstandStory;
+
+  // Style A: "Higher" / "Lower" buttons
+  @FXML private Button btnHigher;
+  @FXML private Button btnLower;
   @FXML private VBox frustrationDialogue;
+  @FXML private Label frustrationSpeaker; // optional
   @FXML private Label frustrationDialogueText;
+
+  // Style B: single "Guess Level" button + context reveal
+  @FXML private Button btnUnderstandStory;
   @FXML private VBox contextRevelation;
   @FXML private Label contextDetails;
 
-  // AI witness memory components
+  // ===== AI witness: extra controls =====
   @FXML private Button btnAnalyzeMemory;
   @FXML private Button btnValidateMemory;
   @FXML private VBox memoryLog;
+
 
   // Aim training game components (for defendant memory)
   @FXML private VBox aimTrainingGame;
@@ -78,9 +97,33 @@ public class MemoryController {
   @FXML private Label lblFinalStats;
 
   // State tracking
+
+  // ---- Simple Audit Log ----
+  @FXML private VBox auditPanel;
+  @FXML private Button btnLoadSample;
+  @FXML private Button btnFilterAllowed;
+  @FXML private Button btnFilterBlocked;
+  @FXML private Button btnResetFilters;
+  @FXML private Button btnExplainSelected;
+  @FXML private Button btnCloseAudit;
+
+  @FXML private TableView<AuditRow> auditTable;
+  @FXML private TableColumn<AuditRow, String> colTime;
+  @FXML private TableColumn<AuditRow, String> colSite;
+  @FXML private TableColumn<AuditRow, String> colAction;
+  @FXML private TableColumn<AuditRow, String> colAllowed;
+  @FXML private Label auditStatus;
+  @FXML private Label auditTitle;
+
+  private final ObservableList<AuditRow> auditMaster = FXCollections.observableArrayList();
+  private FilteredList<AuditRow> auditFiltered;
+
+  // ===== State tracking =====
+
   private boolean interactableUsed = false;
-  private int targetFrustrationLevel = 8; // The correct frustration level to guess
+  private int targetFrustrationLevel = 8; // unified default; tweak as needed
   private boolean frustrationGuessed = false;
+
 
   // Aim training game state
   private int gameScore = 0;
@@ -92,6 +135,10 @@ public class MemoryController {
   private Random random = new Random();
   private long gameStartTime = 0;
 
+  // Theme tracking (Matrix theme for AI_WITNESS)
+  private boolean matrixThemeApplied = false;
+
+
   public void setParent(RoomFrameController parent) {
     this.parent = parent;
   }
@@ -99,12 +146,11 @@ public class MemoryController {
   public void setGameStateContext(GameStateContext gameStateContext) {
     this.gameStateContext = gameStateContext;
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
-      // Connect memory chat widgets to the main ChatController
       gameStateContext
           .getChatController()
           .setFlashbackChatComponents(lblStatus, txtaChat, txtInput, btnSend);
     }
-    // Cookie consent visibility will be updated when setCurrentParticipant is called
+    enableChatAutoScroll();
   }
 
   public void setCurrentParticipant(Participant participant) {
@@ -112,43 +158,70 @@ public class MemoryController {
     updateMemoryContext();
     updateFrustrationSectionVisibility();
     updateAiWitnessButtonState();
+
     updateAimTrainingGameVisibility();
     updateChatControlsState();
+    applyThemeForParticipant();
+
   }
 
   @FXML
   private void initialize() {
-    // Initialize UI state
     if (interactableHighlight != null) {
       interactableHighlight.setVisible(false);
+      interactableHighlight.setMouseTransparent(true); // overlay never steals clicks
     }
-
-    // Set up interactable hover effects
     if (interactableElement != null) {
+      interactableElement.setPickOnBounds(true);
       interactableElement.setOnMouseEntered(e -> showInteractableHighlight());
       interactableElement.setOnMouseExited(e -> hideInteractableHighlight());
     }
-
-    // Set up frustration slider
     if (frustrationSlider != null && frustrationValueLabel != null) {
       frustrationSlider
           .valueProperty()
           .addListener(
-              (obs, oldVal, newVal) -> {
-                frustrationValueLabel.setText(String.valueOf(newVal.intValue()));
-              });
+              (obs, oldVal, newVal) ->
+                  frustrationValueLabel.setText(String.valueOf(newVal.intValue())));
     }
+    enableChatAutoScroll();
+    initAuditTable();
   }
 
+  // === BROADCAST / AWARENESS HELPERS =========================================
+
+  /** Post to bus+chat and also store a concise awareness event. */
+  private void broadcastToAll(String awarenessTag, String summaryLine) {
+    try {
+      AwarenessFormatter.addMemoryEvent(awarenessTag, summaryLine);
+    } catch (Throwable ignored) {
+    }
+    postToBusAndChat("[AWARENESS] " + summaryLine);
+  }
+
+  /** Formats a participant-scoped memory summary and broadcasts it. */
+  private void broadcastMemorySummary(Participant p, String summaryCore) {
+    String tag = (p == null) ? "room" : getRoleKeyOf(p);
+    broadcastToAll(tag, "Memory summary (" + tag + "): " + summaryCore);
+  }
+
+  /** Public: other controllers can broadcast flashback summaries through here. */
+  public void publishFlashbackSummary(String title, String summary) {
+    String line = "Flashback viewed → " + title + " — " + summary;
+    broadcastToAll("flashback", line);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  // ---------------- Navigation ----------------
   @FXML
   private void onBackToRoom() {
-    if (parent != null) {
-      parent.backToRoom();
-    }
+    if (parent != null) parent.backToRoom();
   }
 
+  // ---------------- Chat send ----------------
   @FXML
   private void onSendMessage() {
+
     // Check if interactive element has been completed before allowing chat
     if (currentParticipant == Participant.DEFENDANT && !interactableUsed) {
       // Provide feedback to user that they need to complete the aim training first
@@ -162,6 +235,7 @@ public class MemoryController {
       // Clear the input field
       if (txtInput != null) {
         txtInput.clear();
+
       }
       return;
     }
@@ -172,44 +246,105 @@ public class MemoryController {
     }
   }
 
+  // ---------------- Interactable click ----------------
   @FXML
   private void onInteractableClick() {
-    if (gameStateContext == null || currentParticipant == null) {
-      return;
-    }
+    if (gameStateContext == null || currentParticipant == null) return;
 
     String roleKey = getRoleKeyOf(currentParticipant);
-
-    // Mark interactable as used
     gameStateContext.markInteractableDone(roleKey);
     interactableUsed = true;
-
-    // Update UI to show interaction happened
     updateInteractableState();
 
-    // Notify chat system about the interaction
+    if (currentParticipant == Participant.AI_WITNESS) {
+      // Show Simple Audit Log panel
+      if (interactableContainer != null) interactableContainer.setVisible(false);
+      if (auditPanel != null) {
+        auditPanel.setVisible(true);
+        auditPanel.toFront();
+      }
+      setAuditStatus("Tap Load");
+
+      // Awareness + broadcast
+      AwarenessFormatter.addMemoryEvent("ai_witness", "Opened Simple Audit Log");
+      broadcastAuditOpenedAwareness();
+    }
+
     notifyChatAboutInteraction();
 
-    System.out.println("DEBUG: Interactable used for " + roleKey);
+    // >>> NEW: broadcast that this memory was opened
+    broadcastMemorySummary(
+        currentParticipant,
+        currentParticipant == Participant.AI_WITNESS
+            ? "Opened AI Witness ‘Simple Audit Log’ (allowed vs blocked; consent focus)."
+            : currentParticipant == Participant.HUMAN_WITNESS
+                ? "Opened Human Witness evidence; emotion/impact assessment available."
+                : "Opened AI Defendant journal (cookie-gated chat).");
+
+    updateAiWitnessButtonState();
+  }
+
+  /** Broadcast a room-wide awareness line so all personas know this memory was opened. */
+  private void broadcastAuditOpenedAwareness() {
+    String msg =
+        "[AWARENESS] Memory used → AI Witness (Sentri-Guard): Simple Audit Log opened; "
+            + "shows ALLOWED (no consent) vs BLOCKED (human) events, including a path "
+            + "‘watched gym video → cross-site tracking → targeted supplement ads’.";
+    postToBusAndChat(msg);
+  }
+
+  /** Broadcast each audit row verbatim so personas can quote it exactly. */
+  private void broadcastAuditRows() {
+    postToBusAndChat("[AWARENESS] Simple Audit Log (Sentri-Guard):");
+    for (AuditRow r : auditMaster) {
+      String line =
+          "\""
+              + r.getSite()
+              + " — "
+              + r.getAction()
+              + " — Allowed? "
+              + r.getAllowed()
+              + "\" (Source: Sentri-Guard / AI Witness)";
+      postToBusAndChat(line);
+    }
+  }
+
+  /** Push all audit rows into AWARENESS so the LLMs can recall them exactly. */
+  private void syncAwarenessWithAuditRows() {
+    AwarenessFormatter.clearAuditItems();
+    for (AuditRow r : auditMaster) {
+      AwarenessFormatter.addAuditItem(r.getSite(), r.getAction(), r.getAllowed());
+    }
+  }
+
+  /** Helper to broadcast to the ConversationBus and mirror to local chat. */
+  private void postToBusAndChat(String message) {
+    try {
+      ConversationBus.getInstance().post("room", message);
+    } catch (Throwable ignored) {
+    }
+    if (txtaChat != null) {
+      txtaChat.appendText(message + "\n");
+    }
   }
 
   private void updateMemoryContext() {
-    if (gameStateContext == null || currentParticipant == null) {
-      return;
-    }
+    if (gameStateContext == null || currentParticipant == null) return;
 
     String roleKey = getRoleKeyOf(currentParticipant);
     interactableUsed = gameStateContext.getInteractableDone().getOrDefault(roleKey, false);
 
-    // For human witness, check if frustration was already guessed
     if (currentParticipant == Participant.HUMAN_WITNESS) {
       frustrationGuessed = interactableUsed;
       updateFrustrationButtonState();
     }
 
-    // For AI witness, update button states
-    if (currentParticipant == Participant.AI_WITNESS) {
-      updateAiWitnessButtonState();
+    if (currentParticipant == Participant.AI_WITNESS && interactableUsed) {
+      if (interactableContainer != null) interactableContainer.setVisible(false);
+      if (auditPanel != null) {
+        auditPanel.setVisible(true);
+        auditPanel.toFront();
+      }
     }
 
     updateInteractableState();
@@ -223,7 +358,6 @@ public class MemoryController {
       case AI_WITNESS:
         return "ai_witness";
       case DEFENDANT:
-        return "ai_defendant";
       default:
         return "ai_defendant";
     }
@@ -234,11 +368,11 @@ public class MemoryController {
       if (interactableUsed) {
         interactableElement.setDisable(true);
         interactableElement.setStyle("-fx-opacity: 0.6;");
-        interactableLabel.setText("Already examined");
+        interactableLabel.setText("Already opened");
       } else {
         interactableElement.setDisable(false);
         interactableElement.setStyle("-fx-opacity: 1.0;");
-        interactableLabel.setText("Click to examine");
+        interactableLabel.setText("Open the Simple Audit Log");
       }
     }
   }
@@ -256,50 +390,26 @@ public class MemoryController {
   }
 
   private void notifyChatAboutInteraction() {
-    // Send a contextual message about the interaction
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
       String interactionMessage = getInteractionMessage();
-
-      // Add a system message to indicate the interaction happened
       if (txtaChat != null) {
-        String currentText = txtaChat.getText();
-        String systemMessage = "[SYSTEM] " + interactionMessage + "\n\n";
-        txtaChat.setText(currentText + systemMessage);
+        txtaChat.appendText("[SYSTEM] " + interactionMessage + "\n\n");
       }
-
-      System.out.println(
-          "DEBUG: Player interacted with " + getInteractableName() + " for " + currentParticipant);
     }
   }
 
   private String getInteractionMessage() {
     switch (currentParticipant) {
       case DEFENDANT:
-        return "You carefully examine the defendant's private journal, reading their personal"
-            + " thoughts about the incident...";
+        return "You checked the defendant’s journal.";
       case AI_WITNESS:
-        return "You access the AI witness's data analysis core, reviewing the incident data and"
-            + " processing logs...";
+        return "You opened the audit log (allowed vs blocked).";
       case HUMAN_WITNESS:
-        return "You open the witness evidence collection, examining the physical items they"
-            + " gathered from the scene...";
+        return "You reviewed the witness’s evidence.";
       default:
-        return "You examine the interactable element in this memory space...";
-    }
-  }
-
-  private String getInteractableName() {
-    switch (currentParticipant) {
-      case DEFENDANT:
-        return "Private Journal";
-      case AI_WITNESS:
-        return "Data Analysis Core";
-      case HUMAN_WITNESS:
-        return "Evidence Collection";
-      default:
-        return "Memory Object";
+        return "You examine the memory object.";
     }
   }
 
@@ -309,14 +419,11 @@ public class MemoryController {
 
 
 
-  /** Request opening message from the current participant. */
   private void requestOpeningMessage() {
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
-      // Mark participant as contacted so subsequent clicks go directly to memory
       gameStateContext.markParticipantContacted(currentParticipant);
-
       gameStateContext.getChatController().selectParticipant(currentParticipant);
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
@@ -324,84 +431,94 @@ public class MemoryController {
 
 
 
-  /** Handles the "Guess Level" button click. */
+
+  // ---------------- Human frustration mini-game ----------------
+  @FXML
+  private void onFrustrationHigher() {
+    if (frustrationGuessed) return;
+    int currentGuess =
+        (int) (frustrationSlider != null ? frustrationSlider.getValue() : targetFrustrationLevel);
+    evaluateFrustrationGuess(currentGuess, true);
+  }
+
+  @FXML
+  private void onFrustrationLower() {
+    if (frustrationGuessed) return;
+    int currentGuess =
+        (int) (frustrationSlider != null ? frustrationSlider.getValue() : targetFrustrationLevel);
+    evaluateFrustrationGuess(currentGuess, true);
+  }
+
   @FXML
   private void onUnderstandStory() {
-    if (frustrationGuessed) {
-      return; // Already completed
-    }
+    if (frustrationGuessed) return;
+    int currentGuess =
+        (int) (frustrationSlider != null ? frustrationSlider.getValue() : targetFrustrationLevel);
+    evaluateFrustrationGuess(currentGuess, false);
+  }
 
-    int playerGuess = (int) frustrationSlider.getValue();
-
-    if (playerGuess == targetFrustrationLevel) {
-      // Correct guess - reveal full story and context
-      onCorrectGuess();
+  /** Shared logic for both UIs. */
+  private void evaluateFrustrationGuess(int guess, boolean fromButtons) {
+    if (guess == targetFrustrationLevel) {
+      onCorrectFrustrationGuess();
     } else {
-      // Wrong guess - give hints
-      giveHint(playerGuess);
+      String hint =
+          (guess < targetFrustrationLevel)
+              ? "I'm MORE frustrated than "
+                  + guess
+                  + " out of 10. This privacy violation really hurt me. Try higher."
+              : "I'm upset but not quite " + guess + " out of 10. Try slightly lower.";
+      showFrustrationDialogue(hint);
     }
   }
 
-  /** Handles when the player correctly guesses the frustration level. */
-  private void onCorrectGuess() {
+  private void onCorrectFrustrationGuess() {
     frustrationGuessed = true;
 
-    // Disable the button and update its appearance
+    if (btnHigher != null) {
+      btnHigher.setDisable(true);
+      btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+    }
+    if (btnLower != null) {
+      btnLower.setDisable(true);
+      btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+    }
+
     if (btnUnderstandStory != null) {
       btnUnderstandStory.setDisable(true);
       btnUnderstandStory.setText("Correct!");
       btnUnderstandStory.setStyle("-fx-opacity: 0.6; -fx-background-color: #4caf50;");
     }
 
-    // Show the success response with full context
     String successResponse =
         "EXACTLY! I'm at an "
             + targetFrustrationLevel
-            + " out of 10! I searched for gym training programs and supplements, then got"
-            + " targeted ads everywhere. I never consented to this tracking!";
-
+            + " out of 10! I searched for gym training programs and supplements, then got targeted"
+            + " ads everywhere. I never consented to this tracking!";
     showFrustrationDialogue(successResponse);
 
-    // Only show extra context when the correct level is guessed
     String contextualEvidence =
         "Casey searched privately for gym training programs and fitness supplements. Within 48"
             + " hours, supplement and protein powder ads appeared on every website he visited."
-            + " Cookie Monster auto-accepted tracking cookies without his consent - he never chose"
+            + " Cookie Monster auto-accepted tracking cookies without his consent — he never chose"
             + " 'Accept All.' This shows the defendant prioritized convenience over informed"
             + " consent.";
-
     showContextualEvidence(contextualEvidence);
 
-    // Mark this interactive element as used
     if (gameStateContext != null && currentParticipant == Participant.HUMAN_WITNESS) {
       gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
       interactableUsed = true;
     }
+
+    // >>> NEW: broadcast outcome summary
+    broadcastMemorySummary(
+        Participant.HUMAN_WITNESS,
+        "Witness frustration = "
+            + targetFrustrationLevel
+            + "/10; private gym/supplement searches led to ubiquitous ads; tracking occurred"
+            + " without consent.");
   }
 
-  /** Gives hints when the player guesses incorrectly. */
-  private void giveHint(int playerGuess) {
-    String hint;
-
-    if (playerGuess < targetFrustrationLevel) {
-      // Guessed too low
-      hint =
-          "I'm MORE frustrated than "
-              + playerGuess
-              + " out of 10. This privacy violation really hurt me. Try higher - imagine your"
-              + " private health searches being used for ads without consent.";
-    } else {
-      // Guessed too high
-      hint =
-          "I'm upset but not quite "
-              + playerGuess
-              + " out of 10. I feel betrayed but haven't lost all faith. Try slightly lower.";
-    }
-
-    showFrustrationDialogue(hint);
-  }
-
-  /** Shows the frustration dialogue with the given text. */
   private void showFrustrationDialogue(String dialogueText) {
     if (frustrationDialogue != null && frustrationDialogueText != null) {
       frustrationDialogueText.setText(dialogueText);
@@ -409,7 +526,6 @@ public class MemoryController {
     }
   }
 
-  /** Shows the contextual evidence that can influence verdict decisions. */
   private void showContextualEvidence(String evidenceText) {
     if (contextRevelation != null && contextDetails != null) {
       contextDetails.setText(evidenceText);
@@ -417,72 +533,44 @@ public class MemoryController {
     }
   }
 
-  /** Updates the frustration section visibility based on current participant. */
   private void updateFrustrationSectionVisibility() {
     if (frustrationSection != null) {
-      // Only show frustration section for human witness
       boolean showFrustration = (currentParticipant == Participant.HUMAN_WITNESS);
       frustrationSection.setVisible(showFrustration);
-
-      if (showFrustration) {
-        updateFrustrationButtonState();
-      }
+      if (showFrustration) updateFrustrationButtonState();
     }
   }
 
-  /**
-   * Updates the state of the story button and dialogue based on whether the assessment was
-   * completed.
-   */
   private void updateFrustrationButtonState() {
     if (frustrationGuessed) {
-      // Already guessed correctly - show disabled button and keep dialogue visible
+      if (btnHigher != null) {
+        btnHigher.setDisable(true);
+        btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+      }
+      if (btnLower != null) {
+        btnLower.setDisable(true);
+        btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+      }
       if (btnUnderstandStory != null) {
         btnUnderstandStory.setDisable(true);
         btnUnderstandStory.setText("Correct!");
         btnUnderstandStory.setStyle("-fx-opacity: 0.6; -fx-background-color: #4caf50;");
       }
-
-      // Keep the slider at the correct target level
-      if (frustrationSlider != null) {
-        frustrationSlider.setValue(targetFrustrationLevel);
-      }
-
-      // Keep dialogue and context visible if they were already shown
-      if (frustrationDialogue != null) {
-        frustrationDialogue.setVisible(true);
-        // Restore the success response text
-        if (frustrationDialogueText != null) {
-          String successResponse =
-              "EXACTLY! I'm at an "
-                  + targetFrustrationLevel
-                  + " out of 10! I searched for gym training programs and supplements, then got"
-                  + " targeted ads everywhere. I never consented to this tracking!";
-          frustrationDialogueText.setText(successResponse);
-        }
-      }
-      if (contextRevelation != null) {
-        contextRevelation.setVisible(true);
-        // Restore the contextual evidence text
-        if (contextDetails != null) {
-          String contextualEvidence =
-              "Casey searched privately for gym training programs and fitness supplements. Within"
-                  + " 48 hours, supplement and protein powder ads appeared on every website he"
-                  + " visited. Cookie Monster auto-accepted tracking cookies without his consent -"
-                  + " he never chose 'Accept All.' This shows the defendant prioritized convenience"
-                  + " over informed consent.";
-          contextDetails.setText(contextualEvidence);
-        }
-      }
+      if (frustrationSlider != null) frustrationSlider.setValue(targetFrustrationLevel);
+      showFrustrationDialogue(
+          "EXACTLY! I'm at an "
+              + targetFrustrationLevel
+              + " out of 10! I searched for gym training programs and supplements, then got"
+              + " targeted ads everywhere. I never consented to this tracking!");
+      showContextualEvidence(
+          "Casey searched privately for gym training programs and fitness supplements. Within 48"
+              + " hours, supplement and protein powder ads appeared on every website he visited."
+              + " Cookie Monster auto-accepted tracking cookies without his consent — he never"
+              + " chose 'Accept All.' This shows the defendant prioritized convenience over"
+              + " informed consent.");
     } else {
-      // Not guessed correctly yet - reset dialogue and enable button
-      if (frustrationDialogue != null) {
-        frustrationDialogue.setVisible(false);
-      }
-      if (contextRevelation != null) {
-        contextRevelation.setVisible(false);
-      }
-
+      if (frustrationDialogue != null) frustrationDialogue.setVisible(false);
+      if (contextRevelation != null) contextRevelation.setVisible(false);
       if (btnUnderstandStory != null) {
         btnUnderstandStory.setDisable(false);
         btnUnderstandStory.setText("🎯 Guess Level");
@@ -491,55 +579,26 @@ public class MemoryController {
                 + " -fx-pref-width: 150; -fx-pref-height: 45; -fx-border-radius: 8;"
                 + " -fx-background-radius: 8;");
       }
-    }
-  }
-
-  /** Updates the AI witness button states based on whether the interactable has been used. */
-  private void updateAiWitnessButtonState() {
-    if (currentParticipant == Participant.AI_WITNESS) {
-      if (interactableUsed) {
-        // Buttons already used - disable them
-        if (btnAnalyzeMemory != null) {
-          btnAnalyzeMemory.setDisable(true);
-          btnAnalyzeMemory.setText("Data Analyzed");
-          btnAnalyzeMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
-        }
-        if (btnValidateMemory != null) {
-          btnValidateMemory.setDisable(true);
-          btnValidateMemory.setText("Validated");
-          btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
-        }
-      } else {
-        // Reset buttons to enabled state
-        if (btnAnalyzeMemory != null) {
-          btnAnalyzeMemory.setDisable(false);
-          btnAnalyzeMemory.setText("Analyze Data");
-          btnAnalyzeMemory.setStyle(
-              "-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222;"
-                  + " -fx-pref-width: 120;");
-        }
-        if (btnValidateMemory != null) {
-          btnValidateMemory.setDisable(false);
-          btnValidateMemory.setText("Validate");
-          btnValidateMemory.setStyle(
-              "-fx-font-size: 14px; -fx-background-color: #f0e68c; -fx-text-fill: #222;"
-                  + " -fx-pref-width: 120;");
-        }
+      if (btnHigher != null) {
+        btnHigher.setDisable(false);
+        btnHigher.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #ff5252; -fx-text-fill: white;"
+                + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
+      }
+      if (btnLower != null) {
+        btnLower.setDisable(false);
+        btnLower.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #4caf50; -fx-text-fill: white;"
+                + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
       }
     }
   }
 
-  // AI Witness memory actions
-  @FXML
-  private void onAnalyzeMemory() {
-    if (gameStateContext != null && currentParticipant == Participant.AI_WITNESS) {
-      String roleKey = getRoleKeyOf(currentParticipant);
+  // ---------------- AI witness extra actions (Analyze/Validate) ----------------
+  private void updateAiWitnessButtonState() {
+    if (currentParticipant != Participant.AI_WITNESS) return;
 
-      // Mark the interactable as done
-      gameStateContext.markInteractableDone(roleKey);
-      interactableUsed = true;
-
-      // Disable the buttons after use
+    if (interactableUsed) {
       if (btnAnalyzeMemory != null) {
         btnAnalyzeMemory.setDisable(true);
         btnAnalyzeMemory.setText("Data Analyzed");
@@ -550,10 +609,42 @@ public class MemoryController {
         btnValidateMemory.setText("Validated");
         btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
       }
+    } else {
+      if (btnAnalyzeMemory != null) {
+        btnAnalyzeMemory.setDisable(false);
+        btnAnalyzeMemory.setText("Analyze Data");
+        btnAnalyzeMemory.setStyle(
+            "-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222;"
+                + " -fx-pref-width: 120;");
+      }
+      if (btnValidateMemory != null) {
+        btnValidateMemory.setDisable(false);
+        btnValidateMemory.setText("Validate");
+        btnValidateMemory.setStyle(
+            "-fx-font-size: 14px; -fx-background-color: #f0e68c; -fx-text-fill: #222;"
+                + " -fx-pref-width: 120;");
+      }
+    }
+  }
 
-      // Add interaction message to chat
+  @FXML
+  private void onAnalyzeMemory() {
+    if (gameStateContext != null && currentParticipant == Participant.AI_WITNESS) {
+      String roleKey = getRoleKeyOf(currentParticipant);
+      gameStateContext.markInteractableDone(roleKey);
+      interactableUsed = true;
+      if (btnAnalyzeMemory != null) {
+        btnAnalyzeMemory.setDisable(true);
+        btnAnalyzeMemory.setText("Data Analyzed");
+        btnAnalyzeMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
+      if (btnValidateMemory != null) {
+        btnValidateMemory.setDisable(true);
+        btnValidateMemory.setText("Validated");
+        btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
       notifyAiWitnessInteraction("Analyze Data");
-      System.out.println("DEBUG: AI Witness memory analysis completed");
+      updateAiWitnessButtonState();
     }
   }
 
@@ -561,12 +652,8 @@ public class MemoryController {
   private void onValidateMemory() {
     if (gameStateContext != null && currentParticipant == Participant.AI_WITNESS) {
       String roleKey = getRoleKeyOf(currentParticipant);
-
-      // Mark the interactable as done
       gameStateContext.markInteractableDone(roleKey);
       interactableUsed = true;
-
-      // Disable the buttons after use
       if (btnAnalyzeMemory != null) {
         btnAnalyzeMemory.setDisable(true);
         btnAnalyzeMemory.setText("Data Analyzed");
@@ -577,10 +664,8 @@ public class MemoryController {
         btnValidateMemory.setText("Validated");
         btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
       }
-
-      // Add interaction message to chat
       notifyAiWitnessInteraction("Validate");
-      System.out.println("DEBUG: AI Witness memory validation completed");
+      updateAiWitnessButtonState();
     }
   }
 
@@ -594,16 +679,14 @@ public class MemoryController {
               + action.toLowerCase()
               + "d the AI witness's memory data analysis core, accessing detailed incident logs and"
               + " processing records...";
+      txtaChat.appendText(interactionMessage + "\n\n");
 
-      String currentText = txtaChat.getText();
-      txtaChat.setText(currentText + interactionMessage + "\n\n");
-
-      // Request an opening message from the AI witness if they haven't been contacted yet
       if (gameStateContext.isFirstInteraction(currentParticipant)) {
         requestOpeningMessage();
       }
     }
   }
+
 
   /** Updates aim training game visibility based on current participant */
   private void updateAimTrainingGameVisibility() {
@@ -876,5 +959,245 @@ public class MemoryController {
 
       System.out.println("DEBUG: Player completed Cookie Monster aim training game");
     }
+
+  // ---------------- Chat helpers ----------------
+  private void enableChatAutoScroll() {
+    if (txtaChat == null) return;
+    if (txtaChat.getProperties().get("autoscrollBound") == Boolean.TRUE) return;
+
+    txtaChat
+        .textProperty()
+        .addListener(
+            (obs, oldText, newText) -> {
+              txtaChat.positionCaret(newText == null ? 0 : newText.length());
+              txtaChat.setScrollTop(Double.MAX_VALUE);
+            });
+    txtaChat.getProperties().put("autoscrollBound", Boolean.TRUE);
+  }
+
+  private void applyThemeForParticipant() {
+    if (txtaChat == null || txtInput == null || btnSend == null) return;
+
+    if (currentParticipant == Participant.AI_WITNESS) {
+      if (matrixThemeApplied) return;
+
+      txtaChat.setStyle(
+          "-fx-control-inner-background: black;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-highlight-fill: #00ff88;"
+              + "-fx-highlight-text-fill: black;"
+              + "-fx-font-family: 'Consolas','Menlo','Monaco',monospace;"
+              + "-fx-font-size: 15px;");
+      txtInput.setStyle(
+          "-fx-background-color: black;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-prompt-text-fill: #2ddf93;"
+              + "-fx-border-color: #00ff88;"
+              + "-fx-font-family: 'Consolas','Menlo','Monaco',monospace;"
+              + "-fx-font-size: 15px;");
+      btnSend.setStyle(
+          "-fx-font-size: 15px;"
+              + "-fx-background-color: #003a2b;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-border-color: #00ff88;"
+              + "-fx-background-radius: 6;"
+              + "-fx-border-radius: 6;");
+      if (lblStatus != null) {
+        lblStatus.setStyle("-fx-text-fill: #00ff88; -fx-font-size: 18px; -fx-font-weight: bold;");
+      }
+
+      matrixThemeApplied = true;
+    } else {
+      if (!matrixThemeApplied) return;
+      txtaChat.setStyle("");
+      txtInput.setStyle("");
+      btnSend.setStyle("");
+      if (lblStatus != null) lblStatus.setStyle("");
+      matrixThemeApplied = false;
+    }
+  }
+
+  // =======================
+  // == AUDIT LOG (SIMPLE) ==
+  // =======================
+
+  /** One row in the simple audit log. */
+  public static class AuditRow {
+    private final SimpleStringProperty time = new SimpleStringProperty();
+    private final SimpleStringProperty site = new SimpleStringProperty();
+    private final SimpleStringProperty action = new SimpleStringProperty();
+    private final SimpleStringProperty allowed = new SimpleStringProperty();
+
+    public AuditRow(String time, String site, String action, String allowed) {
+      this.time.set(time);
+      this.site.set(site);
+      this.action.set(action);
+      this.allowed.set(allowed);
+    }
+
+    public String getTime() {
+      return time.get();
+    }
+
+    public String getSite() {
+      return site.get();
+    }
+
+    public String getAction() {
+      return action.get();
+    }
+
+    public String getAllowed() {
+      return allowed.get();
+    }
+
+    public SimpleStringProperty timeProperty() {
+      return time;
+    }
+
+    public SimpleStringProperty siteProperty() {
+      return site;
+    }
+
+    public SimpleStringProperty actionProperty() {
+      return action;
+    }
+
+    public SimpleStringProperty allowedProperty() {
+      return allowed;
+    }
+  }
+
+  private void initAuditTable() {
+    if (auditTable == null) return;
+
+    if (colTime != null) colTime.setCellValueFactory(c -> c.getValue().timeProperty());
+    if (colSite != null) colSite.setCellValueFactory(c -> c.getValue().siteProperty());
+    if (colAction != null) colAction.setCellValueFactory(c -> c.getValue().actionProperty());
+    if (colAllowed != null) colAllowed.setCellValueFactory(c -> c.getValue().allowedProperty());
+
+    auditFiltered = new FilteredList<>(auditMaster, r -> true);
+    auditTable.setItems(auditFiltered);
+  }
+
+  // Button: Load sample rows
+  @FXML
+  private void onLoadSample() {
+    auditMaster.clear();
+    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    // Human blocked
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(75).format(fmt),
+            "Cornhub.com",
+            "Share precise location",
+            "No (user blocked)"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(60).format(fmt),
+            "NZHerald.com",
+            "Marketing cookies",
+            "No (user blocked)"));
+
+    // Gym video → supplement ad (tracking without consent)
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(45).format(fmt),
+            "Youtube.com",
+            "Watched gym recovery video",
+            "Yes"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(35).format(fmt),
+            "Susweb.com",
+            "Cross-site tracking",
+            "Yes (no consent)"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(25).format(fmt),
+            "Goldsgym.com",
+            "Targeted ad: supplements",
+            "Yes (no consent)"));
+
+    // Neutral conveniences
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(15).format(fmt),
+            "Woolworths.com",
+            "Remember cart",
+            "Yes"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(8).format(fmt), "Twitch.com", "Save volume", "Yes"));
+
+    setAuditStatus("Loaded: 7");
+
+    // 1) Put each row into global AWARENESS so personas can quote exact lines
+    syncAwarenessWithAuditRows();
+
+    // 2) Broadcast summary and every row verbatim
+    postToBusAndChat("[AWARENESS] Loaded sample audit events (Sentri-Guard).");
+    broadcastAuditRows();
+
+    // >>> NEW: concise one-liner context
+    broadcastMemorySummary(
+        Participant.AI_WITNESS,
+        "Tracking chain: watched gym recovery video → cross-site tracking → targeted supplement"
+            + " ads; some items blocked by human, others allowed without consent.");
+  }
+
+  @FXML
+  private void onFilterAllowed() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> r.getAllowed().toLowerCase().startsWith("yes"));
+    setAuditStatus("Allowed");
+  }
+
+  @FXML
+  private void onFilterBlocked() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> r.getAllowed().toLowerCase().startsWith("no"));
+    setAuditStatus("Blocked");
+  }
+
+  @FXML
+  private void onResetFilters() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> true);
+    setAuditStatus("All");
+  }
+
+  @FXML
+  private void onExplainSelected() {
+    if (auditTable == null || txtaChat == null) return;
+    AuditRow sel = auditTable.getSelectionModel().getSelectedItem();
+    if (sel == null) {
+      txtaChat.appendText("[SYSTEM] Pick a row.\n\n");
+      return;
+    }
+    boolean noConsent = sel.getAllowed().toLowerCase().contains("no consent");
+    boolean userBlocked = sel.getAllowed().toLowerCase().contains("user blocked");
+    String why =
+        noConsent
+            ? "— allowed WITHOUT consent by Cookie Monster"
+            : userBlocked ? "— blocked by the user" : "— allowed (site convenience)";
+    txtaChat.appendText(
+        "[SYSTEM] " + sel.getSite() + " → " + sel.getAction() + " " + why + ".\n\n");
+
+    // >>> NEW: broadcast which row was explained
+    broadcastMemorySummary(
+        Participant.AI_WITNESS,
+        "Explained: " + sel.getSite() + " — " + sel.getAction() + " (" + sel.getAllowed() + ").");
+  }
+
+  @FXML
+  private void onCloseAudit() {
+    if (auditPanel != null) auditPanel.setVisible(false);
+    if (interactableContainer != null) interactableContainer.setVisible(true);
+  }
+
+  private void setAuditStatus(String text) {
+    if (auditStatus != null) auditStatus.setText(text);
   }
 }

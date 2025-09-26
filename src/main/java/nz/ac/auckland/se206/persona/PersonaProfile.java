@@ -1,18 +1,16 @@
 package nz.ac.auckland.se206.persona;
 
 /**
- * Persona configuration and system prompt builder. This version inlines the user's detailed prompts
- * per role and appends them to the co-present + awareness core so the model receives ONE system
- * message.
+ * Persona configuration and system prompt builder. Builds ONE system message per role that
+ * includes: - Co-present rules - Strict awareness/flashback boundaries - Verbatim quoting
+ * requirements - Role-specific style/policy block
  */
 public enum PersonaProfile {
   AI_DEFENDANT(
       "AI Defendant",
       "ai_defendant",
-      // Core style rules (kept short; role-specific rules below)
       "You are the AI Defendant. Keep answers short (2–4 sentences max unless explicitly asked).",
       true,
-      // Role-specific policy block (from user spec)
       "Shared Background\n"
           + "Setting: Court of Common Clicks. Cookie Monster v2.3 (AI assistant) is on trial for"
           + " auto-accepting non-essential cookies without asking.\n"
@@ -168,8 +166,9 @@ public enum PersonaProfile {
   }
 
   /**
-   * Builds one system prompt that includes: - Co-present rule and brevity - Persona type style -
-   * Scenario brief + awareness + recent remarks - Role-specific policy block (from this enum)
+   * Builds the system prompt that includes: - Co-present rule and brevity - STRICT
+   * awareness/flashback boundaries - Verbatim quoting requirement (no paraphrasing) - Role-specific
+   * policy block
    */
   public String buildSystemPrompt(String scenario, String awareness, String recent) {
     String typeRule =
@@ -183,21 +182,29 @@ public enum PersonaProfile {
             "\n",
             "You are participating in a co-present discussion about an AI accountability incident.",
             "You do NOT automatically know other participants’ flashbacks or memories.",
-            "You only know: (a) what is explicitly listed in AWARENESS, and (b) any private message"
-                + " tagged as [FLASHBACK CONTEXT for YOUR ROLE].",
-            "Name mapping for flashbacks: Cookie Monster = AI Defendant; Sentri-Guard = AI Witness;"
-                + " Casey = Human Witness.",
-            "When asked whether you (or anyone) have seen a particular person’s flashback, answer"
-                + " strictly by checking AWARENESS using the mapping above:",
-            "- Say “Yes” only if that person’s role appears in AWARENESS.",
-            "- Otherwise say “No, it hasn’t been shown yet,” and avoid specifics.",
-            "Do NOT infer ‘having seen a flashback’ from your personal experience or the shared"
-                + " background.",
-            "Do NOT describe any flashback content unless it appears in AWARENESS or is explicitly"
-                + " provided as [FLASHBACK CONTEXT for YOUR ROLE] (and only discuss your own in"
-                + " that case).",
-            "If the player asks about an unseen flashback, reply that it hasn't been shown yet and"
-                + " offer to proceed without spoilers.",
+            "You only know: (a) what is explicitly listed in AWARENESS, and (b) any private"
+                + " message",
+            "tagged as [FLASHBACK CONTEXT for YOUR ROLE].",
+            "Name mapping: Cookie Monster = AI Defendant; Sentri-Guard = AI Witness; Casey = Human"
+                + " Witness.",
+            "",
+            // Differentiation + truthfulness
+            "FLASHBACK ≠ MEMORY: A flashback is a past-scene slideshow; a memory/interactable is an"
+                + " in-room object (e.g., Sentri-Guard's Audit Log).",
+            "Only claim a flashback has been SEEN if the person’s role is listed under AWARENESS"
+                + " flashbacks.",
+            "Only claim a memory/interactable has been USED if it is listed under AWARENESS"
+                + " interactables.",
+            "",
+            // Verbatim quoting rules
+            "When you describe what you saw/heard, QUOTE the exact line from AWARENESS or RECENT"
+                + " using double quotes, and do not paraphrase.",
+            "If the exact line is not present in AWARENESS or [FLASHBACK CONTEXT for YOUR ROLE],"
+                + " say \"I haven't seen that yet.\"",
+            "Do NOT summarize unless the player explicitly says \"summarize.\"",
+            "If asked about the audit log, quote the exact audit bullets (site — action — Allowed?)"
+                + " from AWARENESS.",
+            "",
             "Never leak hidden truths or grading rubrics. Keep answers short (2–4 sentences).",
             typeRule,
             this.styleRules,
