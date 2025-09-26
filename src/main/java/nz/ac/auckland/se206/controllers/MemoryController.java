@@ -322,24 +322,6 @@ public class MemoryController {
     }
   }
 
-  @FXML
-  private void onAcceptCookies() {
-    gameStateContext.acceptCookies();
-
-    if (btnAccept != null) btnAccept.setVisible(false);
-    if (btnExit != null) btnExit.setVisible(false);
-    if (lblCookiesAccepted != null) lblCookiesAccepted.setVisible(true);
-
-    if (txtInput != null) {
-      txtInput.setDisable(false);
-      txtInput.setPromptText("Type your message here...");
-    }
-    if (btnSend != null) btnSend.setDisable(false);
-
-    // ✅ Only here do we trigger the Defendant’s opening message once
-    requestOpeningMessage();
-  }
-
 
 
   /** Handles the "Guess Level" button click. */
@@ -429,31 +411,10 @@ public class MemoryController {
 
   /** Shows the contextual evidence that can influence verdict decisions. */
   private void showContextualEvidence(String evidenceText) {
-    System.out.println("DEBUG: showContextualEvidence called with text: " + evidenceText.substring(0, Math.min(50, evidenceText.length())) + "...");
-    System.out.println("DEBUG: contextRevelation null? " + (contextRevelation == null));
-    System.out.println("DEBUG: contextDetails null? " + (contextDetails == null));
-    
     if (contextRevelation != null && contextDetails != null) {
       contextDetails.setText(evidenceText);
       contextRevelation.setVisible(true);
-      System.out.println("DEBUG: Contextual evidence should now be visible");
-    } else {
-      System.out.println("DEBUG: Cannot show contextual evidence - UI elements are null");
     }
-  }
-
-  /** Shows contextual evidence specifically for the defendant after completing aim training. */
-  private void showDefendantContextualEvidence() {
-    System.out.println("DEBUG: Showing defendant contextual evidence");
-    String contextualEvidence = 
-        "Cookie Monster v2.3 was programmed with a primary objective: 'minimize user interruptions' " +
-        "to improve browsing experience. The AI prioritized this efficiency goal over explicit consent requirements. " +
-        "During training, it learned that auto-accepting cookies reduced pop-up interruptions by 89%, " +
-        "leading to higher user satisfaction scores in initial testing. However, this optimization came at the cost " +
-        "of user privacy and informed consent. Consider whether the AI's programming priorities justify " +
-        "bypassing consent mechanisms, or if user autonomy should override efficiency objectives.";
-    
-    showContextualEvidence(contextualEvidence);
   }
 
   /** Updates the frustration section visibility based on current participant. */
@@ -884,9 +845,6 @@ public class MemoryController {
         interactableUsed = true;
         updateAimTrainingGameVisibility();
         updateChatControlsState(); // Enable chat controls after completing the game
-        
-        // Show contextual evidence for verdict consideration
-        showDefendantContextualEvidence();
       }
 
       // Notify chat about completion
