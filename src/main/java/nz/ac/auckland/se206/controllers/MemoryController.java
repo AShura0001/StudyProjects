@@ -113,6 +113,7 @@ public class MemoryController {
     updateFrustrationSectionVisibility();
     updateAiWitnessButtonState();
     updateAimTrainingGameVisibility();
+    updateChatControlsState();
   }
 
   @FXML
@@ -148,7 +149,24 @@ public class MemoryController {
 
   @FXML
   private void onSendMessage() {
-    // Allow chat for all participants
+    // Check if interactive element has been completed before allowing chat
+    if (currentParticipant == Participant.DEFENDANT && !interactableUsed) {
+      // Provide feedback to user that they need to complete the aim training first
+      if (txtaChat != null) {
+        String restrictionMessage = "\n🔒 System: Complete Cookie Monster's aim training before chatting.\n";
+        String currentText = txtaChat.getText();
+        if (!currentText.contains("Complete Cookie Monster's aim training")) {
+          txtaChat.setText(currentText + restrictionMessage);
+        }
+      }
+      // Clear the input field
+      if (txtInput != null) {
+        txtInput.clear();
+      }
+      return;
+    }
+    
+    // Allow chat for all participants (after completing interactive element)
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
       gameStateContext.getChatController().onSendMessage();
     }
@@ -619,6 +637,45 @@ public class MemoryController {
     }
   }
 
+  /** Updates chat controls based on interactive element completion */
+  private void updateChatControlsState() {
+    if (currentParticipant == Participant.DEFENDANT) {
+      boolean chatEnabled = interactableUsed;
+      
+      // Disable/enable chat input and send button
+      if (txtInput != null) {
+        txtInput.setDisable(!chatEnabled);
+        if (!chatEnabled) {
+          txtInput.setPromptText("Complete aim training to unlock chat...");
+        } else {
+          txtInput.setPromptText("Type a message...");
+        }
+      }
+      
+      if (btnSend != null) {
+        btnSend.setDisable(!chatEnabled);
+      }
+      
+      // Add a system message if chat is disabled
+      if (!chatEnabled && txtaChat != null) {
+        String currentText = txtaChat.getText();
+        String lockMessage = "\n🔒 System: Complete Cookie Monster's aim training to unlock chat functionality.\n";
+        if (!currentText.contains("Complete Cookie Monster's aim training to unlock")) {
+          txtaChat.setText(currentText + lockMessage);
+        }
+      }
+    } else {
+      // For other participants, enable chat normally
+      if (txtInput != null) {
+        txtInput.setDisable(false);
+        txtInput.setPromptText("Type a message...");
+      }
+      if (btnSend != null) {
+        btnSend.setDisable(false);
+      }
+    }
+  }
+
   /** Starts the aim training mini-game */
   @FXML
   private void onStartAimGame() {
@@ -805,6 +862,7 @@ public class MemoryController {
         gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
         interactableUsed = true;
         updateAimTrainingGameVisibility();
+        updateChatControlsState(); // Enable chat controls after completing the game
       }
 
       // Notify chat about completion
