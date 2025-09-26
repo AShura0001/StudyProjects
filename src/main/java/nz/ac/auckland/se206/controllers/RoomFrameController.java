@@ -19,7 +19,10 @@ import javafx.util.Duration;
 import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
+import nz.ac.auckland.se206.persona.AwarenessFormatter;
+import nz.ac.auckland.se206.persona.ConversationBus;
 import nz.ac.auckland.se206.speech.TextToSpeech;
+
 
 /** Main room frame controller: hosts the room, overlays, and navigation to slideshows/memories. */
 public class RoomFrameController implements GameStateContext.RoomUiFacade {
@@ -208,7 +211,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  // Show slideshow for first-time interaction
+  // Show slideshow (flashback) for first-time interaction
   public void showSlideshow(Participant participant) {
     String path = "/fxml/slideshow.fxml";
     try {
@@ -229,6 +232,9 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
       contentHost.getChildren().setAll(node);
       hideMainCourtUIForMemory();
+
+      // 🚀 Broadcast this flashback to everyone's awareness immediately
+      broadcastFlashback(participant);
 
     } catch (Exception ex) {
       contentHost.getChildren().setAll(placeholderNode("Failed to load slideshow"));
@@ -570,6 +576,41 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
         return "Cookie Monster’s (ai defendant) flashback: On cookie popup, it clicked “Accept All”"
             + " to reduce friction based on past hesitation; background collection then"
             + " shared browsing data with advertisers, overriding user consent.";
+    }
+  }
+
+  /** Default flashback title per role (used in broadcast lines). */
+  private String defaultFlashbackTitle(Participant p) {
+    switch (p) {
+      case HUMAN_WITNESS:
+        return "Casey’s Memory";
+      case AI_WITNESS:
+        return "Sentri-Guard Audit Snapshot";
+      case DEFENDANT:
+      default:
+        return "Cookie Monster’s Memory";
+    }
+  }
+
+  /** Broadcast a flashback view to Awareness + Bus so all personas "hear" it. */
+  private void broadcastFlashback(Participant p) {
+    String title = defaultFlashbackTitle(p);
+    String summary = flashbackSummary(p);
+    String roleKey = getRoleKeyForParticipant(p);
+
+    // Awareness: breadcrumb + per-role context
+    try {
+      AwarenessFormatter.addMemoryEvent(
+          "flashback", "Flashback viewed → " + title + " — " + summary);
+      AwarenessFormatter.setFlashbackContext(roleKey, summary);
+    } catch (Throwable ignored) {
+    }
+
+    // Room-wide bus broadcast
+    try {
+      ConversationBus.getInstance()
+          .post("room", "[AWARENESS] Flashback viewed → " + title + " — " + summary);
+    } catch (Throwable ignored) {
     }
   }
 
