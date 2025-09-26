@@ -138,6 +138,50 @@ public class RoomFrameController {
   // Allow flashbacks to navigate back
   public void backToRoom() {
     showRoom();
+    // Restore main court UI elements when returning to room
+    showMainCourtUIForRoom();
+  }
+
+  /** Hides main courtroom UI elements that shouldn't appear in memory scenes */
+  private void hideMainCourtUIForMemory() {
+    // Hide the intro label at the bottom
+    if (introLabel != null) {
+      introLabel.setVisible(false);
+      introLabel.setManaged(false);
+    }
+
+    // Hide the deliver verdict button but keep the timer visible
+    if (btnEndGame != null) {
+      btnEndGame.setVisible(false);
+      btnEndGame.setManaged(false);
+    }
+
+    // Keep timer visible - it should show in all scenes including memory
+    if (timerLabel != null) {
+      timerLabel.setVisible(true);
+      timerLabel.setManaged(true);
+    }
+  }
+
+  /** Shows main courtroom UI elements when returning to the main room */
+  private void showMainCourtUIForRoom() {
+    // Show the intro label at the bottom
+    if (introLabel != null) {
+      introLabel.setVisible(true);
+      introLabel.setManaged(true);
+    }
+
+    // Show the deliver verdict button
+    if (btnEndGame != null) {
+      btnEndGame.setVisible(true);
+      btnEndGame.setManaged(true);
+    }
+
+    // Keep timer visible
+    if (timerLabel != null) {
+      timerLabel.setVisible(true);
+      timerLabel.setManaged(true);
+    }
   }
 
   // Show slideshow for first-time interaction
@@ -162,6 +206,9 @@ public class RoomFrameController {
       }
 
       contentHost.getChildren().setAll(node);
+
+      // Hide main courtroom UI elements for slideshow too
+      hideMainCourtUIForMemory();
 
     } catch (Exception ex) {
       contentHost.getChildren().setAll(placeholderNode("Failed to load slideshow"));
@@ -192,11 +239,14 @@ public class RoomFrameController {
 
       contentHost.getChildren().setAll(node);
 
-      // Set up chat for this participant
+      // Hide main courtroom UI elements that shouldn't appear in memory scenes
+      hideMainCourtUIForMemory();
+
+      // Set up chat for this participant (opening message will be handled by MemoryController)
       GameStateContext gameState = App.getGameStateContext();
       if (gameState != null) {
         gameState.focusChatForParticipant(participant);
-        gameState.requestOpeningMessage(participant);
+        // Removed duplicate requestOpeningMessage call - MemoryController handles this
       }
 
     } catch (Exception ex) {
@@ -267,15 +317,31 @@ public class RoomFrameController {
     Participant participant = ChatController.Participant.DEFENDANT;
 
     if (gameState != null) {
-      if (gameState.isFirstInteraction(participant)) {
-        // First interaction - show slideshow
-        System.out.println("DEBUG: First interaction - showing slideshow");
+      // Check if slideshow has been seen, not just first interaction
+      String roleKey = getRoleKeyForParticipant(participant);
+      if (!gameState.getFlashbacksSeen().contains(roleKey)) {
+        // First time - show slideshow once
+        System.out.println("DEBUG: First time viewing slideshow - showing slideshow");
         showSlideshow(participant);
       } else {
-        // Subsequent interaction - go directly to memory
-        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        // Slideshow already seen - go directly to memory regardless of cookie status
+        System.out.println("DEBUG: Slideshow already seen - showing memory directly");
         showMemoryForParticipant(participant);
       }
+    }
+  }
+
+  /** Helper method to get role key for a participant */
+  private String getRoleKeyForParticipant(Participant participant) {
+    if (participant == null) return "ai_defendant";
+    switch (participant) {
+      case HUMAN_WITNESS:
+        return "human_witness";
+      case AI_WITNESS:
+        return "ai_witness";
+      case DEFENDANT:
+      default:
+        return "ai_defendant";
     }
   }
 
