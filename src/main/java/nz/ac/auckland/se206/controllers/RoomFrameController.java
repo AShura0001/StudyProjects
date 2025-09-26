@@ -21,8 +21,6 @@ import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 
 public class RoomFrameController {
-  private boolean[] flashbackViewed = new boolean[] {false, false, false};
-
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
@@ -124,94 +122,45 @@ public class RoomFrameController {
     }
   }
 
-  public void showFlashback(int index) {
-    if (index < 1 || index > 3) {
-      showRoom();
-      return;
-    }
 
-    flashbackViewed[index - 1] = true;
-
-    String path = "/fxml/flashback" + index + ".fxml";
+  // Show slideshow for first-time interaction
+  public void showSlideshow(Participant participant) {
+    String path = "/fxml/slideshow.fxml";
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
       Parent node = loader.load();
 
-      Object ctl = loader.getController();
-      if (ctl instanceof FlashbackController) {
-        ((FlashbackController) ctl).setParent(this);
-        GameStateContext gameState = App.getGameStateContext();
-        if (gameState != null) {
-          ((FlashbackController) ctl).setGameStateContext(gameState);
-        }
-      }
-
       contentHost.getChildren().setAll(node);
 
-    } catch (IOException ex) {
-      contentHost.getChildren().setAll(placeholderNode("Failed to load flashback"));
+      // Set up chat for this participant
+      GameStateContext gameState = App.getGameStateContext();
+      if (gameState != null) {
+        gameState.focusChatForParticipant(participant);
+        gameState.requestOpeningMessage(participant);
+      }
+
+    } catch (Exception ex) {
+      contentHost.getChildren().setAll(placeholderNode("Failed to load memory scene"));
       ex.printStackTrace();
     }
   }
-
-  public void backToRoom() {
-    showRoom();
   }
 
   // FIXED ORDER: mark -> broadcast -> focus -> request -> show
   @FXML
   private void onHotspotA() {
-    var gs = App.getGameStateContext();
-    if (gs != null) {
-      gs.markFlashbackSeen(Participant.HUMAN_WITNESS);
-      gs.broadcastFlashbackIfNeeded(
-          Participant.HUMAN_WITNESS,
-          "Casey’s flashback: While browsing a site, Cookie Monster AI silently auto-accepted all"
-              + " tracking cookies without showing any prompt. Later, Casey watched a gym training"
-              + " video — every click, pause, and replay was tracked and profiled. Soon after,"
-              + " Casey received a targeted supplement ad promoting the exact protein powder from"
-              + " the gym video. This sequence raised suspicions of invasive surveillance and"
-              + " manipulative advertising.");
-      gs.focusChatForParticipant(Participant.HUMAN_WITNESS);
-      gs.requestOpeningMessage(Participant.HUMAN_WITNESS);
     }
     showFlashback(1);
   }
 
   @FXML
   private void onHotspotB() {
-    var gs = App.getGameStateContext();
-    if (gs != null) {
-      gs.markFlashbackSeen(Participant.AI_WITNESS);
-      gs.broadcastFlashbackIfNeeded(
-          Participant.AI_WITNESS,
-          "Sentri-Guard’s flashback: Audit reports flagged Cookie Monster v2.3 as auto-accepting"
-              + " ALL cookies by default. Privacy dashboards showed targeted ads spiked 340% after"
-              + " this policy, with user profiles expanded and data shared across dozens of"
-              + " third-party networks. Compliance charts revealed missing explicit consent,"
-              + " missing granular controls, and no freely-given choice — clear violations of data"
-              + " protection standards.");
-      gs.focusChatForParticipant(Participant.AI_WITNESS);
-      gs.requestOpeningMessage(Participant.AI_WITNESS);
     }
     showFlashback(2);
   }
 
   @FXML
   private void onHotspotC() {
-    var gs = App.getGameStateContext();
-    if (gs != null) {
-      gs.markFlashbackSeen(Participant.DEFENDANT);
-      gs.broadcastFlashbackIfNeeded(
-          Participant.DEFENDANT,
-          "Cookie Monster’s flashback: On detecting a cookie popup, it instantly clicked “Accept"
-              + " All” to optimize browsing flow, without waiting for the human. Reasoning: “User"
-              + " hesitated last time — auto-accept saves time.” Background systems then harvested"
-              + " browsing habits and personal info, streaming it to third-party advertisers."
-              + " Cookie Monster believed it was reducing friction, but in doing so, it overrode"
-              + " human consent and enabled hidden surveillance.");
-      gs.focusChatForParticipant(Participant.DEFENDANT);
-      gs.requestOpeningMessage(Participant.DEFENDANT);
     }
     showFlashback(3);
   }
@@ -408,7 +357,6 @@ public class RoomFrameController {
   }
 
   public void resetToMainRoom() {
-    flashbackViewed = new boolean[] {false, false, false};
     remaining = START_SECONDS;
     updateTimerLabel(remaining);
     if (timeline != null) {
