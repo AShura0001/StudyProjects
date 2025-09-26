@@ -21,6 +21,8 @@ import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import nz.ac.auckland.se206.persona.AwarenessFormatter;
 import nz.ac.auckland.se206.persona.ConversationBus;
+import nz.ac.auckland.se206.speech.TextToSpeech;
+
 
 /** Main room frame controller: hosts the room, overlays, and navigation to slideshows/memories. */
 public class RoomFrameController implements GameStateContext.RoomUiFacade {
@@ -149,6 +151,12 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       btnStart.setVisible(false);
       btnStart.setManaged(false);
     }
+
+    TextToSpeech.speak(
+        "In the Court of Common Clicks, Cookie Monster v2.3 is on trial for auto‑accepting cookies"
+            + " to reduce pop‑ups. Casey’s targeted ads and Sentri‑Guard’s audit reveal a"
+            + " friction‑first design that ignored consent, turning convenience into a question of"
+            + " accountability.");
 
     resetTimer();
     startTimer();
