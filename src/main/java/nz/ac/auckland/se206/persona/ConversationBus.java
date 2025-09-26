@@ -19,6 +19,7 @@ public class ConversationBus {
     q.addLast(text.strip());
     while (q.size() > MAX_PER_ROLE) q.removeFirst();
   }
+
   public synchronized String summarizeForContext(String excludeRole) {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, Deque<String>> e : lastByRole.entrySet()) {
@@ -42,13 +43,14 @@ public class ConversationBus {
         return "Human Witness recalled";
       case "player":
         return "Player asked";
+      case "room":
+        return "Room awareness";
       default:
         return role;
     }
   }
 
   private static String joinSamples(Deque<String> q) {
-    // Take last 2 for brevity
     List<String> list = new ArrayList<>(q);
     int n = list.size();
     List<String> tail = list.subList(Math.max(0, n - 2), n);

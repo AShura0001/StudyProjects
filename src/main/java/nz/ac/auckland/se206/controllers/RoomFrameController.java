@@ -1,7 +1,6 @@
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
-// ADDED
 import java.lang.reflect.Method;
 import java.util.Set;
 import javafx.animation.KeyFrame;
@@ -37,12 +36,9 @@ public class RoomFrameController {
   @FXML private Button hotspotB;
   @FXML private Button hotspotC;
 
-  // Store original room content for restoration
   private Node originalRoomContent;
 
-  // Timer
-  // CHANGED: 120 -> 300 (5 minutes)
-  private static final int START_SECONDS = 300; // ADDED: set round to 5 minutes
+  private static final int START_SECONDS = 300;
   private int remaining = START_SECONDS;
   private Timeline timeline;
 
@@ -66,7 +62,6 @@ public class RoomFrameController {
   }
 
   private void initializeInitialState() {
-
     if (contentHost.getChildren().size() > 0) {
       originalRoomContent = contentHost.getChildren().get(0);
     }
@@ -87,17 +82,12 @@ public class RoomFrameController {
     timerLabel.setManaged(true);
   }
 
-  /**
-   * Loads the chat.fxml and injects the ChatController into the GameStateContext. This is used both
-   * during initialization and when resetting the game.
-   */
   private void loadAndInjectChatController() throws IOException {
     try {
       FXMLLoader chatLoader = new FXMLLoader(getClass().getResource("/fxml/chat.fxml"));
       VBox chatPanel = chatLoader.load();
       ChatController chatController = chatLoader.getController();
-      nz.ac.auckland.se206.App.getGameStateContext().setChatController(chatController);
-      // Optionally replace the included chatBox with the loaded one
+      App.getGameStateContext().setChatController(chatController);
       if (chatBox != null && chatPanel != null) {
         chatBox.getChildren().setAll(chatPanel.getChildren());
       }
@@ -109,7 +99,6 @@ public class RoomFrameController {
 
   @FXML
   private void onStartGame() {
-    // Show and enable all game content
     contentHost.setVisible(true);
     contentHost.setManaged(true);
     contentHost.setDisable(false);
@@ -128,68 +117,33 @@ public class RoomFrameController {
   }
 
   public void showRoom() {
-    // Restore the original room content after returning from a flashback
     if (originalRoomContent != null) {
       contentHost.getChildren().setAll(originalRoomContent);
     } else {
-      System.err.println("No original room content stored - this shouldn't happen");
       contentHost.getChildren().setAll(placeholderNode("Failed to restore room"));
     }
   }
 
-  // Swap in a flashback by index (1..3)
   public void showFlashback(int index) {
-    // Allow any valid flashback index
     if (index < 1 || index > 3) {
       showRoom();
       return;
     }
 
-    // Mark as viewed (for tracking purposes, but don't prevent re-viewing)
-    if (index >= 1 && index <= 3) {
-      flashbackViewed[index - 1] = true;
-    }
+    flashbackViewed[index - 1] = true;
 
     String path = "/fxml/flashback" + index + ".fxml";
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
       Parent node = loader.load();
 
-      // Give flashback controller a back reference
       Object ctl = loader.getController();
       if (ctl instanceof FlashbackController) {
         ((FlashbackController) ctl).setParent(this);
-
-        // Pass GameStateContext to FlashbackController for chat integration
-        nz.ac.auckland.se206.GameStateContext gameState =
-            nz.ac.auckland.se206.App.getGameStateContext();
+        GameStateContext gameState = App.getGameStateContext();
         if (gameState != null) {
           ((FlashbackController) ctl).setGameStateContext(gameState);
         }
-      }
-      // Switch chat participant in ChatController
-      nz.ac.auckland.se206.controllers.ChatController.Participant chatParticipant;
-      switch (index) {
-        case 1:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT;
-          break;
-        case 2:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS;
-          break;
-        case 3:
-          chatParticipant =
-              nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS;
-          break;
-        default:
-          chatParticipant = nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT;
-          break;
-      }
-      // Find ChatController and switch participant
-      // This assumes you have a reference to ChatController, e.g. via GameStateContext
-      nz.ac.auckland.se206.GameStateContext gameState =
-          nz.ac.auckland.se206.App.getGameStateContext();
-      if (gameState != null) {
-        gameState.focusChatForParticipant(chatParticipant);
       }
 
       contentHost.getChildren().setAll(node);
@@ -200,72 +154,80 @@ public class RoomFrameController {
     }
   }
 
-  // Allow flashbacks to navigate back
   public void backToRoom() {
     showRoom();
   }
 
-  // Hotspot handlers (wired from FXML onAction)
+  // FIXED ORDER: mark -> broadcast -> focus -> request -> show
   @FXML
   private void onHotspotA() {
-    System.out.println("DEBUG: Hotspot A clicked - Human Witness");
-    // Navigate to flashback
-    showFlashback(1);
-    // Hotspot A is Human Witness
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
-    if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.HUMAN_WITNESS);
+    var gs = App.getGameStateContext();
+    if (gs != null) {
+      gs.markFlashbackSeen(Participant.HUMAN_WITNESS);
+      gs.broadcastFlashbackIfNeeded(
+          Participant.HUMAN_WITNESS,
+          "Casey’s flashback: While browsing a site, Cookie Monster AI silently auto-accepted all"
+              + " tracking cookies without showing any prompt. Later, Casey watched a gym training"
+              + " video — every click, pause, and replay was tracked and profiled. Soon after,"
+              + " Casey received a targeted supplement ad promoting the exact protein powder from"
+              + " the gym video. This sequence raised suspicions of invasive surveillance and"
+              + " manipulative advertising.");
+      gs.focusChatForParticipant(Participant.HUMAN_WITNESS);
+      gs.requestOpeningMessage(Participant.HUMAN_WITNESS);
     }
+    showFlashback(1);
   }
 
   @FXML
   private void onHotspotB() {
-    System.out.println("DEBUG: Hotspot B clicked - AI Witness");
-    showFlashback(2);
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
-    if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.AI_WITNESS);
+    var gs = App.getGameStateContext();
+    if (gs != null) {
+      gs.markFlashbackSeen(Participant.AI_WITNESS);
+      gs.broadcastFlashbackIfNeeded(
+          Participant.AI_WITNESS,
+          "Sentri-Guard’s flashback: Audit reports flagged Cookie Monster v2.3 as auto-accepting"
+              + " ALL cookies by default. Privacy dashboards showed targeted ads spiked 340% after"
+              + " this policy, with user profiles expanded and data shared across dozens of"
+              + " third-party networks. Compliance charts revealed missing explicit consent,"
+              + " missing granular controls, and no freely-given choice — clear violations of data"
+              + " protection standards.");
+      gs.focusChatForParticipant(Participant.AI_WITNESS);
+      gs.requestOpeningMessage(Participant.AI_WITNESS);
     }
+    showFlashback(2);
   }
 
   @FXML
   private void onHotspotC() {
-    System.out.println("DEBUG: Hotspot C clicked - Defendant");
-    showFlashback(3);
-    // Hotspot C is Defendant
-    var gameState = nz.ac.auckland.se206.App.getGameStateContext();
-    if (gameState != null) {
-      gameState.focusChatForParticipant(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
-      gameState.requestOpeningMessage(
-          nz.ac.auckland.se206.controllers.ChatController.Participant.DEFENDANT);
+    var gs = App.getGameStateContext();
+    if (gs != null) {
+      gs.markFlashbackSeen(Participant.DEFENDANT);
+      gs.broadcastFlashbackIfNeeded(
+          Participant.DEFENDANT,
+          "Cookie Monster’s flashback: On detecting a cookie popup, it instantly clicked “Accept"
+              + " All” to optimize browsing flow, without waiting for the human. Reasoning: “User"
+              + " hesitated last time — auto-accept saves time.” Background systems then harvested"
+              + " browsing habits and personal info, streaming it to third-party advertisers."
+              + " Cookie Monster believed it was reducing friction, but in doing so, it overrode"
+              + " human consent and enabled hidden surveillance.");
+      gs.focusChatForParticipant(Participant.DEFENDANT);
+      gs.requestOpeningMessage(Participant.DEFENDANT);
     }
+    showFlashback(3);
   }
 
-  // NEW: End Game button handler
   @FXML
   private void onEndGame() {
-    // Check if all participants have been contacted before allowing verdict
     GameStateContext gameState = App.getGameStateContext();
     if (gameState != null && !gameState.hasContactedAllParticipants()) {
       showIncompleteContactAlert(gameState);
       return;
     }
 
-    // Stop timer and open verdict overlay
     if (timeline != null) timeline.stop();
-    // ADDED: lock interactions + verdict with 60s countdown
-    lockRoomInteractions(); // ADDED
-    showVerdictWithCountdown(); // ADDED
+    lockRoomInteractions();
+    showVerdictWithCountdown();
   }
-
-  // ----------------- Timer -----------------
 
   private void setupTimer() {
     if (timeline != null) timeline.stop();
@@ -278,15 +240,12 @@ public class RoomFrameController {
                   updateTimerLabel(remaining);
                   if (remaining == 0) {
                     timeline.stop();
-                    // Check if all participants contacted before showing verdict
                     GameStateContext gameState = App.getGameStateContext();
                     if (gameState != null && !gameState.hasContactedAllParticipants()) {
                       showGameOverAlert(gameState);
                     } else {
-                      // Show overlay on time up
-                      // ADDED: lock and open verdict with 60s countdown
-                      lockRoomInteractions(); // ADDED
-                      showVerdictWithCountdown(); // ADDED
+                      lockRoomInteractions();
+                      showVerdictWithCountdown();
                     }
                   }
                 }));
@@ -313,27 +272,11 @@ public class RoomFrameController {
     timerLabel.setText(String.format("%02d:%02d", mm, ss));
   }
 
-  // ----------------- Center content loading -----------------
-
-  @SuppressWarnings("unused")
-  private void setCenterFromFxml(String resourcePath) {
-    try {
-      FXMLLoader loader = new FXMLLoader(getClass().getResource(resourcePath));
-      Parent node = loader.load();
-      contentHost.getChildren().setAll(node);
-    } catch (IOException ex) {
-      contentHost.getChildren().setAll(placeholderNode("Failed to load content"));
-      ex.printStackTrace();
-    }
-  }
-
   private Node placeholderNode(String text) {
     Label lbl = new Label(text);
     lbl.setStyle("-fx-text-fill: gray;");
     return lbl;
   }
-
-  // ----------------- Overlay controls -----------------
 
   public void showOverlay() {
     overlayRoot.setVisible(true);
@@ -345,9 +288,6 @@ public class RoomFrameController {
     overlayRoot.setManaged(false);
   }
 
-  // Verdict helpers
-
-  // Load verdict.fxml into overlayRoot and show question
   public void showVerdictQuestion(String subjectName) {
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/verdict.fxml"));
@@ -364,15 +304,12 @@ public class RoomFrameController {
     }
   }
 
-  // ADDED: Lock room/chat interactions once verdict stage begins
   private void lockRoomInteractions() {
     if (contentHost != null) {
       contentHost.setDisable(true);
     }
-    // If you need to disable chat inputs explicitly, do it via GameStateContext -> ChatController.
   }
 
-  // ADDED: Open verdict overlay AND attempt to start a 60s countdown (if controller supports it)
   private void showVerdictWithCountdown() {
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/verdict.fxml"));
@@ -385,14 +322,10 @@ public class RoomFrameController {
       overlayRoot.getChildren().setAll(verdictNode);
       showOverlay();
 
-      // Try to call controller.startCountdown(60, Runnable) if it exists.
-      // This keeps this file self-contained; if you haven't added startCountdown yet,
-      // nothing breaks—the verdict just won’t auto-timeout.
       try {
         Method m = controller.getClass().getMethod("startCountdown", int.class, Runnable.class);
         m.invoke(controller, 60, (Runnable) this::onVerdictTimeout);
       } catch (NoSuchMethodException nsme) {
-        // Method not present yet: safe to ignore; you can add it later in VerdictController.
       } catch (Exception reflectionError) {
         reflectionError.printStackTrace();
       }
@@ -401,7 +334,6 @@ public class RoomFrameController {
     }
   }
 
-  // ADDED: What to do when verdict 60s expires (if startCountdown calls back)
   private void onVerdictTimeout() {
     javafx.application.Platform.runLater(
         () -> {
@@ -415,15 +347,12 @@ public class RoomFrameController {
         });
   }
 
-  // Called by the verdict overlay to close itself safely
   public void hideVerdict() {
     hideOverlay();
     if (overlayRoot != null) {
       overlayRoot.getChildren().clear();
     }
   }
-
-  // Helper methods for participant contact validation
 
   private void showIncompleteContactAlert(GameStateContext gameState) {
     Set<Participant> uncontacted = gameState.getUncontactedParticipants();
@@ -462,7 +391,6 @@ public class RoomFrameController {
     alert.setContentText(message.toString());
     alert.showAndWait();
 
-    // Exit the application after game over
     javafx.application.Platform.exit();
   }
 
@@ -479,17 +407,8 @@ public class RoomFrameController {
     }
   }
 
-  // ----------------- Game Reset -----------------
-
-  /**
-   * Resets the game to the initial state with timer and start button visible. Called when player
-   * chooses to replay after completing a game.
-   */
   public void resetToMainRoom() {
-    // Reset flashback tracking
     flashbackViewed = new boolean[] {false, false, false};
-
-    // Reset timer
     remaining = START_SECONDS;
     updateTimerLabel(remaining);
     if (timeline != null) {
@@ -497,30 +416,21 @@ public class RoomFrameController {
     }
     setupTimer();
 
-    // Reset UI to initial state
     initializeInitialState();
-
-    // Hide any overlays
     hideOverlay();
     if (overlayRoot != null) {
       overlayRoot.getChildren().clear();
     }
 
-    // Reset chat controller through game state context
     GameStateContext gameState = App.getGameStateContext();
     if (gameState != null && gameState.getChatController() != null) {
-      // The chat controller will be reset when the new GameStateContext is created
-      // but we ensure the UI is properly reset here
       try {
-        // Reload chat.fxml to reset chat UI components
         loadAndInjectChatController();
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
   }
-
-  // ----------------- Cleanup -----------------
 
   public void shutdown() {
     if (timeline != null) timeline.stop();
