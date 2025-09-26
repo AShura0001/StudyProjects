@@ -290,8 +290,12 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     GameStateContext gameState = App.getGameStateContext();
     Participant participant = ChatController.Participant.HUMAN_WITNESS;
     if (gameState != null) {
-      if (gameState.isFirstInteraction(participant)) showSlideshow(participant);
-      else showMemoryForParticipant(participant);
+      if (!gameState.hasSeenSlideshow(participant)) {
+        gameState.markSlideshowSeen(participant); // mark immediately
+        showSlideshow(participant);
+      } else {
+        showMemoryForParticipant(participant);
+      }
     }
   }
 
@@ -300,8 +304,12 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     GameStateContext gameState = App.getGameStateContext();
     Participant participant = ChatController.Participant.AI_WITNESS;
     if (gameState != null) {
-      if (gameState.isFirstInteraction(participant)) showSlideshow(participant);
-      else showMemoryForParticipant(participant);
+      if (!gameState.hasSeenSlideshow(participant)) {
+        gameState.markSlideshowSeen(participant); // mark immediately
+        showSlideshow(participant);
+      } else {
+        showMemoryForParticipant(participant);
+      }
     }
   }
 
@@ -316,39 +324,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       } else {
         showMemoryForParticipant(participant);
       }
-    }
-  }
-
-
-  private String getRoleKeyForParticipant(Participant participant) {
-    if (participant == null) return "ai_defendant";
-    switch (participant) {
-      case HUMAN_WITNESS:
-        return "human_witness";
-      case AI_WITNESS:
-        return "ai_witness";
-      case DEFENDANT:
-      default:
-        return "ai_defendant";
-    }
-  }
-
-  private String flashbackSummary(Participant p) {
-    switch (p) {
-      case HUMAN_WITNESS:
-        return "Casey’s(Human witness) flashback: While browsing a site, Cookie Monster"
-            + " auto-accepted all tracking cookies without asking; later a gym video watch"
-            + " was fully tracked, followed by a targeted supplement ad matching that"
-            + " video.";
-      case AI_WITNESS:
-        return "Sentri-Guard’s (ai witness) flashback: Audit flagged Cookie Monster v2.3"
-            + " auto-accepting ALL cookies; targeted ads spiked 340% and data flowed to many"
-            + " third parties; explicit/granular consent was missing.";
-      case DEFENDANT:
-      default:
-        return "Cookie Monster’s (ai defendant) flashback: On cookie popup, it clicked “Accept All”"
-            + " to reduce friction based on past hesitation; background collection then"
-            + " shared browsing data with advertisers, overriding user consent.";
     }
   }
 
@@ -572,14 +547,14 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     switch (p) {
       case HUMAN_WITNESS:
         return "Casey searched gyms/supplements privately; targeted ads appeared; frustration high"
-                   + " due to non-consensual tracking.";
+            + " due to non-consensual tracking.";
       case AI_WITNESS:
         return "Audit shows allowed vs blocked events; consent bypass on cross-site tracking →"
-                   + " targeted supplement ads.";
+            + " targeted supplement ads.";
       case DEFENDANT:
       default:
         return "Cookie Monster optimized for fast cookie acceptance; consent and friction"
-                   + " considerations deferred.";
+            + " considerations deferred.";
     }
   }
 
