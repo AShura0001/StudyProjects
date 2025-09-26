@@ -1,14 +1,13 @@
 package nz.ac.auckland.se206.controllers;
 
-
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,7 +21,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -31,7 +29,7 @@ import javafx.util.Duration;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import nz.ac.auckland.se206.persona.AwarenessFormatter; // push rows/memory into AWARENESS
-import nz.ac.auckland.se206.persona.ConversationBus; // awareness broadcast bus
+import nz.ac.auckland.se206.persona.ConversationBus; // awareness broadcast bus;
 
 /**
  * Controller for memory scenes where players interact with participants in their memory spaces with
@@ -59,8 +57,6 @@ public class MemoryController {
   @FXML private Label interactableLabel;
   @FXML private VBox interactableContainer;
 
-
-
   // ===== Human witness: Frustration mini-game (supports BOTH UIs) =====
   @FXML private VBox frustrationSection;
   @FXML private Slider frustrationSlider;
@@ -83,7 +79,6 @@ public class MemoryController {
   @FXML private Button btnValidateMemory;
   @FXML private VBox memoryLog;
 
-
   // Aim training game components (for defendant memory)
   @FXML private VBox aimTrainingGame;
   @FXML private Label lblScore;
@@ -95,8 +90,6 @@ public class MemoryController {
   @FXML private VBox gameResults;
   @FXML private Label lblGameResult;
   @FXML private Label lblFinalStats;
-
-  // State tracking
 
   // ---- Simple Audit Log ----
   @FXML private VBox auditPanel;
@@ -119,11 +112,9 @@ public class MemoryController {
   private FilteredList<AuditRow> auditFiltered;
 
   // ===== State tracking =====
-
   private boolean interactableUsed = false;
-  private int targetFrustrationLevel = 8; // unified default; tweak as needed
+  private int targetFrustrationLevel = 8; // unified default
   private boolean frustrationGuessed = false;
-
 
   // Aim training game state
   private int gameScore = 0;
@@ -131,13 +122,12 @@ public class MemoryController {
   private boolean gameRunning = false;
   private Timeline gameTimer;
   private Timeline targetSpawnTimer;
-  private List<Button> activeTargets = new ArrayList<>();
-  private Random random = new Random();
+  private final List<Button> activeTargets = new ArrayList<>();
+  private final Random random = new Random();
   private long gameStartTime = 0;
 
   // Theme tracking (Matrix theme for AI_WITNESS)
   private boolean matrixThemeApplied = false;
-
 
   public void setParent(RoomFrameController parent) {
     this.parent = parent;
@@ -145,6 +135,7 @@ public class MemoryController {
 
   public void setGameStateContext(GameStateContext gameStateContext) {
     this.gameStateContext = gameStateContext;
+    // Wire up flashback chat components for cross-controller chat mirroring
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
       gameStateContext
           .getChatController()
@@ -158,18 +149,30 @@ public class MemoryController {
     updateMemoryContext();
     updateFrustrationSectionVisibility();
     updateAiWitnessButtonState();
-
     updateAimTrainingGameVisibility();
     updateChatControlsState();
     applyThemeForParticipant();
+  }
 
+  // --- Cookie-consent handlers (AI Witness doesn't use them, but FXML references exist) ---
+  @FXML
+  private void onAcceptCookies() {
+    // No-op in the AI Witness scene. (Present only to satisfy the FXML loader.)
+  }
+
+  @FXML
+  private void onDeclineCookies() {
+    // Safe fallback: just go back to the room if user clicks decline on a misplaced overlay.
+    if (parent != null) {
+      parent.backToRoom();
+    }
   }
 
   @FXML
   private void initialize() {
     if (interactableHighlight != null) {
       interactableHighlight.setVisible(false);
-      interactableHighlight.setMouseTransparent(true); // overlay never steals clicks
+      interactableHighlight.setMouseTransparent(true);
     }
     if (interactableElement != null) {
       interactableElement.setPickOnBounds(true);
@@ -210,8 +213,6 @@ public class MemoryController {
     broadcastToAll("flashback", line);
   }
 
-  // ---------------------------------------------------------------------------
-
   // ---------------- Navigation ----------------
   @FXML
   private void onBackToRoom() {
@@ -221,26 +222,19 @@ public class MemoryController {
   // ---------------- Chat send ----------------
   @FXML
   private void onSendMessage() {
-
-    // Check if interactive element has been completed before allowing chat
+    // Gate Cookie Monster chat until the aim trainer is completed
     if (currentParticipant == Participant.DEFENDANT && !interactableUsed) {
-      // Provide feedback to user that they need to complete the aim training first
       if (txtaChat != null) {
-        String restrictionMessage = "\n🔒 System: Complete Cookie Monster's aim training before chatting.\n";
+        String restrictionMessage =
+            "\n🔒 System: Complete Cookie Monster's aim training before chatting.\n";
         String currentText = txtaChat.getText();
         if (!currentText.contains("Complete Cookie Monster's aim training")) {
           txtaChat.setText(currentText + restrictionMessage);
         }
       }
-      // Clear the input field
-      if (txtInput != null) {
-        txtInput.clear();
-
-      }
+      if (txtInput != null) txtInput.clear();
       return;
     }
-    
-    // Allow chat for all participants (after completing interactive element)
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
       gameStateContext.getChatController().onSendMessage();
     }
@@ -261,18 +255,22 @@ public class MemoryController {
       if (interactableContainer != null) interactableContainer.setVisible(false);
       if (auditPanel != null) {
         auditPanel.setVisible(true);
+        auditPanel.setManaged(true);
         auditPanel.toFront();
       }
       setAuditStatus("Tap Load");
 
       // Awareness + broadcast
-      AwarenessFormatter.addMemoryEvent("ai_witness", "Opened Simple Audit Log");
+      try {
+        AwarenessFormatter.addMemoryEvent("ai_witness", "Opened Simple Audit Log");
+      } catch (Throwable ignored) {
+      }
       broadcastAuditOpenedAwareness();
     }
 
     notifyChatAboutInteraction();
 
-    // >>> NEW: broadcast that this memory was opened
+    // Broadcast that this memory was opened
     broadcastMemorySummary(
         currentParticipant,
         currentParticipant == Participant.AI_WITNESS
@@ -287,10 +285,10 @@ public class MemoryController {
   /** Broadcast a room-wide awareness line so all personas know this memory was opened. */
   private void broadcastAuditOpenedAwareness() {
     String msg =
-        "[AWARENESS] Memory used → AI Witness (Sentri-Guard): Simple Audit Log opened; "
-            + "shows ALLOWED (no consent) vs BLOCKED (human) events, including a path "
-            + "‘watched gym video → cross-site tracking → targeted supplement ads’.";
-    postToBusAndChat(msg);
+        "Memory used → AI Witness (Sentri-Guard): Simple Audit Log opened; shows ALLOWED (no"
+            + " consent) vs BLOCKED (human) events, including a path ‘watched gym video →"
+            + " cross-site tracking → targeted supplement ads’.";
+    postToBusAndChat("[AWARENESS] " + msg);
   }
 
   /** Broadcast each audit row verbatim so personas can quote it exactly. */
@@ -323,9 +321,7 @@ public class MemoryController {
       ConversationBus.getInstance().post("room", message);
     } catch (Throwable ignored) {
     }
-    if (txtaChat != null) {
-      txtaChat.appendText(message + "\n");
-    }
+    if (txtaChat != null) txtaChat.appendText(message + "\n");
   }
 
   private void updateMemoryContext() {
@@ -343,6 +339,7 @@ public class MemoryController {
       if (interactableContainer != null) interactableContainer.setVisible(false);
       if (auditPanel != null) {
         auditPanel.setVisible(true);
+        auditPanel.setManaged(true);
         auditPanel.toFront();
       }
     }
@@ -417,8 +414,6 @@ public class MemoryController {
     return interactableUsed;
   }
 
-
-
   private void requestOpeningMessage() {
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
@@ -428,9 +423,6 @@ public class MemoryController {
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
   }
-
-
-
 
   // ---------------- Human frustration mini-game ----------------
   @FXML
@@ -483,7 +475,6 @@ public class MemoryController {
       btnLower.setDisable(true);
       btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
     }
-
     if (btnUnderstandStory != null) {
       btnUnderstandStory.setDisable(true);
       btnUnderstandStory.setText("Correct!");
@@ -510,7 +501,7 @@ public class MemoryController {
       interactableUsed = true;
     }
 
-    // >>> NEW: broadcast outcome summary
+    // Broadcast outcome summary
     broadcastMemorySummary(
         Participant.HUMAN_WITNESS,
         "Witness frustration = "
@@ -687,18 +678,12 @@ public class MemoryController {
     }
   }
 
-
   /** Updates aim training game visibility based on current participant */
   private void updateAimTrainingGameVisibility() {
     if (aimTrainingGame != null) {
-      // Only show for defendant (Cookie Monster) and if not already completed
       boolean showGame = (currentParticipant == Participant.DEFENDANT && !interactableUsed);
       aimTrainingGame.setVisible(showGame);
-      
-      // Request opening message for defendant when the game is shown
-      if (showGame && gameStateContext != null) {
-        requestOpeningMessage();
-      }
+      if (showGame && gameStateContext != null) requestOpeningMessage();
     }
   }
 
@@ -706,47 +691,34 @@ public class MemoryController {
   private void updateChatControlsState() {
     if (currentParticipant == Participant.DEFENDANT) {
       boolean chatEnabled = interactableUsed;
-      
-      // Disable/enable chat input and send button
       if (txtInput != null) {
         txtInput.setDisable(!chatEnabled);
-        if (!chatEnabled) {
-          txtInput.setPromptText("Complete aim training to unlock chat...");
-        } else {
-          txtInput.setPromptText("Type a message...");
-        }
+        txtInput.setPromptText(
+            chatEnabled ? "Type a message..." : "Complete aim training to unlock chat...");
       }
-      
-      if (btnSend != null) {
-        btnSend.setDisable(!chatEnabled);
-      }
-      
-      // Add a system message if chat is disabled
+      if (btnSend != null) btnSend.setDisable(!chatEnabled);
       if (!chatEnabled && txtaChat != null) {
         String currentText = txtaChat.getText();
-        String lockMessage = "\n🔒 System: Complete Cookie Monster's aim training to unlock chat functionality.\n";
+        String lockMessage =
+            "\n🔒 System: Complete Cookie Monster's aim training to unlock chat functionality.\n";
         if (!currentText.contains("Complete Cookie Monster's aim training to unlock")) {
           txtaChat.setText(currentText + lockMessage);
         }
       }
     } else {
-      // For other participants, enable chat normally
       if (txtInput != null) {
         txtInput.setDisable(false);
         txtInput.setPromptText("Type a message...");
       }
-      if (btnSend != null) {
-        btnSend.setDisable(false);
-      }
+      if (btnSend != null) btnSend.setDisable(false);
     }
   }
 
-  /** Starts the aim training mini-game */
+  // ---------------- AIM TRAINER ----------------
+
   @FXML
   private void onStartAimGame() {
-    if (gameRunning) {
-      return;
-    }
+    if (gameRunning) return;
 
     // Reset game state
     gameScore = 0;
@@ -757,123 +729,84 @@ public class MemoryController {
 
     // Update UI
     updateGameStats();
-    lblGameStatus.setText("Training in progress... Click the Accept buttons!");
-    btnStartGame.setText("Training Active");
-    btnStartGame.setDisable(true);
-    gamePlayArea.setVisible(true);
-    gameResults.setVisible(false);
+    if (lblGameStatus != null)
+      lblGameStatus.setText("Training in progress... Click the Accept buttons!");
+    if (btnStartGame != null) {
+      btnStartGame.setText("Training Active");
+      btnStartGame.setDisable(true);
+    }
+    if (gamePlayArea != null) gamePlayArea.setVisible(true);
+    if (gameResults != null) gameResults.setVisible(false);
 
-    // Start the game timer (updates every second)
+    // Start the timers
     gameTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateGameTimer()));
     gameTimer.setCycleCount(Timeline.INDEFINITE);
     gameTimer.play();
 
-    // Start spawning targets
     startTargetSpawning();
   }
 
-  /** Starts the target spawning system */
   private void startTargetSpawning() {
-    System.out.println("DEBUG: Starting target spawning system");
-    targetSpawnTimer = new Timeline(new KeyFrame(Duration.millis(800 + random.nextInt(1200)), e -> spawnTarget()));
+    targetSpawnTimer =
+        new Timeline(new KeyFrame(Duration.millis(800 + random.nextInt(1200)), e -> spawnTarget()));
     targetSpawnTimer.setCycleCount(Timeline.INDEFINITE);
     targetSpawnTimer.play();
-    
-    // Spawn the first target immediately to test
-    Platform.runLater(() -> spawnTarget());
+    Platform.runLater(this::spawnTarget);
   }
 
-  /** Spawns a new target button at a random location */
   private void spawnTarget() {
-    if (!gameRunning || gamePlayArea == null) {
-      return;
-    }
+    if (!gameRunning || gamePlayArea == null) return;
 
-    // Create new target button
     Button target = new Button("Accept");
     target.setStyle(
         "-fx-font-size: 12px; -fx-background-color: #ffe066; -fx-text-fill: #222; "
-        + "-fx-pref-width: 80; -fx-pref-height: 25; -fx-font-weight: bold; "
-        + "-fx-border-radius: 5; -fx-background-radius: 5; -fx-cursor: hand;");
+            + "-fx-pref-width: 80; -fx-pref-height: 25; -fx-font-weight: bold; "
+            + "-fx-border-radius: 5; -fx-background-radius: 5; -fx-cursor: hand;");
 
-    // Use actual dimensions or fallback to pref dimensions
-    double areaWidth = gamePlayArea.getWidth() > 0 ? gamePlayArea.getWidth() : gamePlayArea.getPrefWidth();
-    double areaHeight = gamePlayArea.getHeight() > 0 ? gamePlayArea.getHeight() : gamePlayArea.getPrefHeight();
-    
-    // Random position within the play area (with some margin)
-    double maxX = Math.max(0, areaWidth - 90); // button width + margin
-    double maxY = Math.max(0, areaHeight - 35); // button height + margin
-    double x = random.nextDouble() * maxX + 5; // 5px margin from edge
-    double y = random.nextDouble() * maxY + 5; // 5px margin from edge
+    double areaWidth =
+        gamePlayArea.getWidth() > 0 ? gamePlayArea.getWidth() : gamePlayArea.getPrefWidth();
+    double areaHeight =
+        gamePlayArea.getHeight() > 0 ? gamePlayArea.getHeight() : gamePlayArea.getPrefHeight();
+
+    double maxX = Math.max(0, areaWidth - 90);
+    double maxY = Math.max(0, areaHeight - 35);
+    double x = random.nextDouble() * maxX + 5;
+    double y = random.nextDouble() * maxY + 5;
 
     target.setLayoutX(x);
     target.setLayoutY(y);
-
-    // Add click handler
     target.setOnAction(e -> onTargetHit(target));
 
-    // Add to play area and active targets list
     gamePlayArea.getChildren().add(target);
     activeTargets.add(target);
 
-    // Debug output
-    System.out.println("DEBUG: Spawned target at (" + x + ", " + y + ") in area " + areaWidth + "x" + areaHeight);
-
-    // Set target to disappear after 0.7 seconds (faster for increased difficulty)
-    Timeline disappearTimer = new Timeline(new KeyFrame(Duration.seconds(0.7), e -> onTargetMiss(target)));
+    Timeline disappearTimer =
+        new Timeline(new KeyFrame(Duration.seconds(0.7), e -> onTargetMiss(target)));
     disappearTimer.play();
   }
 
-  /** Handles when a target is successfully hit */
   private void onTargetHit(Button target) {
-    if (!gameRunning) {
-      return;
-    }
-
-    // Remove target
+    if (!gameRunning) return;
     gamePlayArea.getChildren().remove(target);
     activeTargets.remove(target);
-
-    // Update score
     gameScore++;
-    // Note: totalMisses is NOT reset on successful hit (unlike consecutive misses)
-
     updateGameStats();
-
-    // Check win condition
-    if (gameScore >= 10) {
-      endGame(true);
-    }
+    if (gameScore >= 10) endGame(true);
   }
 
-  /** Handles when a target is missed (disappears) */
   private void onTargetMiss(Button target) {
-    if (!gameRunning || !activeTargets.contains(target)) {
-      return;
-    }
-
-    // Remove target
+    if (!gameRunning || !activeTargets.contains(target)) return;
     gamePlayArea.getChildren().remove(target);
     activeTargets.remove(target);
-
-    // Update miss counter
     totalMisses++;
     updateGameStats();
-
-    // Check lose condition
-    if (totalMisses >= 3) {
-      endGame(false);
-    }
+    if (totalMisses >= 3) endGame(false);
   }
 
-  /** Updates the game statistics display */
   private void updateGameStats() {
-    if (lblScore != null) {
-      lblScore.setText(gameScore + "/10");
-    }
+    if (lblScore != null) lblScore.setText(gameScore + "/10");
     if (lblMisses != null) {
       lblMisses.setText(totalMisses + "/3");
-      // Change color based on miss count
       if (totalMisses == 0) {
         lblMisses.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #059669;");
       } else if (totalMisses == 1) {
@@ -884,7 +817,6 @@ public class MemoryController {
     }
   }
 
-  /** Updates the game timer display */
   private void updateGameTimer() {
     if (lblTimer != null && gameStartTime > 0) {
       long elapsed = (System.currentTimeMillis() - gameStartTime) / 1000;
@@ -895,49 +827,65 @@ public class MemoryController {
   /** Ends the game with win/lose result */
   private void endGame(boolean won) {
     gameRunning = false;
+    if (gameTimer != null) gameTimer.stop();
+    if (targetSpawnTimer != null) targetSpawnTimer.stop();
 
-    // Stop timers
-    if (gameTimer != null) {
-      gameTimer.stop();
-    }
-    if (targetSpawnTimer != null) {
-      targetSpawnTimer.stop();
-    }
-
-    // Clear remaining targets
-    for (Button target : activeTargets) {
+    for (Button target : new ArrayList<>(activeTargets)) {
       gamePlayArea.getChildren().remove(target);
     }
     activeTargets.clear();
 
-    // Update UI
-    gamePlayArea.setVisible(false);
-    gameResults.setVisible(true);
-    btnStartGame.setDisable(false);
+    if (gamePlayArea != null) gamePlayArea.setVisible(false);
+    if (gameResults != null) gameResults.setVisible(true);
+    if (btnStartGame != null) {
+      btnStartGame.setDisable(false);
+    }
 
     if (won) {
-      lblGameResult.setText("🎉 Training Complete!");
-      lblGameResult.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #059669;");
-      lblFinalStats.setText("You successfully completed Cookie Monster's auto-accept training!");
-      btnStartGame.setText("Training Completed");
-      btnStartGame.setStyle("-fx-font-size: 16px; -fx-background-color: #22c55e; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 40; -fx-border-radius: 8; -fx-background-radius: 8;");
-      
+      if (lblGameResult != null) {
+        lblGameResult.setText("🎉 Training Complete!");
+        lblGameResult.setStyle(
+            "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #059669;");
+      }
+      if (lblFinalStats != null)
+        lblFinalStats.setText("You successfully completed Cookie Monster's auto-accept training!");
+      if (btnStartGame != null) {
+        btnStartGame.setText("Training Completed");
+        btnStartGame.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #22c55e; -fx-text-fill: white;"
+                + " -fx-pref-width: 150; -fx-pref-height: 40; -fx-border-radius: 8;"
+                + " -fx-background-radius: 8;");
+      }
+
       // Mark interactive element as completed
       if (gameStateContext != null && currentParticipant == Participant.DEFENDANT) {
         gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
         interactableUsed = true;
         updateAimTrainingGameVisibility();
-        updateChatControlsState(); // Enable chat controls after completing the game
+        updateChatControlsState();
       }
 
-      // Notify chat about completion
+      // Notify chat + broadcast to awareness/bus so ALL personas know this happened
       notifyAimTrainingCompletion();
+      // NEW: broadcast to all
+      broadcastMemorySummary(
+          Participant.DEFENDANT,
+          "Completed Cookie Monster AIM training (auto-accept speed over consent). Chat unlocked.");
     } else {
-      lblGameResult.setText("❌ Training Failed");
-      lblGameResult.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
-      lblFinalStats.setText("3 consecutive misses! Cookie Monster needs more training.");
-      btnStartGame.setText("Retry Training");
-      btnStartGame.setStyle("-fx-font-size: 16px; -fx-background-color: #3b82f6; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 40; -fx-border-radius: 8; -fx-background-radius: 8;");
+      if (lblGameResult != null) {
+        lblGameResult.setText("❌ Training Failed");
+        lblGameResult.setStyle(
+            "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
+      }
+      if (lblFinalStats != null)
+        lblFinalStats.setText("3 consecutive misses! Cookie Monster needs more training.");
+      if (btnStartGame != null) {
+        btnStartGame.setText("Retry Training");
+        btnStartGame.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #3b82f6; -fx-text-fill: white;"
+                + " -fx-pref-width: 150; -fx-pref-height: 40; -fx-border-radius: 8;"
+                + " -fx-background-radius: 8;");
+      }
     }
   }
 
@@ -947,24 +895,25 @@ public class MemoryController {
         && gameStateContext.getChatController() != null
         && currentParticipant == Participant.DEFENDANT) {
       String interactionMessage =
-          "You experienced Cookie Monster's auto-accept training simulation. The rapid-fire cookie "
-          + "acceptance training reveals how the AI was programmed to prioritize speed over user consent...";
-
-      // Add a system message to indicate the interaction happened
+          "You experienced Cookie Monster's auto-accept training simulation. The rapid-fire cookie"
+              + " acceptance training reveals how the AI was programmed to prioritize speed over"
+              + " user consent...";
       if (txtaChat != null) {
         String currentText = txtaChat.getText();
         String systemMessage = "[SYSTEM] " + interactionMessage + "\n\n";
         txtaChat.setText(currentText + systemMessage);
       }
-
-      System.out.println("DEBUG: Player completed Cookie Monster aim training game");
+      // Also post to bus so other personas “hear” it immediately
+      postToBusAndChat(
+          "[AWARENESS] Cookie Monster training complete → chat unlocked; system optimized for speed"
+              + " > consent.");
     }
+  }
 
   // ---------------- Chat helpers ----------------
   private void enableChatAutoScroll() {
     if (txtaChat == null) return;
-    if (txtaChat.getProperties().get("autoscrollBound") == Boolean.TRUE) return;
-
+    if (Boolean.TRUE.equals(txtaChat.getProperties().get("autoscrollBound"))) return;
     txtaChat
         .textProperty()
         .addListener(
@@ -1070,7 +1019,6 @@ public class MemoryController {
 
   private void initAuditTable() {
     if (auditTable == null) return;
-
     if (colTime != null) colTime.setCellValueFactory(c -> c.getValue().timeProperty());
     if (colSite != null) colSite.setCellValueFactory(c -> c.getValue().siteProperty());
     if (colAction != null) colAction.setCellValueFactory(c -> c.getValue().actionProperty());
@@ -1140,7 +1088,7 @@ public class MemoryController {
     postToBusAndChat("[AWARENESS] Loaded sample audit events (Sentri-Guard).");
     broadcastAuditRows();
 
-    // >>> NEW: concise one-liner context
+    // concise one-liner context
     broadcastMemorySummary(
         Participant.AI_WITNESS,
         "Tracking chain: watched gym recovery video → cross-site tracking → targeted supplement"
@@ -1185,7 +1133,7 @@ public class MemoryController {
     txtaChat.appendText(
         "[SYSTEM] " + sel.getSite() + " → " + sel.getAction() + " " + why + ".\n\n");
 
-    // >>> NEW: broadcast which row was explained
+    // broadcast which row was explained
     broadcastMemorySummary(
         Participant.AI_WITNESS,
         "Explained: " + sel.getSite() + " — " + sel.getAction() + " (" + sel.getAllowed() + ").");
@@ -1193,7 +1141,10 @@ public class MemoryController {
 
   @FXML
   private void onCloseAudit() {
-    if (auditPanel != null) auditPanel.setVisible(false);
+    if (auditPanel != null) {
+      auditPanel.setVisible(false);
+      auditPanel.setManaged(false);
+    }
     if (interactableContainer != null) interactableContainer.setVisible(true);
   }
 
