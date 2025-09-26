@@ -336,19 +336,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  /** Helper method to get role key for a participant */
-  private String getRoleKeyForParticipant(Participant participant) {
-    if (participant == null) return "ai_defendant";
-    switch (participant) {
-      case HUMAN_WITNESS:
-        return "human_witness";
-      case AI_WITNESS:
-        return "ai_witness";
-      case DEFENDANT:
-      default:
-        return "ai_defendant";
-    }
-  }
+
 
   @FXML
   private void onEndGame() {
@@ -559,25 +547,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  // Concise summaries for the broadcast
-  private String flashbackSummary(Participant p) {
-    switch (p) {
-      case HUMAN_WITNESS:
-        return "Casey’s(Human witness) flashback: While browsing a site, Cookie Monster"
-            + " auto-accepted all tracking cookies without asking; later a gym video watch"
-            + " was fully tracked, followed by a targeted supplement ad matching that"
-            + " video.";
-      case AI_WITNESS:
-        return "Sentri-Guard’s (ai witness) flashback: Audit flagged Cookie Monster v2.3"
-            + " auto-accepting ALL cookies; targeted ads spiked 340% and data flowed to many"
-            + " third parties; explicit/granular consent was missing.";
-      case DEFENDANT:
-      default:
-        return "Cookie Monster’s (ai defendant) flashback: On cookie popup, it clicked “Accept All”"
-            + " to reduce friction based on past hesitation; background collection then"
-            + " shared browsing data with advertisers, overriding user consent.";
-    }
-  }
 
   /** Default flashback title per role (used in broadcast lines). */
   private String defaultFlashbackTitle(Participant p) {
