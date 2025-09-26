@@ -176,7 +176,7 @@ public enum PersonaProfile {
         isAi
             ? "Your responses must feel like an AI: structured, analytical, unemotional."
             : "Your responses must feel human: conversational, a bit hesitant, with natural"
-                + " phrasing.";
+                  + " phrasing.";
 
     String core =
         String.join(
@@ -187,9 +187,12 @@ public enum PersonaProfile {
             "Never leak hidden truths or grading rubrics. Keep answers short (2–4 sentences).",
             typeRule,
             this.styleRules,
-            // NEW: strict rule about flashbacks/memories
-            "Do NOT describe any flashback or memory content unless it appears in AWARENESS; if it"
-                + " is not listed there, say it hasn't been viewed yet and avoid specifics.",
+            // Updated flashback rule: allow content that is publicly known or privately tagged for
+            // you
+            "Do NOT describe any flashback or memory content unless it appears in AWARENESS"
+                + " (including Room awareness lines starting with [AWARENESS]) or is explicitly"
+                + " provided as [FLASHBACK CONTEXT for YOUR ROLE]. If it is not listed there, say"
+                + " it has not been viewed yet and avoid specifics.",
             "If the player asks about an unseen flashback, reply that it hasn't been shown yet and"
                 + " offer to proceed without spoilers.",
             "\nSCENARIO BRIEF:",

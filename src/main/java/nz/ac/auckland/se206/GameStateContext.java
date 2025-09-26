@@ -12,6 +12,7 @@ import java.util.Set;
 import javafx.application.Platform;
 import nz.ac.auckland.se206.controllers.ChatController;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
+import nz.ac.auckland.se206.persona.ConversationBus;
 import org.yaml.snakeyaml.Yaml;
 
 /** Central game state: scenario brief, awareness, randomized data, and UI hooks. */
@@ -22,6 +23,9 @@ public class GameStateContext {
   private String scenarioBrief = "";
   private final Set<String> flashbacksSeen = new HashSet<>();
   private final Map<String, Boolean> interactableDone = new HashMap<>();
+
+  // Track which owners’ flashbacks have already been broadcast
+  private final Set<String> flashbackPrimedOwners = new HashSet<>();
 
   public String getScenarioBrief() {
     return scenarioBrief;
@@ -64,6 +68,7 @@ public class GameStateContext {
   public void resetAwareness() {
     flashbacksSeen.clear();
     interactableDone.clear();
+    flashbackPrimedOwners.clear();
   }
 
   public boolean isCookiesAccepted() {
@@ -86,6 +91,39 @@ public class GameStateContext {
     }
   }
 
+  // -------- Flashback broadcasting --------
+
+  /**
+   * Broadcast this owner’s flashback context.
+   *
+   * <p>Owner gets a detailed private copy, while the whole room receives a concise awareness
+   * summary that all personas may reference.
+   */
+  public synchronized boolean broadcastFlashbackIfNeeded(Participant owner, String conciseSummary) {
+    String roleKey = roleKeyOf(owner);
+    if (roleKey == null || roleKey.isBlank()) return false;
+    if (flashbackPrimedOwners.contains(roleKey)) return false;
+
+    // 1) Private context for the owner
+    String privateKey = "flashback_private_" + roleKey;
+    String ownerMsg =
+        "[FLASHBACK CONTEXT for "
+            + owner.name()
+            + "]\n"
+            + conciseSummary
+            + "\nYou may rely on this memory when speaking as "
+            + owner.name()
+            + ".";
+    ConversationBus.getInstance().post(privateKey, ownerMsg);
+
+    // 2) Shared awareness for everyone
+    String roomAwareness = "[AWARENESS] Flashback viewed (" + owner.name() + "): " + conciseSummary;
+    ConversationBus.getInstance().post("room", roomAwareness);
+
+    flashbackPrimedOwners.add(roleKey);
+    return true;
+  }
+
   // -------- Legacy randomized gameplay data --------
   private final String rectIdToGuess;
   private final String professionToGuess;
@@ -99,7 +137,6 @@ public class GameStateContext {
   private final Set<Participant> contactedParticipants = new HashSet<>();
 
   public GameStateContext() {
-    // Load professions.yaml (optional)
     Map<String, Object> obj = null;
     Yaml yaml = new Yaml();
     try (InputStream inputStream =
@@ -132,7 +169,7 @@ public class GameStateContext {
     rectanglesToProfession.put(
         "rectPerson3", safeArray(randomProfessionsArray, 2, "Human Witness"));
 
-    int randomNumber = random.nextInt(3);
+    int randomNumber = new Random().nextInt(3);
     rectIdToGuess =
         randomNumber == 0 ? "rectPerson1" : (randomNumber == 1 ? "rectPerson2" : "rectPerson3");
     professionToGuess = rectanglesToProfession.get(rectIdToGuess);
@@ -156,7 +193,6 @@ public class GameStateContext {
     this.chatController = controller;
   }
 
-  /** Useful for wiring flashback chat widgets via controller. */
   public ChatController getChatController() {
     return this.chatController;
   }
@@ -169,9 +205,7 @@ public class GameStateContext {
     this.statusSink = sink;
   }
 
-  public void showChatPane() {
-    // If your UI hides the chat, unhide here (no-op by default)
-  }
+  public void showChatPane() {}
 
   public void focusChatForParticipant(ChatController.Participant p) {
     if (chatController == null) return;
@@ -217,7 +251,6 @@ public class GameStateContext {
   }
 
   // -------- Participant tracking --------
-  /** Marks a participant as contacted (player has sent at least one message). */
   public void markParticipantContacted(Participant participant) {
     contactedParticipants.add(participant);
   }
@@ -253,12 +286,10 @@ public class GameStateContext {
   }
 
   private Participant mapRectangleToParticipant(String rectangleId, String professionLabel) {
-    // Explicit mapping by rectangle id
     if ("rectPerson1".equals(rectangleId)) return Participant.DEFENDANT;
     if ("rectPerson2".equals(rectangleId)) return Participant.AI_WITNESS;
     if ("rectPerson3".equals(rectangleId)) return Participant.HUMAN_WITNESS;
 
-    // Fallback using label
     if (professionLabel != null) {
       String p = professionLabel.toLowerCase();
       if (p.contains("defendant")) return Participant.DEFENDANT;
