@@ -20,7 +20,9 @@ import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 
-public class RoomFrameController {
+/** Main room frame controller: hosts the room, overlays, and navigation to slideshows/memories. */
+public class RoomFrameController implements GameStateContext.RoomUiFacade {
+
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
@@ -34,14 +36,22 @@ public class RoomFrameController {
   @FXML private Button hotspotB;
   @FXML private Button hotspotC;
 
+  // Store original room content for restoration
   private Node originalRoomContent;
 
+  // Timer (5 minutes)
   private static final int START_SECONDS = 300;
   private int remaining = START_SECONDS;
   private Timeline timeline;
 
   @FXML
   public void initialize() {
+    // Register this room UI with the shared GameStateContext
+    GameStateContext gameState = App.getGameStateContext();
+    if (gameState != null) {
+      gameState.setRoomUi(this);
+    }
+
     initializeInitialState();
 
     updateTimerLabel(remaining);
@@ -68,24 +78,39 @@ public class RoomFrameController {
     contentHost.setVisible(false);
     contentHost.setManaged(false);
 
-    btnEndGame.setVisible(false);
-    btnEndGame.setManaged(false);
+    if (btnEndGame != null) {
+      btnEndGame.setVisible(false);
+      btnEndGame.setManaged(false);
+    }
 
-    introLabel.setVisible(false);
-    introLabel.setManaged(false);
+    if (introLabel != null) {
+      introLabel.setVisible(false);
+      introLabel.setManaged(false);
+    }
 
-    btnStart.setVisible(true);
-    btnStart.setManaged(true);
-    timerLabel.setVisible(true);
-    timerLabel.setManaged(true);
+    if (btnStart != null) {
+      btnStart.setVisible(true);
+      btnStart.setManaged(true);
+    }
+    if (timerLabel != null) {
+      timerLabel.setVisible(true);
+      timerLabel.setManaged(true);
+    }
   }
 
+  /** Loads chat.fxml and injects the ChatController into GameStateContext. */
   private void loadAndInjectChatController() throws IOException {
     try {
       FXMLLoader chatLoader = new FXMLLoader(getClass().getResource("/fxml/chat.fxml"));
       VBox chatPanel = chatLoader.load();
       ChatController chatController = chatLoader.getController();
-      App.getGameStateContext().setChatController(chatController);
+
+      GameStateContext gameState = App.getGameStateContext();
+      if (gameState != null) {
+        gameState.setChatController(chatController);
+      }
+
+      // Replace the placeholder chatBox content with the real chat panel content
       if (chatBox != null && chatPanel != null) {
         chatBox.getChildren().setAll(chatPanel.getChildren());
       }
@@ -97,31 +122,44 @@ public class RoomFrameController {
 
   @FXML
   private void onStartGame() {
+    // Show and enable all game content
     contentHost.setVisible(true);
     contentHost.setManaged(true);
     contentHost.setDisable(false);
 
-    btnEndGame.setVisible(true);
-    btnEndGame.setManaged(true);
+    if (btnEndGame != null) {
+      btnEndGame.setVisible(true);
+      btnEndGame.setManaged(true);
+    }
 
-    introLabel.setVisible(true);
-    introLabel.setManaged(true);
+    if (introLabel != null) {
+      introLabel.setVisible(true);
+      introLabel.setManaged(true);
+    }
 
-    btnStart.setVisible(false);
-    btnStart.setManaged(false);
+    if (btnStart != null) {
+      btnStart.setVisible(false);
+      btnStart.setManaged(false);
+    }
 
     resetTimer();
     startTimer();
   }
 
   public void showRoom() {
+    // Restore the original room content after returning from a flashback
     if (originalRoomContent != null) {
       contentHost.getChildren().setAll(originalRoomContent);
     } else {
+      System.err.println("No original room content stored - this shouldn't happen");
       contentHost.getChildren().setAll(placeholderNode("Failed to restore room"));
     }
   }
 
+  // Allow flashbacks to navigate back
+  public void backToRoom() {
+    showRoom();
+  }
 
   // Show slideshow for first-time interaction
   public void showSlideshow(Participant participant) {
@@ -129,6 +167,49 @@ public class RoomFrameController {
     try {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
       Parent node = loader.load();
+
+      // Configure slideshow controller
+      Object controller = loader.getController();
+      if (controller instanceof SlideshowController) {
+        SlideshowController slideshowController = (SlideshowController) controller;
+        slideshowController.setParent(this);
+        slideshowController.setGameStateContext(App.getGameStateContext());
+        slideshowController.setCurrentParticipant(participant);
+      }
+
+      // Store original content for restoration
+      if (originalRoomContent == null && !contentHost.getChildren().isEmpty()) {
+        originalRoomContent = contentHost.getChildren().get(0);
+      }
+
+      contentHost.getChildren().setAll(node);
+
+    } catch (Exception ex) {
+      contentHost.getChildren().setAll(placeholderNode("Failed to load slideshow"));
+      ex.printStackTrace();
+    }
+  }
+
+  // Show memory scene for participant
+  public void showMemoryForParticipant(Participant participant) {
+    String fxmlPath = getMemoryFxmlPath(participant);
+    try {
+      FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+      Parent node = loader.load();
+
+      // Configure memory controller
+      Object controller = loader.getController();
+      if (controller instanceof MemoryController) {
+        MemoryController memoryController = (MemoryController) controller;
+        memoryController.setParent(this);
+        memoryController.setGameStateContext(App.getGameStateContext());
+        memoryController.setCurrentParticipant(participant);
+      }
+
+      // Store original content for restoration if not already stored
+      if (originalRoomContent == null && !contentHost.getChildren().isEmpty()) {
+        originalRoomContent = contentHost.getChildren().get(0);
+      }
 
       contentHost.getChildren().setAll(node);
 
@@ -144,27 +225,73 @@ public class RoomFrameController {
       ex.printStackTrace();
     }
   }
+
+  private String getMemoryFxmlPath(Participant participant) {
+    switch (participant) {
+      case DEFENDANT:
+        return "/fxml/memory_defendant.fxml";
+      case AI_WITNESS:
+        return "/fxml/memory_ai_witness.fxml";
+      case HUMAN_WITNESS:
+        return "/fxml/memory_human_witness.fxml";
+      default:
+        return "/fxml/memory_defendant.fxml";
+    }
   }
 
-  // FIXED ORDER: mark -> broadcast -> focus -> request -> show
+  // Hotspot handlers (wired from FXML onAction)
   @FXML
   private void onHotspotA() {
+    System.out.println("DEBUG: Hotspot A clicked - Human Witness");
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.HUMAN_WITNESS;
+
+    if (gameState != null) {
+      if (gameState.isFirstInteraction(participant)) {
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
-    showFlashback(1);
   }
 
   @FXML
   private void onHotspotB() {
+    System.out.println("DEBUG: Hotspot B clicked - AI Witness");
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.AI_WITNESS;
+
+    if (gameState != null) {
+      if (gameState.isFirstInteraction(participant)) {
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
-    showFlashback(2);
   }
 
   @FXML
   private void onHotspotC() {
+    System.out.println("DEBUG: Hotspot C clicked - Defendant");
+    GameStateContext gameState = App.getGameStateContext();
+    Participant participant = ChatController.Participant.DEFENDANT;
+
+    if (gameState != null) {
+      if (gameState.isFirstInteraction(participant)) {
+        System.out.println("DEBUG: First interaction - showing slideshow");
+        showSlideshow(participant);
+      } else {
+        System.out.println("DEBUG: Subsequent interaction - showing memory");
+        showMemoryForParticipant(participant);
+      }
     }
-    showFlashback(3);
   }
 
+  // End Game button handler
   @FXML
   private void onEndGame() {
     GameStateContext gameState = App.getGameStateContext();
@@ -177,6 +304,8 @@ public class RoomFrameController {
     lockRoomInteractions();
     showVerdictWithCountdown();
   }
+
+  // ----------------- Timer -----------------
 
   private void setupTimer() {
     if (timeline != null) timeline.stop();
@@ -221,11 +350,27 @@ public class RoomFrameController {
     timerLabel.setText(String.format("%02d:%02d", mm, ss));
   }
 
+  // ----------------- Center content loading -----------------
+
+  @SuppressWarnings("unused")
+  private void setCenterFromFxml(String resourcePath) {
+    try {
+      FXMLLoader loader = new FXMLLoader(getClass().getResource(resourcePath));
+      Parent node = loader.load();
+      contentHost.getChildren().setAll(node);
+    } catch (IOException ex) {
+      contentHost.getChildren().setAll(placeholderNode("Failed to load content"));
+      ex.printStackTrace();
+    }
+  }
+
   private Node placeholderNode(String text) {
     Label lbl = new Label(text);
     lbl.setStyle("-fx-text-fill: gray;");
     return lbl;
   }
+
+  // ----------------- Overlay controls -----------------
 
   public void showOverlay() {
     overlayRoot.setVisible(true);
@@ -236,6 +381,8 @@ public class RoomFrameController {
     overlayRoot.setVisible(false);
     overlayRoot.setManaged(false);
   }
+
+  // Verdict helpers
 
   public void showVerdictQuestion(String subjectName) {
     try {
@@ -257,6 +404,7 @@ public class RoomFrameController {
     if (contentHost != null) {
       contentHost.setDisable(true);
     }
+    // Chat can be additionally locked via GameStateContext -> ChatController if needed.
   }
 
   private void showVerdictWithCountdown() {
@@ -271,10 +419,12 @@ public class RoomFrameController {
       overlayRoot.getChildren().setAll(verdictNode);
       showOverlay();
 
+      // Optional startCountdown(60, Runnable)
       try {
         Method m = controller.getClass().getMethod("startCountdown", int.class, Runnable.class);
         m.invoke(controller, 60, (Runnable) this::onVerdictTimeout);
       } catch (NoSuchMethodException nsme) {
+        // OK if not present.
       } catch (Exception reflectionError) {
         reflectionError.printStackTrace();
       }
@@ -356,6 +506,9 @@ public class RoomFrameController {
     }
   }
 
+  // ----------------- Game Reset -----------------
+
+  /** Reset the game to the initial state. */
   public void resetToMainRoom() {
     remaining = START_SECONDS;
     updateTimerLabel(remaining);
@@ -365,6 +518,7 @@ public class RoomFrameController {
     setupTimer();
 
     initializeInitialState();
+
     hideOverlay();
     if (overlayRoot != null) {
       overlayRoot.getChildren().clear();
@@ -380,7 +534,22 @@ public class RoomFrameController {
     }
   }
 
+  // ----------------- Cleanup -----------------
+
   public void shutdown() {
     if (timeline != null) timeline.stop();
+  }
+
+  // -------- RoomUiFacade (GameStateContext → Room) --------
+  @Override
+  public void lockInteractions() {
+    lockRoomInteractions();
+  }
+
+  @Override
+  public void unlockInteractions() {
+    if (contentHost != null) {
+      contentHost.setDisable(false);
+    }
   }
 }
