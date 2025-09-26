@@ -3,6 +3,7 @@ package nz.ac.auckland.se206.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
@@ -43,8 +44,20 @@ public class MemoryController {
   @FXML private Button btnExit;
   @FXML private Label lblCookiesAccepted;
 
+  // Frustration level components (for human witness memory)
+  @FXML private VBox frustrationSection;
+  @FXML private Slider frustrationSlider;
+  @FXML private Label frustrationValueLabel;
+  @FXML private Button btnHigher;
+  @FXML private Button btnLower;
+  @FXML private VBox frustrationDialogue;
+  @FXML private Label frustrationSpeaker;
+  @FXML private Label frustrationDialogueText;
+
   // State tracking
   private boolean interactableUsed = false;
+  private int targetFrustrationLevel = 7; // The correct frustration level to guess
+  private boolean frustrationGuessed = false;
 
   public void setParent(RoomFrameController parent) {
     this.parent = parent;
@@ -58,14 +71,14 @@ public class MemoryController {
           .getChatController()
           .setFlashbackChatComponents(lblStatus, txtaChat, txtInput, btnSend);
     }
-    // Update cookie consent visibility when game state is set
-    updateCookieConsentVisibility();
+    // Cookie consent visibility will be updated when setCurrentParticipant is called
   }
 
   public void setCurrentParticipant(Participant participant) {
     this.currentParticipant = participant;
     updateMemoryContext();
     updateCookieConsentVisibility();
+    updateFrustrationSectionVisibility();
   }
 
   @FXML
@@ -79,6 +92,16 @@ public class MemoryController {
     if (interactableElement != null) {
       interactableElement.setOnMouseEntered(e -> showInteractableHighlight());
       interactableElement.setOnMouseExited(e -> hideInteractableHighlight());
+    }
+
+    // Set up frustration slider
+    if (frustrationSlider != null && frustrationValueLabel != null) {
+      frustrationSlider
+          .valueProperty()
+          .addListener(
+              (obs, oldVal, newVal) -> {
+                frustrationValueLabel.setText(String.valueOf(newVal.intValue()));
+              });
     }
   }
 
@@ -134,6 +157,12 @@ public class MemoryController {
 
     String roleKey = getRoleKeyOf(currentParticipant);
     interactableUsed = gameStateContext.getInteractableDone().getOrDefault(roleKey, false);
+
+    // For human witness, check if frustration was already guessed
+    if (currentParticipant == Participant.HUMAN_WITNESS) {
+      frustrationGuessed = interactableUsed;
+      updateFrustrationButtonState();
+    }
 
     updateInteractableState();
   }
@@ -201,13 +230,13 @@ public class MemoryController {
     switch (currentParticipant) {
       case DEFENDANT:
         return "You carefully examine the defendant's private journal, reading their personal"
-                   + " thoughts about the incident...";
+            + " thoughts about the incident...";
       case AI_WITNESS:
         return "You access the AI witness's data analysis core, reviewing the incident data and"
-                   + " processing logs...";
+            + " processing logs...";
       case HUMAN_WITNESS:
         return "You open the witness evidence collection, examining the physical items they"
-                   + " gathered from the scene...";
+            + " gathered from the scene...";
       default:
         return "You examine the interactable element in this memory space...";
     }
@@ -230,14 +259,12 @@ public class MemoryController {
     return interactableUsed;
   }
 
-  /**
-   * Updates cookie consent button visibility based on current state.
-   */
+  /** Updates cookie consent button visibility based on current state. */
   private void updateCookieConsentVisibility() {
     // Only show cookie consent for defendant (Cookie Monster)
     if (currentParticipant == Participant.DEFENDANT && gameStateContext != null) {
       boolean cookiesAccepted = gameStateContext.isCookiesAccepted();
-      
+
       // Hide/show cookie consent buttons based on acceptance state
       if (btnAccept != null) {
         btnAccept.setVisible(!cookiesAccepted);
@@ -245,12 +272,12 @@ public class MemoryController {
       if (btnExit != null) {
         btnExit.setVisible(!cookiesAccepted);
       }
-      
+
       // Show/hide "ALL COOKIES ACCEPTED" label
       if (lblCookiesAccepted != null) {
         lblCookiesAccepted.setVisible(cookiesAccepted);
       }
-      
+
       // Control text input and send button based on cookie acceptance
       if (txtInput != null) {
         txtInput.setDisable(!cookiesAccepted);
@@ -263,7 +290,7 @@ public class MemoryController {
       if (btnSend != null) {
         btnSend.setDisable(!cookiesAccepted);
       }
-      
+
       // If cookies are already accepted, request opening message
       if (cookiesAccepted) {
         requestOpeningMessage();
@@ -279,7 +306,7 @@ public class MemoryController {
       if (lblCookiesAccepted != null) {
         lblCookiesAccepted.setVisible(false);
       }
-      
+
       // Enable chat for other participants
       if (txtInput != null) {
         txtInput.setDisable(false);
@@ -288,7 +315,7 @@ public class MemoryController {
       if (btnSend != null) {
         btnSend.setDisable(false);
       }
-      
+
       // Request opening message for other participants
       if (currentParticipant != null) {
         requestOpeningMessage();
@@ -296,27 +323,25 @@ public class MemoryController {
     }
   }
 
-  /**
-   * Request opening message from the current participant.
-   */
+  /** Request opening message from the current participant. */
   private void requestOpeningMessage() {
-    if (gameStateContext != null && gameStateContext.getChatController() != null && currentParticipant != null) {
+    if (gameStateContext != null
+        && gameStateContext.getChatController() != null
+        && currentParticipant != null) {
       // Mark participant as contacted so subsequent clicks go directly to memory
       gameStateContext.markParticipantContacted(currentParticipant);
-      
+
       gameStateContext.getChatController().selectParticipant(currentParticipant);
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
   }
 
-  /**
-   * Handles accepting cookies for the defendant memory scene.
-   */
+  /** Handles accepting cookies for the defendant memory scene. */
   @FXML
   private void onAcceptCookies() {
     // Mark that the defendant has accepted cookies
     gameStateContext.acceptCookies();
-    
+
     // Hide the cookie consent buttons
     if (btnAccept != null) {
       btnAccept.setVisible(false);
@@ -324,12 +349,12 @@ public class MemoryController {
     if (btnExit != null) {
       btnExit.setVisible(false);
     }
-    
+
     // Show "ALL COOKIES ACCEPTED" label
     if (lblCookiesAccepted != null) {
       lblCookiesAccepted.setVisible(true);
     }
-    
+
     // Enable chat input and send button
     if (txtInput != null) {
       txtInput.setDisable(false);
@@ -338,20 +363,155 @@ public class MemoryController {
     if (btnSend != null) {
       btnSend.setDisable(false);
     }
-    
+
     // Request opening message from Cookie Monster
     requestOpeningMessage();
   }
 
-  /**
-   * Handles declining cookies and exiting the defendant memory scene.
-   */
+  /** Handles declining cookies and exiting the defendant memory scene. */
   @FXML
   private void onDeclineCookies() {
     // Don't set cookies as accepted
     // Return to room
     if (parent != null) {
       parent.backToRoom();
+    }
+  }
+
+  /** Handles the "Higher" button click for frustration guessing. */
+  @FXML
+  private void onFrustrationHigher() {
+    if (frustrationGuessed) {
+      return; // Already guessed correctly
+    }
+
+    int currentGuess = (int) frustrationSlider.getValue();
+
+    if (currentGuess < targetFrustrationLevel) {
+      // Player guessed too low, show dialogue indicating frustration is higher
+      showFrustrationDialogue(
+          "You're right, I'm even MORE frustrated than that! This whole situation is driving me"
+              + " crazy!");
+    } else if (currentGuess == targetFrustrationLevel) {
+      // Perfect guess!
+      onCorrectFrustrationGuess();
+    } else {
+      // Player guessed too high
+      showFrustrationDialogue(
+          "Actually, I'm not THAT frustrated... but close. Try adjusting the slider.");
+    }
+  }
+
+  /** Handles the "Lower" button click for frustration guessing. */
+  @FXML
+  private void onFrustrationLower() {
+    if (frustrationGuessed) {
+      return; // Already guessed correctly
+    }
+
+    int currentGuess = (int) frustrationSlider.getValue();
+
+    if (currentGuess > targetFrustrationLevel) {
+      // Player guessed too high, show dialogue indicating frustration is lower
+      showFrustrationDialogue(
+          "Well, I'm not THAT angry... but I'm still pretty upset about what happened.");
+    } else if (currentGuess == targetFrustrationLevel) {
+      // Perfect guess!
+      onCorrectFrustrationGuess();
+    } else {
+      // Player guessed too low
+      showFrustrationDialogue(
+          "No no, I'm more frustrated than that! This whole mess has me really worked up!");
+    }
+  }
+
+  /** Handles when the player correctly guesses the frustration level. */
+  private void onCorrectFrustrationGuess() {
+    frustrationGuessed = true;
+
+    // Grey out the buttons
+    if (btnHigher != null) {
+      btnHigher.setDisable(true);
+      btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+    }
+    if (btnLower != null) {
+      btnLower.setDisable(true);
+      btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+    }
+
+    // Show angry dialogue
+    showFrustrationDialogue(
+        "EXACTLY! I'm at a "
+            + targetFrustrationLevel
+            + " out of 10! I can't believe this happened! I saw everything and I'm absolutely livid"
+            + " about the whole situation! Someone needs to pay for what they did!");
+
+    // Mark this interactive element as used
+    if (gameStateContext != null && currentParticipant == Participant.HUMAN_WITNESS) {
+      gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
+      interactableUsed = true;
+    }
+  }
+
+  /** Shows the frustration dialogue with the given text. */
+  private void showFrustrationDialogue(String dialogueText) {
+    if (frustrationDialogue != null && frustrationDialogueText != null) {
+      frustrationDialogueText.setText(dialogueText);
+      frustrationDialogue.setVisible(true);
+    }
+  }
+
+  /** Updates the frustration section visibility based on current participant. */
+  private void updateFrustrationSectionVisibility() {
+    if (frustrationSection != null) {
+      // Only show frustration section for human witness
+      boolean showFrustration = (currentParticipant == Participant.HUMAN_WITNESS);
+      frustrationSection.setVisible(showFrustration);
+
+      if (showFrustration) {
+        updateFrustrationButtonState();
+      }
+    }
+  }
+
+  /**
+   * Updates the state of frustration buttons and dialogue based on whether it was already guessed.
+   */
+  private void updateFrustrationButtonState() {
+    if (frustrationGuessed) {
+      // Already guessed correctly - grey out buttons and show dialogue
+      if (btnHigher != null) {
+        btnHigher.setDisable(true);
+        btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+      }
+      if (btnLower != null) {
+        btnLower.setDisable(true);
+        btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
+      }
+      // Show the final dialogue
+      showFrustrationDialogue(
+          "EXACTLY! I'm at a "
+              + targetFrustrationLevel
+              + " out of 10! I can't believe this happened! I saw everything and I'm absolutely"
+              + " livid about the whole situation! Someone needs to pay for what they did!");
+    } else {
+      // Not guessed yet - reset dialogue and enable buttons
+      if (frustrationDialogue != null) {
+        frustrationDialogue.setVisible(false);
+      }
+
+      if (btnHigher != null) {
+        btnHigher.setDisable(false);
+        btnHigher.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #ff5252; -fx-text-fill: white;"
+                + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
+      }
+      if (btnLower != null) {
+        btnLower.setDisable(false);
+        btnLower.setStyle(
+            "-fx-font-size: 16px; -fx-background-color: #4caf50; -fx-text-fill: white;"
+                + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
+      }
     }
   }
 }

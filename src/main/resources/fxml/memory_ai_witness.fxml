@@ -15,6 +15,12 @@
 
     <center>
         <VBox alignment="CENTER" spacing="20">
+            <!-- Back button positioned prominently at the top-right -->
+            <HBox alignment="CENTER_RIGHT" style="-fx-padding: 10 20 0 20;">
+                <Button text="← Back to Room" onAction="#onBackToRoom" 
+                        style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2);" />
+            </HBox>
+            
             <ImageView fitHeight="240" preserveRatio="true">
                 <image>
                     <Image url="@/images/memoryscene2-aiWitness.png" />
@@ -55,9 +61,5 @@
             </HBox>
         </VBox>
     </right>
-    
-    <bottom>
-        <Button onAction="#onBackToRoom" text="Back to room" />
-    </bottom>
 
 </BorderPane>
