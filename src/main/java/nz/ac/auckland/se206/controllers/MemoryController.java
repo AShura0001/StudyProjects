@@ -668,7 +668,7 @@ public class MemoryController {
     }
 
     // Create new target button
-    Button target = new Button("Accept All");
+    Button target = new Button("Accept");
     target.setStyle(
         "-fx-font-size: 12px; -fx-background-color: #ffe066; -fx-text-fill: #222; "
         + "-fx-pref-width: 80; -fx-pref-height: 25; -fx-font-weight: bold; "
@@ -697,8 +697,8 @@ public class MemoryController {
     // Debug output
     System.out.println("DEBUG: Spawned target at (" + x + ", " + y + ") in area " + areaWidth + "x" + areaHeight);
 
-    // Set target to disappear after 2 seconds
-    Timeline disappearTimer = new Timeline(new KeyFrame(Duration.seconds(2), e -> onTargetMiss(target)));
+    // Set target to disappear after 0.7 seconds (faster for increased difficulty)
+    Timeline disappearTimer = new Timeline(new KeyFrame(Duration.seconds(0.7), e -> onTargetMiss(target)));
     disappearTimer.play();
   }
 
@@ -719,7 +719,7 @@ public class MemoryController {
     updateGameStats();
 
     // Check win condition
-    if (gameScore >= 15) {
+    if (gameScore >= 10) {
       endGame(true);
     }
   }
@@ -747,7 +747,7 @@ public class MemoryController {
   /** Updates the game statistics display */
   private void updateGameStats() {
     if (lblScore != null) {
-      lblScore.setText(gameScore + "/15");
+      lblScore.setText(gameScore + "/10");
     }
     if (lblMisses != null) {
       lblMisses.setText(consecutiveMisses + "/3");
