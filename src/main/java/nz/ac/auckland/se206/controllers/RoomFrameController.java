@@ -122,6 +122,12 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   @FXML
   private void onStartGame() {
+    // Fresh round: clear any prior awareness so nobody "knows" anything up front.
+    GameStateContext gs = App.getGameStateContext();
+    if (gs != null) {
+      gs.resetAwareness();
+    }
+
     // Show and enable all game content
     contentHost.setVisible(true);
     contentHost.setManaged(true);
@@ -165,19 +171,14 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   /** Hides main courtroom UI elements that shouldn't appear in memory scenes */
   private void hideMainCourtUIForMemory() {
-    // Hide the intro label at the bottom
     if (introLabel != null) {
       introLabel.setVisible(false);
       introLabel.setManaged(false);
     }
-
-    // Hide the deliver verdict button but keep the timer visible
     if (btnEndGame != null) {
       btnEndGame.setVisible(false);
       btnEndGame.setManaged(false);
     }
-
-    // Keep timer visible - it should show in all scenes including memory
     if (timerLabel != null) {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
@@ -186,19 +187,14 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   /** Shows main courtroom UI elements when returning to the main room */
   private void showMainCourtUIForRoom() {
-    // Show the intro label at the bottom
     if (introLabel != null) {
       introLabel.setVisible(true);
       introLabel.setManaged(true);
     }
-
-    // Show the deliver verdict button
     if (btnEndGame != null) {
       btnEndGame.setVisible(true);
       btnEndGame.setManaged(true);
     }
-
-    // Keep timer visible
     if (timerLabel != null) {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
@@ -212,7 +208,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
       Parent node = loader.load();
 
-      // Configure slideshow controller
       Object controller = loader.getController();
       if (controller instanceof SlideshowController) {
         SlideshowController slideshowController = (SlideshowController) controller;
@@ -221,14 +216,11 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
         slideshowController.setCurrentParticipant(participant);
       }
 
-      // Store original content for restoration
       if (originalRoomContent == null && !contentHost.getChildren().isEmpty()) {
         originalRoomContent = contentHost.getChildren().get(0);
       }
 
       contentHost.getChildren().setAll(node);
-
-      // Hide main courtroom UI elements for slideshow too
       hideMainCourtUIForMemory();
 
     } catch (Exception ex) {
@@ -244,7 +236,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
       Parent node = loader.load();
 
-      // Configure memory controller
       Object controller = loader.getController();
       if (controller instanceof MemoryController) {
         MemoryController memoryController = (MemoryController) controller;
@@ -253,21 +244,16 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
         memoryController.setCurrentParticipant(participant);
       }
 
-      // Store original content for restoration if not already stored
       if (originalRoomContent == null && !contentHost.getChildren().isEmpty()) {
         originalRoomContent = contentHost.getChildren().get(0);
       }
 
       contentHost.getChildren().setAll(node);
-
-      // Hide main courtroom UI elements that shouldn't appear in memory scenes
       hideMainCourtUIForMemory();
 
-      // Set up chat for this participant (opening message will be handled by MemoryController)
       GameStateContext gameState = App.getGameStateContext();
       if (gameState != null) {
         gameState.focusChatForParticipant(participant);
-        // Removed duplicate requestOpeningMessage call - MemoryController handles this
       }
 
     } catch (Exception ex) {
@@ -289,7 +275,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  // Hotspot handlers (wired from FXML onAction)
   @FXML
   private void onHotspotA() {
     System.out.println("DEBUG: Hotspot A clicked - Human Witness");
@@ -298,10 +283,8 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
     if (gameState != null) {
       if (gameState.isFirstInteraction(participant)) {
-        System.out.println("DEBUG: First interaction - showing slideshow");
         showSlideshow(participant);
       } else {
-        System.out.println("DEBUG: Subsequent interaction - showing memory");
         showMemoryForParticipant(participant);
       }
     }
@@ -315,10 +298,8 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
     if (gameState != null) {
       if (gameState.isFirstInteraction(participant)) {
-        System.out.println("DEBUG: First interaction - showing slideshow");
         showSlideshow(participant);
       } else {
-        System.out.println("DEBUG: Subsequent interaction - showing memory");
         showMemoryForParticipant(participant);
       }
     }
@@ -331,19 +312,17 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     Participant participant = ChatController.Participant.DEFENDANT;
 
     if (gameState != null) {
-
-      if (gameState.isFirstInteraction(participant)) {
-        System.out.println("DEBUG: First interaction - showing slideshow");
+      if (!gameState.hasSeenSlideshow(participant)) {
+        System.out.println("DEBUG: First time ever - showing slideshow");
+        gameState.markSlideshowSeen(participant); // ✅ mark immediately
         showSlideshow(participant);
       } else {
-        System.out.println("DEBUG: Subsequent interaction - showing memory");
-
+        System.out.println("DEBUG: Already seen slideshow - showing memory");
         showMemoryForParticipant(participant);
       }
     }
   }
 
-  // End Game button handler
   /** Helper method to get role key for a participant */
   private String getRoleKeyForParticipant(Participant participant) {
     if (participant == null) return "ai_defendant";
@@ -358,7 +337,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  // NEW: End Game button handler
   @FXML
   private void onEndGame() {
     GameStateContext gameState = App.getGameStateContext();
@@ -417,8 +395,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     timerLabel.setText(String.format("%02d:%02d", mm, ss));
   }
 
-  // ----------------- Center content loading -----------------
-
   @SuppressWarnings("unused")
   private void setCenterFromFxml(String resourcePath) {
     try {
@@ -471,7 +447,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     if (contentHost != null) {
       contentHost.setDisable(true);
     }
-    // Chat can be additionally locked via GameStateContext -> ChatController if needed.
   }
 
   private void showVerdictWithCountdown() {
@@ -486,12 +461,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       overlayRoot.getChildren().setAll(verdictNode);
       showOverlay();
 
-      // Optional startCountdown(60, Runnable)
       try {
         Method m = controller.getClass().getMethod("startCountdown", int.class, Runnable.class);
         m.invoke(controller, 60, (Runnable) this::onVerdictTimeout);
       } catch (NoSuchMethodException nsme) {
-        // OK if not present.
       } catch (Exception reflectionError) {
         reflectionError.printStackTrace();
       }
@@ -570,6 +543,26 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
         return "Casey (Human Witness)";
       default:
         return "Unknown Participant";
+    }
+  }
+
+  // Concise summaries for the broadcast
+  private String flashbackSummary(Participant p) {
+    switch (p) {
+      case HUMAN_WITNESS:
+        return "Casey’s(Human witness) flashback: While browsing a site, Cookie Monster"
+            + " auto-accepted all tracking cookies without asking; later a gym video watch"
+            + " was fully tracked, followed by a targeted supplement ad matching that"
+            + " video.";
+      case AI_WITNESS:
+        return "Sentri-Guard’s (ai witness) flashback: Audit flagged Cookie Monster v2.3"
+            + " auto-accepting ALL cookies; targeted ads spiked 340% and data flowed to many"
+            + " third parties; explicit/granular consent was missing.";
+      case DEFENDANT:
+      default:
+        return "Cookie Monster’s (ai defendant) flashback: On cookie popup, it clicked “Accept All”"
+            + " to reduce friction based on past hesitation; background collection then"
+            + " shared browsing data with advertisers, overriding user consent.";
     }
   }
 
