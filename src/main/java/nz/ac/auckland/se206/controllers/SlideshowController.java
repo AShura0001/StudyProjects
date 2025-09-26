@@ -74,7 +74,7 @@ public class SlideshowController {
               + "expanded without consent, data shared across 47 third-party networks. "
               + "All violations documented in real-time."),
       new Slide(
-          "/images/memoryscene2-aiWitness.png",
+          "/images/flashbackSlide3-aiWitness.png",
           "Compliance chart gaps: EXPLICIT consent - MISSING, GRANULAR control - MISSING, "
               + "FREELY-GIVEN choice - MISSING. Cookie Monster non-compliant with industry "
               + "standards. Evidence undeniable.")

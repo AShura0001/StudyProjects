@@ -54,6 +54,11 @@ public class MemoryController {
   @FXML private Label frustrationSpeaker;
   @FXML private Label frustrationDialogueText;
 
+  // AI witness memory components
+  @FXML private Button btnAnalyzeMemory;
+  @FXML private Button btnValidateMemory;
+  @FXML private VBox memoryLog;
+
   // State tracking
   private boolean interactableUsed = false;
   private int targetFrustrationLevel = 7; // The correct frustration level to guess
@@ -79,6 +84,7 @@ public class MemoryController {
     updateMemoryContext();
     updateCookieConsentVisibility();
     updateFrustrationSectionVisibility();
+    updateAiWitnessButtonState();
   }
 
   @FXML
@@ -162,6 +168,11 @@ public class MemoryController {
     if (currentParticipant == Participant.HUMAN_WITNESS) {
       frustrationGuessed = interactableUsed;
       updateFrustrationButtonState();
+    }
+
+    // For AI witness, update button states
+    if (currentParticipant == Participant.AI_WITNESS) {
+      updateAiWitnessButtonState();
     }
 
     updateInteractableState();
@@ -475,6 +486,109 @@ public class MemoryController {
         btnLower.setStyle(
             "-fx-font-size: 16px; -fx-background-color: #4caf50; -fx-text-fill: white;"
                 + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
+      }
+    }
+  }
+
+  /** Updates the AI witness button states based on whether the interactable has been used. */
+  private void updateAiWitnessButtonState() {
+    if (currentParticipant == Participant.AI_WITNESS) {
+      if (interactableUsed) {
+        // Buttons already used - disable them
+        if (btnAnalyzeMemory != null) {
+          btnAnalyzeMemory.setDisable(true);
+          btnAnalyzeMemory.setText("Data Analyzed");
+          btnAnalyzeMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+        }
+        if (btnValidateMemory != null) {
+          btnValidateMemory.setDisable(true);
+          btnValidateMemory.setText("Validated");
+          btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+        }
+      } else {
+        // Reset buttons to enabled state
+        if (btnAnalyzeMemory != null) {
+          btnAnalyzeMemory.setDisable(false);
+          btnAnalyzeMemory.setText("Analyze Data");
+          btnAnalyzeMemory.setStyle("-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 120;");
+        }
+        if (btnValidateMemory != null) {
+          btnValidateMemory.setDisable(false);
+          btnValidateMemory.setText("Validate");
+          btnValidateMemory.setStyle("-fx-font-size: 14px; -fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-pref-width: 120;");
+        }
+      }
+    }
+  }
+
+  // AI Witness memory actions
+  @FXML
+  private void onAnalyzeMemory() {
+    if (gameStateContext != null && currentParticipant == Participant.AI_WITNESS) {
+      String roleKey = getRoleKeyOf(currentParticipant);
+      
+      // Mark the interactable as done
+      gameStateContext.markInteractableDone(roleKey);
+      interactableUsed = true;
+      
+      // Disable the buttons after use
+      if (btnAnalyzeMemory != null) {
+        btnAnalyzeMemory.setDisable(true);
+        btnAnalyzeMemory.setText("Data Analyzed");
+        btnAnalyzeMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
+      if (btnValidateMemory != null) {
+        btnValidateMemory.setDisable(true);
+        btnValidateMemory.setText("Validated");
+        btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
+      
+      // Add interaction message to chat
+      notifyAiWitnessInteraction("Analyze Data");
+      System.out.println("DEBUG: AI Witness memory analysis completed");
+    }
+  }
+  
+  @FXML
+  private void onValidateMemory() {
+    if (gameStateContext != null && currentParticipant == Participant.AI_WITNESS) {
+      String roleKey = getRoleKeyOf(currentParticipant);
+      
+      // Mark the interactable as done
+      gameStateContext.markInteractableDone(roleKey);
+      interactableUsed = true;
+      
+      // Disable the buttons after use
+      if (btnAnalyzeMemory != null) {
+        btnAnalyzeMemory.setDisable(true);
+        btnAnalyzeMemory.setText("Data Analyzed");
+        btnAnalyzeMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
+      if (btnValidateMemory != null) {
+        btnValidateMemory.setDisable(true);
+        btnValidateMemory.setText("Validated");
+        btnValidateMemory.setStyle("-fx-opacity: 0.6; -fx-background-color: #cccccc;");
+      }
+      
+      // Add interaction message to chat
+      notifyAiWitnessInteraction("Validate");
+      System.out.println("DEBUG: AI Witness memory validation completed");
+    }
+  }
+  
+  /**
+   * Notifies the chat system about AI witness memory interaction
+   */
+  private void notifyAiWitnessInteraction(String action) {
+    if (gameStateContext != null && gameStateContext.getChatController() != null && txtaChat != null) {
+      String interactionMessage = "[SYSTEM] You " + action.toLowerCase() + "d the AI witness's memory data analysis core, accessing detailed incident logs and processing records...";
+      
+      String currentText = txtaChat.getText();
+      txtaChat.setText(currentText + interactionMessage + "\n\n");
+      
+      // Request an opening message from the AI witness if they haven't been contacted yet
+      if (gameStateContext.isFirstInteraction(currentParticipant)) {
+        requestOpeningMessage();
       }
     }
   }
