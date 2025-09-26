@@ -1,9 +1,17 @@
 package nz.ac.auckland.se206.controllers;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
@@ -12,10 +20,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
+import nz.ac.auckland.se206.persona.AwarenessFormatter; // <-- NEW: push rows/memory into AWARENESS
+import nz.ac.auckland.se206.persona.ConversationBus; // awareness broadcast bus
 
 /**
  * Controller for memory scenes where players interact with participants in their memory spaces with
- * unique interactable elements.
+ * unique interactable elements. Also implements the AI Witness "Simple Audit Log".
  */
 public class MemoryController {
   private RoomFrameController parent;
@@ -54,10 +64,33 @@ public class MemoryController {
   @FXML private Label frustrationSpeaker;
   @FXML private Label frustrationDialogueText;
 
+  // ---- Simple Audit Log (AI Witness) ----
+  @FXML private VBox auditPanel;
+  @FXML private Button btnLoadSample;
+  @FXML private Button btnFilterAllowed;
+  @FXML private Button btnFilterBlocked;
+  @FXML private Button btnResetFilters;
+  @FXML private Button btnExplainSelected;
+  @FXML private Button btnCloseAudit;
+
+  @FXML private TableView<AuditRow> auditTable;
+  @FXML private TableColumn<AuditRow, String> colTime;
+  @FXML private TableColumn<AuditRow, String> colSite;
+  @FXML private TableColumn<AuditRow, String> colAction;
+  @FXML private TableColumn<AuditRow, String> colAllowed;
+  @FXML private Label auditStatus;
+  @FXML private Label auditTitle;
+
+  private final ObservableList<AuditRow> auditMaster = FXCollections.observableArrayList();
+  private FilteredList<AuditRow> auditFiltered;
+
   // State tracking
   private boolean interactableUsed = false;
   private int targetFrustrationLevel = 7; // The correct frustration level to guess
   private boolean frustrationGuessed = false;
+
+  // Theme tracking (Matrix theme for AI_WITNESS)
+  private boolean matrixThemeApplied = false;
 
   public void setParent(RoomFrameController parent) {
     this.parent = parent;
@@ -66,12 +99,11 @@ public class MemoryController {
   public void setGameStateContext(GameStateContext gameStateContext) {
     this.gameStateContext = gameStateContext;
     if (gameStateContext != null && gameStateContext.getChatController() != null) {
-      // Connect memory chat widgets to the main ChatController
       gameStateContext
           .getChatController()
           .setFlashbackChatComponents(lblStatus, txtaChat, txtInput, btnSend);
     }
-    // Cookie consent visibility will be updated when setCurrentParticipant is called
+    enableChatAutoScroll();
   }
 
   public void setCurrentParticipant(Participant participant) {
@@ -79,31 +111,35 @@ public class MemoryController {
     updateMemoryContext();
     updateCookieConsentVisibility();
     updateFrustrationSectionVisibility();
+    applyThemeForParticipant();
   }
 
   @FXML
   private void initialize() {
-    // Initialize UI state
     if (interactableHighlight != null) {
       interactableHighlight.setVisible(false);
+      interactableHighlight.setMouseTransparent(true); // overlay never steals clicks
     }
 
-    // Set up interactable hover effects
     if (interactableElement != null) {
+      interactableElement.setPickOnBounds(true);
       interactableElement.setOnMouseEntered(e -> showInteractableHighlight());
       interactableElement.setOnMouseExited(e -> hideInteractableHighlight());
     }
 
-    // Set up frustration slider
     if (frustrationSlider != null && frustrationValueLabel != null) {
       frustrationSlider
           .valueProperty()
           .addListener(
-              (obs, oldVal, newVal) -> {
-                frustrationValueLabel.setText(String.valueOf(newVal.intValue()));
-              });
+              (obs, oldVal, newVal) ->
+                  frustrationValueLabel.setText(String.valueOf(newVal.intValue())));
     }
+
+    enableChatAutoScroll();
+    initAuditTable();
   }
+
+  // ---------------- Navigation ----------------
 
   @FXML
   private void onBackToRoom() {
@@ -112,9 +148,10 @@ public class MemoryController {
     }
   }
 
+  // ---------------- Chat send ----------------
+
   @FXML
   private void onSendMessage() {
-    // For defendant (Cookie Monster), only allow chat if cookies are accepted
     if (currentParticipant == Participant.DEFENDANT) {
       if (gameStateContext != null
           && gameStateContext.isCookiesAccepted()
@@ -122,49 +159,105 @@ public class MemoryController {
         gameStateContext.getChatController().onSendMessage();
       }
     } else {
-      // For other participants, allow chat normally
       if (gameStateContext != null && gameStateContext.getChatController() != null) {
         gameStateContext.getChatController().onSendMessage();
       }
     }
   }
 
+  // ---------------- Interactable click ----------------
+
   @FXML
   private void onInteractableClick() {
-    if (gameStateContext == null || currentParticipant == null) {
-      return;
-    }
+    if (gameStateContext == null || currentParticipant == null) return;
 
     String roleKey = getRoleKeyOf(currentParticipant);
 
-    // Mark interactable as used
     gameStateContext.markInteractableDone(roleKey);
     interactableUsed = true;
-
-    // Update UI to show interaction happened
     updateInteractableState();
 
-    // Notify chat system about the interaction
-    notifyChatAboutInteraction();
+    if (currentParticipant == Participant.AI_WITNESS) {
+      if (interactableContainer != null) interactableContainer.setVisible(false);
+      if (auditPanel != null) {
+        auditPanel.setVisible(true);
+        auditPanel.toFront();
+      }
+      setAuditStatus("Tap Load");
 
-    System.out.println("DEBUG: Interactable used for " + roleKey);
+      // Record a memory event in global awareness and broadcast to all personas
+      AwarenessFormatter.addMemoryEvent("ai_witness", "Opened Simple Audit Log");
+      broadcastAuditOpenedAwareness();
+    }
+
+    notifyChatAboutInteraction();
+  }
+
+  /** Broadcast a room-wide awareness line so all personas know this memory was opened. */
+  private void broadcastAuditOpenedAwareness() {
+    String msg =
+        "[AWARENESS] Memory used → AI Witness (Sentri-Guard): Simple Audit Log opened; "
+            + "shows ALLOWED (no consent) vs BLOCKED (human) events, including a path "
+            + "‘watched gym video → cross-site tracking → targeted supplement ads’.";
+    postToBusAndChat(msg);
+  }
+
+  /** Broadcast each audit row verbatim so personas can quote it exactly. */
+  private void broadcastAuditRows() {
+    postToBusAndChat("[AWARENESS] Simple Audit Log (Sentri-Guard):");
+    for (AuditRow r : auditMaster) {
+      String line =
+          "\""
+              + r.getSite()
+              + " — "
+              + r.getAction()
+              + " — Allowed? "
+              + r.getAllowed()
+              + "\" (Source: Sentri-Guard / AI Witness)";
+      postToBusAndChat(line);
+    }
+  }
+
+  /** Push all audit rows into AWARENESS so the LLMs can recall them exactly. */
+  private void syncAwarenessWithAuditRows() {
+    AwarenessFormatter.clearAuditItems();
+    for (AuditRow r : auditMaster) {
+      AwarenessFormatter.addAuditItem(r.getSite(), r.getAction(), r.getAllowed());
+    }
+  }
+
+  /** Helper to broadcast to the ConversationBus and mirror to local chat. */
+  private void postToBusAndChat(String message) {
+    try {
+      ConversationBus.getInstance().post("room", message);
+    } catch (Throwable ignored) {
+      // If the bus isn't available in a given test harness, we still show it in the chat.
+    }
+    if (txtaChat != null) {
+      txtaChat.appendText(message + "\n");
+    }
   }
 
   private void updateMemoryContext() {
-    if (gameStateContext == null || currentParticipant == null) {
-      return;
-    }
+    if (gameStateContext == null || currentParticipant == null) return;
 
     String roleKey = getRoleKeyOf(currentParticipant);
     interactableUsed = gameStateContext.getInteractableDone().getOrDefault(roleKey, false);
 
-    // For human witness, check if frustration was already guessed
     if (currentParticipant == Participant.HUMAN_WITNESS) {
       frustrationGuessed = interactableUsed;
       updateFrustrationButtonState();
     }
 
     updateInteractableState();
+
+    if (currentParticipant == Participant.AI_WITNESS && interactableUsed) {
+      if (interactableContainer != null) interactableContainer.setVisible(false);
+      if (auditPanel != null) {
+        auditPanel.setVisible(true);
+        auditPanel.toFront();
+      }
+    }
   }
 
   private String getRoleKeyOf(Participant participant) {
@@ -175,7 +268,6 @@ public class MemoryController {
       case AI_WITNESS:
         return "ai_witness";
       case DEFENDANT:
-        return "ai_defendant";
       default:
         return "ai_defendant";
     }
@@ -186,11 +278,11 @@ public class MemoryController {
       if (interactableUsed) {
         interactableElement.setDisable(true);
         interactableElement.setStyle("-fx-opacity: 0.6;");
-        interactableLabel.setText("Already examined");
+        interactableLabel.setText("Already opened");
       } else {
         interactableElement.setDisable(false);
         interactableElement.setStyle("-fx-opacity: 1.0;");
-        interactableLabel.setText("Click to examine");
+        interactableLabel.setText("Open the Simple Audit Log");
       }
     }
   }
@@ -208,50 +300,26 @@ public class MemoryController {
   }
 
   private void notifyChatAboutInteraction() {
-    // Send a contextual message about the interaction
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
       String interactionMessage = getInteractionMessage();
-
-      // Add a system message to indicate the interaction happened
       if (txtaChat != null) {
-        String currentText = txtaChat.getText();
-        String systemMessage = "[SYSTEM] " + interactionMessage + "\n\n";
-        txtaChat.setText(currentText + systemMessage);
+        txtaChat.appendText("[SYSTEM] " + interactionMessage + "\n\n");
       }
-
-      System.out.println(
-          "DEBUG: Player interacted with " + getInteractableName() + " for " + currentParticipant);
     }
   }
 
   private String getInteractionMessage() {
     switch (currentParticipant) {
       case DEFENDANT:
-        return "You carefully examine the defendant's private journal, reading their personal"
-            + " thoughts about the incident...";
+        return "You checked the defendant’s journal.";
       case AI_WITNESS:
-        return "You access the AI witness's data analysis core, reviewing the incident data and"
-            + " processing logs...";
+        return "You opened the audit log (allowed vs blocked).";
       case HUMAN_WITNESS:
-        return "You open the witness evidence collection, examining the physical items they"
-            + " gathered from the scene...";
+        return "You reviewed the witness’s evidence.";
       default:
-        return "You examine the interactable element in this memory space...";
-    }
-  }
-
-  private String getInteractableName() {
-    switch (currentParticipant) {
-      case DEFENDANT:
-        return "Private Journal";
-      case AI_WITNESS:
-        return "Data Analysis Core";
-      case HUMAN_WITNESS:
-        return "Evidence Collection";
-      default:
-        return "Memory Object";
+        return "You examine the memory object.";
     }
   }
 
@@ -259,31 +327,23 @@ public class MemoryController {
     return interactableUsed;
   }
 
-  /** Updates cookie consent button visibility based on current state. */
+  // ---------------- Cookie gating (Defendant) ----------------
+
   private void updateCookieConsentVisibility() {
     if (currentParticipant == Participant.DEFENDANT && gameStateContext != null) {
       boolean cookiesAccepted = gameStateContext.isCookiesAccepted();
 
-      if (btnAccept != null) {
-        btnAccept.setVisible(!cookiesAccepted);
-      }
-      if (btnExit != null) {
-        btnExit.setVisible(!cookiesAccepted);
-      }
-      if (lblCookiesAccepted != null) {
-        lblCookiesAccepted.setVisible(cookiesAccepted);
-      }
+      if (btnAccept != null) btnAccept.setVisible(!cookiesAccepted);
+      if (btnExit != null) btnExit.setVisible(!cookiesAccepted);
+      if (lblCookiesAccepted != null) lblCookiesAccepted.setVisible(cookiesAccepted);
 
       if (txtInput != null) {
         txtInput.setDisable(!cookiesAccepted);
         txtInput.setPromptText(
             cookiesAccepted ? "Type your message here..." : "Accept cookies first to type in");
       }
-      if (btnSend != null) {
-        btnSend.setDisable(!cookiesAccepted);
-      }
+      if (btnSend != null) btnSend.setDisable(!cookiesAccepted);
     } else {
-      // For other participants
       if (btnAccept != null) btnAccept.setVisible(false);
       if (btnExit != null) btnExit.setVisible(false);
       if (lblCookiesAccepted != null) lblCookiesAccepted.setVisible(false);
@@ -294,21 +354,17 @@ public class MemoryController {
       }
       if (btnSend != null) btnSend.setDisable(false);
 
-      // Keep opening message for others
       if (currentParticipant != null) {
         requestOpeningMessage();
       }
     }
   }
 
-  /** Request opening message from the current participant. */
   private void requestOpeningMessage() {
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
-      // Mark participant as contacted so subsequent clicks go directly to memory
       gameStateContext.markParticipantContacted(currentParticipant);
-
       gameStateContext.getChatController().selectParticipant(currentParticipant);
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
@@ -328,72 +384,44 @@ public class MemoryController {
     }
     if (btnSend != null) btnSend.setDisable(false);
 
-    // ✅ Only here do we trigger the Defendant’s opening message once
     requestOpeningMessage();
   }
 
-  /** Handles declining cookies and exiting the defendant memory scene. */
   @FXML
   private void onDeclineCookies() {
-    // Don't set cookies as accepted
-    // Return to room
-    if (parent != null) {
-      parent.backToRoom();
-    }
+    if (parent != null) parent.backToRoom();
   }
 
-  /** Handles the "Higher" button click for frustration guessing. */
+  // ---------------- Human frustration mini-game ----------------
+
   @FXML
   private void onFrustrationHigher() {
-    if (frustrationGuessed) {
-      return; // Already guessed correctly
-    }
-
+    if (frustrationGuessed) return;
     int currentGuess = (int) frustrationSlider.getValue();
-
     if (currentGuess < targetFrustrationLevel) {
-      // Player guessed too low, show dialogue indicating frustration is higher
-      showFrustrationDialogue(
-          "You're right, I'm even MORE frustrated than that! This whole situation is driving me"
-              + " crazy!");
+      showFrustrationDialogue("Higher than that!");
     } else if (currentGuess == targetFrustrationLevel) {
-      // Perfect guess!
       onCorrectFrustrationGuess();
     } else {
-      // Player guessed too high
-      showFrustrationDialogue(
-          "Actually, I'm not THAT frustrated... but close. Try adjusting the slider.");
+      showFrustrationDialogue("That's a bit too high.");
     }
   }
 
-  /** Handles the "Lower" button click for frustration guessing. */
   @FXML
   private void onFrustrationLower() {
-    if (frustrationGuessed) {
-      return; // Already guessed correctly
-    }
-
+    if (frustrationGuessed) return;
     int currentGuess = (int) frustrationSlider.getValue();
-
     if (currentGuess > targetFrustrationLevel) {
-      // Player guessed too high, show dialogue indicating frustration is lower
-      showFrustrationDialogue(
-          "Well, I'm not THAT angry... but I'm still pretty upset about what happened.");
+      showFrustrationDialogue("Lower than that!");
     } else if (currentGuess == targetFrustrationLevel) {
-      // Perfect guess!
       onCorrectFrustrationGuess();
     } else {
-      // Player guessed too low
-      showFrustrationDialogue(
-          "No no, I'm more frustrated than that! This whole mess has me really worked up!");
+      showFrustrationDialogue("That's a bit too low.");
     }
   }
 
-  /** Handles when the player correctly guesses the frustration level. */
   private void onCorrectFrustrationGuess() {
     frustrationGuessed = true;
-
-    // Grey out the buttons
     if (btnHigher != null) {
       btnHigher.setDisable(true);
       btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
@@ -402,22 +430,13 @@ public class MemoryController {
       btnLower.setDisable(true);
       btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
     }
-
-    // Show angry dialogue
-    showFrustrationDialogue(
-        "EXACTLY! I'm at a "
-            + targetFrustrationLevel
-            + " out of 10! I can't believe this happened! I saw everything and I'm absolutely livid"
-            + " about the whole situation! Someone needs to pay for what they did!");
-
-    // Mark this interactive element as used
+    showFrustrationDialogue("Exactly! It's " + targetFrustrationLevel + " out of 10 — very upset.");
     if (gameStateContext != null && currentParticipant == Participant.HUMAN_WITNESS) {
       gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
       interactableUsed = true;
     }
   }
 
-  /** Shows the frustration dialogue with the given text. */
   private void showFrustrationDialogue(String dialogueText) {
     if (frustrationDialogue != null && frustrationDialogueText != null) {
       frustrationDialogueText.setText(dialogueText);
@@ -425,25 +444,16 @@ public class MemoryController {
     }
   }
 
-  /** Updates the frustration section visibility based on current participant. */
   private void updateFrustrationSectionVisibility() {
     if (frustrationSection != null) {
-      // Only show frustration section for human witness
       boolean showFrustration = (currentParticipant == Participant.HUMAN_WITNESS);
       frustrationSection.setVisible(showFrustration);
-
-      if (showFrustration) {
-        updateFrustrationButtonState();
-      }
+      if (showFrustration) updateFrustrationButtonState();
     }
   }
 
-  /**
-   * Updates the state of frustration buttons and dialogue based on whether it was already guessed.
-   */
   private void updateFrustrationButtonState() {
     if (frustrationGuessed) {
-      // Already guessed correctly - grey out buttons and show dialogue
       if (btnHigher != null) {
         btnHigher.setDisable(true);
         btnHigher.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
@@ -452,18 +462,9 @@ public class MemoryController {
         btnLower.setDisable(true);
         btnLower.setStyle("-fx-opacity: 0.5; -fx-background-color: #cccccc;");
       }
-      // Show the final dialogue
-      showFrustrationDialogue(
-          "EXACTLY! I'm at a "
-              + targetFrustrationLevel
-              + " out of 10! I can't believe this happened! I saw everything and I'm absolutely"
-              + " livid about the whole situation! Someone needs to pay for what they did!");
+      showFrustrationDialogue("Exactly — very upset about what happened.");
     } else {
-      // Not guessed yet - reset dialogue and enable buttons
-      if (frustrationDialogue != null) {
-        frustrationDialogue.setVisible(false);
-      }
-
+      if (frustrationDialogue != null) frustrationDialogue.setVisible(false);
       if (btnHigher != null) {
         btnHigher.setDisable(false);
         btnHigher.setStyle(
@@ -477,5 +478,239 @@ public class MemoryController {
                 + " -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;");
       }
     }
+  }
+
+  // ---------------- Chat helpers ----------------
+
+  private void enableChatAutoScroll() {
+    if (txtaChat == null) return;
+    if (txtaChat.getProperties().get("autoscrollBound") == Boolean.TRUE) return;
+
+    txtaChat
+        .textProperty()
+        .addListener(
+            (obs, oldText, newText) -> {
+              txtaChat.positionCaret(newText == null ? 0 : newText.length());
+              txtaChat.setScrollTop(Double.MAX_VALUE);
+            });
+    txtaChat.getProperties().put("autoscrollBound", Boolean.TRUE);
+  }
+
+  private void applyThemeForParticipant() {
+    if (txtaChat == null || txtInput == null || btnSend == null) return;
+
+    if (currentParticipant == Participant.AI_WITNESS) {
+      if (matrixThemeApplied) return;
+
+      txtaChat.setStyle(
+          "-fx-control-inner-background: black;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-highlight-fill: #00ff88;"
+              + "-fx-highlight-text-fill: black;"
+              + "-fx-font-family: 'Consolas','Menlo','Monaco',monospace;"
+              + "-fx-font-size: 15px;");
+
+      txtInput.setStyle(
+          "-fx-background-color: black;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-prompt-text-fill: #2ddf93;"
+              + "-fx-border-color: #00ff88;"
+              + "-fx-font-family: 'Consolas','Menlo','Monaco',monospace;"
+              + "-fx-font-size: 15px;");
+
+      btnSend.setStyle(
+          "-fx-font-size: 15px;"
+              + "-fx-background-color: #003a2b;"
+              + "-fx-text-fill: #00ff88;"
+              + "-fx-border-color: #00ff88;"
+              + "-fx-background-radius: 6;"
+              + "-fx-border-radius: 6;");
+
+      if (lblStatus != null) {
+        lblStatus.setStyle("-fx-text-fill: #00ff88; -fx-font-size: 18px; -fx-font-weight: bold;");
+      }
+
+      matrixThemeApplied = true;
+    } else {
+      if (!matrixThemeApplied) return;
+      txtaChat.setStyle("");
+      txtInput.setStyle("");
+      btnSend.setStyle("");
+      if (lblStatus != null) lblStatus.setStyle("");
+      matrixThemeApplied = false;
+    }
+  }
+
+  // =======================
+  // == AUDIT LOG (SIMPLE) ==
+  // =======================
+
+  /** One row in the simple audit log. */
+  public static class AuditRow {
+    private final SimpleStringProperty time = new SimpleStringProperty();
+    private final SimpleStringProperty site = new SimpleStringProperty();
+    private final SimpleStringProperty action = new SimpleStringProperty();
+    private final SimpleStringProperty allowed = new SimpleStringProperty();
+
+    public AuditRow(String time, String site, String action, String allowed) {
+      this.time.set(time);
+      this.site.set(site);
+      this.action.set(action);
+      this.allowed.set(allowed);
+    }
+
+    public String getTime() {
+      return time.get();
+    }
+
+    public String getSite() {
+      return site.get();
+    }
+
+    public String getAction() {
+      return action.get();
+    }
+
+    public String getAllowed() {
+      return allowed.get();
+    }
+
+    public SimpleStringProperty timeProperty() {
+      return time;
+    }
+
+    public SimpleStringProperty siteProperty() {
+      return site;
+    }
+
+    public SimpleStringProperty actionProperty() {
+      return action;
+    }
+
+    public SimpleStringProperty allowedProperty() {
+      return allowed;
+    }
+  }
+
+  private void initAuditTable() {
+    if (auditTable == null) return;
+
+    if (colTime != null) colTime.setCellValueFactory(c -> c.getValue().timeProperty());
+    if (colSite != null) colSite.setCellValueFactory(c -> c.getValue().siteProperty());
+    if (colAction != null) colAction.setCellValueFactory(c -> c.getValue().actionProperty());
+    if (colAllowed != null) colAllowed.setCellValueFactory(c -> c.getValue().allowedProperty());
+
+    auditFiltered = new FilteredList<>(auditMaster, r -> true);
+    auditTable.setItems(auditFiltered);
+  }
+
+  // Button: Load sample rows (includes "no consent", human blocked, and gym→ad story)
+  @FXML
+  private void onLoadSample() {
+    auditMaster.clear();
+    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    // Human blocked
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(75).format(fmt),
+            "Cornhub.com",
+            "Share precise location",
+            "No (user blocked)"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(60).format(fmt),
+            "NZHerald.com",
+            "Marketing cookies",
+            "No (user blocked)"));
+
+    // Gym video → supplement ad (tracking without consent)
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(45).format(fmt),
+            "Youtube.com",
+            "Watched gym recovery video",
+            "Yes"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(35).format(fmt),
+            "Susweb.com",
+            "Cross-site tracking",
+            "Yes (no consent)"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(25).format(fmt),
+            "Goldsgym.com",
+            "Targeted ad: supplements",
+            "Yes (no consent)"));
+
+    // Neutral site conveniences
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(15).format(fmt),
+            "Woolworths.com",
+            "Remember cart",
+            "Yes"));
+    auditMaster.add(
+        new AuditRow(
+            LocalTime.now().minusSeconds(8).format(fmt), "Twitch.com", "Save volume", "Yes"));
+
+    setAuditStatus("Loaded: 7");
+
+    // 1) Put each row into global AWARENESS so personas can quote exact lines
+    syncAwarenessWithAuditRows();
+
+    // 2) Broadcast a concise summary and every row verbatim for personas to quote
+    postToBusAndChat("[AWARENESS] Loaded sample audit events (Sentri-Guard).");
+    broadcastAuditRows();
+  }
+
+  @FXML
+  private void onFilterAllowed() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> r.getAllowed().toLowerCase().startsWith("yes"));
+    setAuditStatus("Allowed");
+  }
+
+  @FXML
+  private void onFilterBlocked() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> r.getAllowed().toLowerCase().startsWith("no"));
+    setAuditStatus("Blocked");
+  }
+
+  @FXML
+  private void onResetFilters() {
+    if (auditFiltered == null) return;
+    auditFiltered.setPredicate(r -> true);
+    setAuditStatus("All");
+  }
+
+  @FXML
+  private void onExplainSelected() {
+    if (auditTable == null || txtaChat == null) return;
+    AuditRow sel = auditTable.getSelectionModel().getSelectedItem();
+    if (sel == null) {
+      txtaChat.appendText("[SYSTEM] Pick a row.\n\n");
+      return;
+    }
+    boolean noConsent = sel.getAllowed().toLowerCase().contains("no consent");
+    boolean userBlocked = sel.getAllowed().toLowerCase().contains("user blocked");
+    String why =
+        noConsent
+            ? "— allowed WITHOUT consent by Cookie Monster"
+            : userBlocked ? "— blocked by the user" : "— allowed (site convenience)";
+    txtaChat.appendText(
+        "[SYSTEM] " + sel.getSite() + " → " + sel.getAction() + " " + why + ".\n\n");
+  }
+
+  @FXML
+  private void onCloseAudit() {
+    if (auditPanel != null) auditPanel.setVisible(false);
+    if (interactableContainer != null) interactableContainer.setVisible(true);
+  }
+
+  private void setAuditStatus(String text) {
+    if (auditStatus != null) auditStatus.setText(text);
   }
 }
