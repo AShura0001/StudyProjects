@@ -18,7 +18,7 @@ public class VtcTest {
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
     VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
-    String result = vtcTrascriber.transcribe(audioData, format);
+    String result = vtcTrascriber.voiceToText(audioData, format);
     assertEquals("Invalid audio format", result);
   }
 
@@ -32,7 +32,7 @@ public class VtcTest {
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
     VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
-    String result = vtcTrascriber.transcribe(audioData, format);
+    String result = vtcTrascriber.voiceToText(audioData, format);
     assertEquals("this, this and that", result);
   }
 
@@ -46,7 +46,7 @@ public class VtcTest {
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
     VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
-    String result = vtcTrascriber.transcribe(audioData, format);
+    String result = vtcTrascriber.voiceToText(audioData, format);
     assertEquals("this, this and that", result);
   }
 }

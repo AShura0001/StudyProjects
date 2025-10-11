@@ -11,7 +11,7 @@ public class VoiceToCodeTranscriber {
     this.aiClient = aiClient;
   }
 
-  public String transcribe(byte[] audioData, String format) {
+  public String voiceToText(byte[] audioData, String format) {
     // check for valid format
     if (!isValidFormat(format)) {
       return "Invalid audio format";
