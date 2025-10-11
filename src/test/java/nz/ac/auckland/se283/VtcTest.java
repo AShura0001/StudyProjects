@@ -21,4 +21,18 @@ public class VtcTest {
     String result = vtcTrascriber.transcribe(audioData, format);
     assertEquals("Invalid audio format", result);
   }
+
+  @Test
+  public void transcribeWavFormat() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "wav";
+    AiClient aiMock = Mockito.mock(AiClient.class);
+
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+
+    String result = vtcTrascriber.transcribe(audioData, format);
+    assertEquals("this, this and that", result);
+  }
 }
