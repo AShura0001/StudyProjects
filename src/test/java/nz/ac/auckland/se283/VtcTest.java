@@ -77,4 +77,18 @@ public class VtcTest {
     String result = vtcTrascriber.voiceToText(audioData, format);
     assertEquals("Too small to transcribe!", result);
   }
+
+  @Test
+  public void transcribeJustBelowSmallFile() {
+
+    byte[] audioData = new byte[1024 * 2 - 1];
+    String format = "m4a";
+    AiClient aiMock = Mockito.mock(AiClient.class);
+
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+    assertEquals("Too small to transcribe!", result);
+  }
 }
