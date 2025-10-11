@@ -3,7 +3,7 @@ package nz.ac.auckland.se283;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import nz.ac.auckland.se283.tools.AiClient;
-import nz.ac.auckland.se283.vtc.VoiceToCodeTrascriber;
+import nz.ac.auckland.se283.vtc.VoiceToCodeTranscriber;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -16,7 +16,7 @@ public class VtcTest {
     AiClient aiMock = Mockito.mock(AiClient.class);
 
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTrascriber vtcTrascriber = new VoiceToCodeTrascriber(aiMock);
+    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.transcribe(audioData, format);
     assertEquals("Invalid audio format", result);
