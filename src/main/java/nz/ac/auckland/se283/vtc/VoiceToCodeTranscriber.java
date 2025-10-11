@@ -5,7 +5,7 @@ import nz.ac.auckland.se283.tools.AiClient;
 
 public class VoiceToCodeTranscriber {
   private AiClient aiClient;
-  private final Set<String> validFormats = Set.of("wav", "mp3", "flac");
+  private final Set<String> validFormats = Set.of("wav", "mp3", "flac", "m4a");
 
   public VoiceToCodeTranscriber(AiClient aiClient) {
     this.aiClient = aiClient;
