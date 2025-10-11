@@ -28,6 +28,9 @@ public class VoiceToCodeTranscriber {
   }
 
   private boolean isAudioDataValid(byte[] audioData) {
-    return !(audioData == null || audioData.length <= 0);
+    if (audioData == null || audioData.length <= (1024 * 2) - 1) {
+      return false;
+    }
+    return true;
   }
 }
