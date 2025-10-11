@@ -172,4 +172,28 @@ public class VtcTest {
 
     assertTrue(file.exists());
   }
+
+  @Test
+  public void textToCode_simpleInput_checksGeneratedFile() throws IOException {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format))
+        .thenReturn("Move Straight. Turn right. Move straight.");
+    String text = vtcTrascriber.voiceToText(audioData, format);
+    Mockito.when(aiMock.genCode(text))
+        .thenReturn(
+            "List<Integer> movement = List.of(1,0,1);\n"
+                + "List<Integer> direction = List.of(0,1,1);\n");
+    String code = vtcTrascriber.textToCode(text);
+
+    File file =
+        new File(
+            "src\\main\\java\\n"
+                + //
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
+
+    String fileContent = java.nio.file.Files.readString(file.toPath());
+    assertEquals(code, fileContent);
+  }
 }
