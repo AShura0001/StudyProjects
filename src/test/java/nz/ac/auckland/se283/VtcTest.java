@@ -109,7 +109,7 @@ public class VtcTest {
   @Test
   public void transcribeJustAboveMaxSizeFile() {
 
-    byte[] audioData = new byte[1024 * 1024 * 2 + 1];
+    byte[] audioData = new byte[(1024 * 1024 * 20) + 1];
     String format = "mp3";
     AiClient aiMock = Mockito.mock(AiClient.class);
 
