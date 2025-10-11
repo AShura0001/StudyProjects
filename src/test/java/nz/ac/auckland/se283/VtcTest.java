@@ -35,4 +35,18 @@ public class VtcTest {
     String result = vtcTrascriber.transcribe(audioData, format);
     assertEquals("this, this and that", result);
   }
+
+  @Test
+  public void transcribeM4aFormat() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "m4a";
+    AiClient aiMock = Mockito.mock(AiClient.class);
+
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+
+    String result = vtcTrascriber.transcribe(audioData, format);
+    assertEquals("this, this and that", result);
+  }
 }
