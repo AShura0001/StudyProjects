@@ -137,12 +137,13 @@ public class VtcTest {
     String text = vtcTrascriber.voiceToText(audioData, format);
     Mockito.when(aiMock.genCode(text))
         .thenReturn(
-            "List<Integer> movement = List.of(1,0,1)\r\n"
-                + "List<Integer> direction = List.of(0,1,1)\\r\\n");
+            "List<Integer> movement = List.of(1,0,1);\n"
+                + "List<Integer> direction = List.of(0,1,1);\n");
 
     String result = vtcTrascriber.textToCode(text);
     assertEquals(
-        "List<Integer> movement = List.of(1,0,1);\r\nList<Integer> direction = List.of(0,1,1);\r\n",
+        "List<Integer> movement = List.of(1,0,1);\n"
+            + "List<Integer> direction = List.of(0,1,1);\n",
         result);
   }
 }

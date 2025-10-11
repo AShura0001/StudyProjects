@@ -26,7 +26,7 @@ public class VoiceToCodeTranscriber {
   }
 
   public String textToCode(String text) {
-    return "CODE";
+    return aiClient.genCode(text);
   }
 
   private boolean isValidFormat(String format) {
