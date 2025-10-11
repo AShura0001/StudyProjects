@@ -105,4 +105,18 @@ public class VtcTest {
     String result = vtcTrascriber.voiceToText(audioData, format);
     assertEquals("this, this and that", result);
   }
+
+  @Test
+  public void transcribeJustAboveMaxSizeFile() {
+
+    byte[] audioData = new byte[1024 * 1024 * 2 + 1];
+    String format = "mp3";
+    AiClient aiMock = Mockito.mock(AiClient.class);
+
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+    assertEquals("Too large to transcribe!", result);
+  }
 }
