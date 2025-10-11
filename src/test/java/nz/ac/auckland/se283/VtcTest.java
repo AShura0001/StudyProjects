@@ -125,4 +125,24 @@ public class VtcTest {
 
     assertEquals("this, this and that", result);
   }
+
+  @Test
+  public void textToCode_simpleInput_returnCode() {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format))
+        .thenReturn("Move Straight. Turn right. Move straight.");
+
+    String text = vtcTrascriber.voiceToText(audioData, format);
+    Mockito.when(aiMock.genCode(text))
+        .thenReturn(
+            "List<Integer> movement = List.of(1,0,1)\r\n"
+                + "List<Integer> direction = List.of(0,1,1)\\r\\n");
+
+    String result = vtcTrascriber.textToCode(text);
+    assertEquals(
+        "List<Integer> movement = List.of(1,0,1);\r\nList<Integer> direction = List.of(0,1,1);\r\n",
+        result);
+  }
 }

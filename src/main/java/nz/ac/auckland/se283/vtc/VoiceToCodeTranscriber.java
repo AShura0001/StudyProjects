@@ -25,6 +25,10 @@ public class VoiceToCodeTranscriber {
     return "Invalid audio format";
   }
 
+  public String textToCode(String text) {
+    return "CODE";
+  }
+
   private boolean isValidFormat(String format) {
     return validFormats.contains(format.toLowerCase());
   }
