@@ -4,133 +4,125 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import nz.ac.auckland.se283.tools.AiClient;
 import nz.ac.auckland.se283.vtc.VoiceToCodeTranscriber;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class VtcTest {
+  private AiClient aiMock;
+  private VoiceToCodeTranscriber vtcTrascriber;
+
+  @BeforeEach
+  public void setUp() {
+    this.aiMock = Mockito.mock(AiClient.class);
+    this.vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+  }
+
   @Test
-  public void transcribeInvalidFormat() {
+  public void transcribe_whenFormatIsMp4_returnInvalidAudioFormat() {
 
     byte[] audioData = new byte[1024 * 2];
     String format = "mp4";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("Invalid audio format", result);
   }
 
   @Test
-  public void transcribeWavFormat() {
+  public void transcribe_whenFormatIsWav_returnTranscription() {
 
     byte[] audioData = new byte[1024 * 2];
     String format = "wav";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("this, this and that", result);
   }
 
   @Test
-  public void transcribeM4aFormat() {
+  public void transcribe_whenFormatIsM4a_returnTranscription() {
 
     byte[] audioData = new byte[1024 * 2];
     String format = "m4a";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("this, this and that", result);
   }
 
   @Test
-  public void transcribeFlacFormat() {
+  public void transcribe_whenFormatIsFlac_returnInvalidAudioFormat() {
 
     byte[] audioData = new byte[1024 * 2];
     String format = "flac";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("Invalid audio format", result);
   }
 
   @Test
-  public void transcribeReallySmallFile() {
+  public void transcribe_whenAudioDataIsEmpty_returnTooSmallToTranscribe() {
 
     byte[] audioData = new byte[0];
     String format = "m4a";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("Too small to transcribe!", result);
   }
 
   @Test
-  public void transcribeJustBelowSmallFile() {
+  public void transcribe_whenAudioDataIsJustBelowMinSize_returnTooSmall() {
 
     byte[] audioData = new byte[1024 * 2 - 1];
     String format = "m4a";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("Too small to transcribe!", result);
   }
 
   @Test
-  public void transcribeMinimumValidSizeMp3File() {
+  public void transcribe_whenDataIsExactlyMinSize_returnTranscription() {
 
     byte[] audioData = new byte[1024 * 2];
     String format = "mp3";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("this, this and that", result);
   }
 
   @Test
-  public void transcribeJustAboveMaxSizeFile() {
+  public void transcribe_whenDataIsJustAboveMaxSize_returnTooLarge() {
 
     byte[] audioData = new byte[(1024 * 1024 * 20) + 1];
     String format = "mp3";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("Too large to transcribe!", result);
   }
 
   @Test
-  public void transcribeMaxSizeFile() {
+  public void transcribe_whenDataIsExactlyMaxSize_returnTranscription() {
 
     byte[] audioData = new byte[(1024 * 1024 * 20)];
     String format = "mp3";
-    AiClient aiMock = Mockito.mock(AiClient.class);
-
     Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
-    VoiceToCodeTranscriber vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
 
     String result = vtcTrascriber.voiceToText(audioData, format);
+
     assertEquals("this, this and that", result);
   }
 }
