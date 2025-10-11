@@ -13,24 +13,30 @@ public class VoiceToCodeTranscriber {
 
   public String voiceToText(byte[] audioData, String format) {
     // check for valid format
-    if (!isValidFormat(format)) {
-      return "Invalid audio format";
+    if (isValidFormat(format)) {
+      if (audioData == null || audioData.length <= (1024 * 2) - 1) {
+        return "Too small to transcribe!";
+      } else if (audioData.length >= (1024 * 1024 * 20) + 1) {
+        return "Too large to transcribe!";
+      }
+      String transcription = aiClient.transcribe(audioData, format);
+      return transcription;
     }
+    return "Invalid audio format";
     // check for valid audio data size
-    if (!isAudioDataValid(audioData)) {
-      return "Too small to transcribe!";
-    }
-    return aiClient.transcribe(audioData, format);
+    // if (!isAudioDataValid(audioData)) {
+    //   return "Too small to transcribe!";
+    // }
   }
 
   private boolean isValidFormat(String format) {
     return validFormats.contains(format.toLowerCase());
   }
 
-  private boolean isAudioDataValid(byte[] audioData) {
-    if (audioData == null || audioData.length <= (1024 * 2) - 1) {
-      return false;
-    }
-    return true;
-  }
+  // private boolean isAudioDataValid(byte[] audioData) {
+  //   if (audioData == null || audioData.length <= (1024 * 2) - 1) {
+  //     return false;
+  //   }
+  //   return true;
+  // }
 }
