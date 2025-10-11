@@ -1,5 +1,8 @@
 package nz.ac.auckland.se283.vtc;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Set;
 import nz.ac.auckland.se283.tools.AiClient;
 
@@ -25,7 +28,11 @@ public class VoiceToCodeTranscriber {
     return "Invalid audio format";
   }
 
-  public String textToCode(String text) {
+  public String textToCode(String text) throws IOException {
+    String content = aiClient.genCode(text);
+    String path = "src\\main\\java\\nz\\ac\\auckland\\se283\\generated\\GeneratedCode.txt";
+    Files.write(Paths.get(path), content.getBytes());
+
     return aiClient.genCode(text);
   }
 

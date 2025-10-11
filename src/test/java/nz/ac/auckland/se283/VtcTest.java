@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import nz.ac.auckland.se283.tools.AiClient;
 import nz.ac.auckland.se283.vtc.VoiceToCodeTranscriber;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,7 +130,7 @@ public class VtcTest {
   }
 
   @Test
-  public void textToCode_simpleInput_returnCode() {
+  public void textToCode_simpleInput_returnCode() throws IOException {
 
     byte[] audioData = new byte[(1024 * 1024 * 20)];
     String format = "mp3";
@@ -150,7 +151,7 @@ public class VtcTest {
   }
 
   @Test
-  public void textToCode_simpleInput_checksIfActualFileIsCreated() {
+  public void textToCode_simpleInput_checksIfActualFileIsCreated() throws IOException {
 
     byte[] audioData = new byte[(1024 * 1024 * 20)];
     String format = "mp3";
@@ -167,7 +168,7 @@ public class VtcTest {
         new File(
             "src\\main\\java\\n"
                 + //
-                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.java");
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
 
     assertTrue(file.exists());
   }
