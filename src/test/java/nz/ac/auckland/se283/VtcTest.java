@@ -195,5 +195,8 @@ public class VtcTest {
 
     String fileContent = java.nio.file.Files.readString(file.toPath());
     assertEquals(code, fileContent);
+
+    // Cleanup
+    file.delete();
   }
 }
