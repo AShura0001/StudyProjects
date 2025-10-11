@@ -23,20 +23,9 @@ public class VoiceToCodeTranscriber {
       return transcription;
     }
     return "Invalid audio format";
-    // check for valid audio data size
-    // if (!isAudioDataValid(audioData)) {
-    //   return "Too small to transcribe!";
-    // }
   }
 
   private boolean isValidFormat(String format) {
     return validFormats.contains(format.toLowerCase());
   }
-
-  // private boolean isAudioDataValid(byte[] audioData) {
-  //   if (audioData == null || audioData.length <= (1024 * 2) - 1) {
-  //     return false;
-  //   }
-  //   return true;
-  // }
 }
