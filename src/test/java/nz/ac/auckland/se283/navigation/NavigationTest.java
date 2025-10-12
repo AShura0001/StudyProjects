@@ -118,4 +118,16 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void command_moveForwardFast_returnMovementQueue() {
+    String[] commands = {"moverForwardFast"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("movementQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
