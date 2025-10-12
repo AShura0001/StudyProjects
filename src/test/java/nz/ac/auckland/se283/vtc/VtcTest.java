@@ -1,4 +1,4 @@
-package nz.ac.auckland.se283;
+package nz.ac.auckland.se283.vtc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import nz.ac.auckland.se283.tools.AiClient;
-import nz.ac.auckland.se283.vtc.VoiceToCodeTranscriber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
