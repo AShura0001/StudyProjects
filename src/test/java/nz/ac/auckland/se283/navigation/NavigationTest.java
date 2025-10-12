@@ -41,4 +41,14 @@ public class NavigationTest {
 
     assertTrue(result.containsKey("movementQueue"));
   }
+
+  @Test
+  public void command_moveBackward_returnCorrectMovementQueue() {
+    String[] commands = {"moveBackward", "moveForward", "moveBackward"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(-1, 1, -1));
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertEquals(expectedQueue, result.get("movementQueue"));
+  }
 }
