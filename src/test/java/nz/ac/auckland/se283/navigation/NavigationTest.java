@@ -9,13 +9,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
-import nz.ac.auckland.se283.Exceptions.UnsupportedCommandException;
-import nz.ac.auckland.se283.tools.HardwareClient;
+import nz.ac.auckland.se283.exceptions.UnsupportedCommandException;
 import org.junit.jupiter.api.Test;
 
 public class NavigationTest {
-  private HardwareClient hardwareClient;
-  private NavigationController navigationController = new NavigationController(hardwareClient);
+  private NavigationController navigationController = new NavigationController();
 
   @Test
   public void command_moveForward_returnMovementQueue() {
