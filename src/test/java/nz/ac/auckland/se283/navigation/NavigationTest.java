@@ -51,4 +51,13 @@ public class NavigationTest {
 
     assertEquals(expectedQueue, result.get("movementQueue"));
   }
+
+  @Test
+  public void command_stop_returnMovementQueue() {
+    String[] commands = {"stop"};
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertTrue(result.containsKey("movementQueue"));
+  }
 }
