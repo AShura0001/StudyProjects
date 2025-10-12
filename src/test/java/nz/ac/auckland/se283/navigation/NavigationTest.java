@@ -154,4 +154,19 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void command_speedMovement_returnCorrectSpeedQueue() {
+    String[] commands = {
+      "moveForwardFast", "moveBackwardFast", "moveForwardSlow", "moveBackwardSlow"
+    };
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(2, 2, -1, -1));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertEquals(expectedQueue, result.get("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
