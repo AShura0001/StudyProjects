@@ -105,4 +105,17 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void command_turningCmds_returnCorrectDirectionQueue() {
+    String[] commands = {"turnLeft", "turnRight", "turnLeft", "turnLeft"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(-1, 1, -1, -1));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertEquals(expectedQueue, result.get("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
