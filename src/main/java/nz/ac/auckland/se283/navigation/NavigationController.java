@@ -23,6 +23,8 @@ public class NavigationController {
     validCommands.put("turnLeft", List.of(2, -1));
     validCommands.put("moveForwardFast", List.of(3, 1, 1));
     validCommands.put("moveBackwardFast", List.of(3, -1, 1));
+    validCommands.put("moveBackwardSlow", List.of(3, -1, 3));
+    validCommands.put("moveForwardSlow", List.of(3, 1, -2));
   }
 
   public HashMap<String, Queue<Integer>> processInput(String[] commands)
