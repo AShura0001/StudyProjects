@@ -11,30 +11,38 @@ public class NavigationController {
   private final HardwareClient hardwareClient;
   private HashMap<String, Queue<Integer>> navigationMap = new HashMap<>();
   // private final Set<String> validCommands = Set.of("moveForward");
-  // movementQueue - 1, directionQueue - 2
+  // movementQueue - 1, directionQueue - 2, speedQueue - 3
   private final HashMap<String, List<Integer>> validCommands = new HashMap<>();
 
   public NavigationController(HardwareClient hardwareClient) {
     this.hardwareClient = hardwareClient;
     validCommands.put("moveForward", List.of(1, 1));
-    validCommands.put("moveBackward", List.of(-1, 1));
-    validCommands.put("stop", List.of(0, 1));
-    validCommands.put("turnRight", List.of(1, 2));
-    validCommands.put("turnLeft", List.of(-1, 2));
+    validCommands.put("moveBackward", List.of(1, -1));
+    validCommands.put("stop", List.of(1, 0));
+    validCommands.put("turnRight", List.of(2, 1));
+    validCommands.put("turnLeft", List.of(2, -1));
+    validCommands.put("moveForwardFast", List.of(3, 1, 1));
   }
 
   public HashMap<String, Queue<Integer>> processInput(String[] commands)
       throws UnsupportedCommandException {
     for (String command : commands) {
       if (validCommands.containsKey(command)) {
-        if (validCommands.get(command).get(1) == 1) {
+        if (validCommands.get(command).get(0) == 1) {
           Queue<Integer> tempQueue =
               navigationMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
-          tempQueue.add(validCommands.get(command).get(0));
-        } else if (validCommands.get(command).get(1) == 2) {
+          tempQueue.add(validCommands.get(command).get(1));
+        } else if (validCommands.get(command).get(0) == 2) {
           Queue<Integer> tempQueue =
               navigationMap.computeIfAbsent("directionQueue", k -> new LinkedList<>());
-          tempQueue.add(validCommands.get(command).get(0));
+          tempQueue.add(validCommands.get(command).get(1));
+        } else if (validCommands.get(command).get(0) == 3) {
+          Queue<Integer> tempMovementQueue =
+              navigationMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
+          tempMovementQueue.add(validCommands.get(command).get(1));
+          Queue<Integer> tempSpeedQueue =
+              navigationMap.computeIfAbsent("speedQueue", k -> new LinkedList<>());
+          tempSpeedQueue.add(validCommands.get(command).get(2));
         }
       } else {
         throw new UnsupportedCommandException("Unsupported command: " + command);

@@ -121,11 +121,11 @@ public class NavigationTest {
 
   @Test
   public void command_moveForwardFast_returnMovementQueue() {
-    String[] commands = {"moverForwardFast"};
+    String[] commands = {"moveForwardFast"};
 
     try {
       HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
-      assertTrue(result.containsKey("movementQueue"));
+      assertTrue(result.containsKey("movementQueue") && result.containsKey("speedQueue"));
     } catch (UnsupportedCommandException e) {
       fail(e.getMessage());
     }
