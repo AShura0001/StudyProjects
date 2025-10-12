@@ -3,6 +3,7 @@ package nz.ac.auckland.se283.navigation;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
+import nz.ac.auckland.se283.Exceptions.UnsupportedCommandException;
 import nz.ac.auckland.se283.tools.HardwareClient;
 
 public class NavigationController {
@@ -17,7 +18,8 @@ public class NavigationController {
     validCommands.put("stop", 0);
   }
 
-  public HashMap<String, Queue<Integer>> processInput(String[] commands) {
+  public HashMap<String, Queue<Integer>> processInput(String[] commands)
+      throws UnsupportedCommandException {
     HashMap<String, Queue<Integer>> movementMap = new HashMap<>();
     for (String command : commands) {
       if (validCommands.containsKey(command)) {

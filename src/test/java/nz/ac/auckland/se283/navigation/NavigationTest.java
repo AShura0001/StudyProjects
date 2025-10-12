@@ -1,12 +1,14 @@
 package nz.ac.auckland.se283.navigation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
+import nz.ac.auckland.se283.Exceptions.UnsupportedCommandException;
 import nz.ac.auckland.se283.tools.HardwareClient;
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +71,13 @@ public class NavigationTest {
     HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
 
     assertEquals(expectedQueue, result.get("movementQueue"));
+  }
+
+  @Test
+  public void command_unsupportedCommand_returnEmptyMap() {
+    String[] commands = {"jump", "sit", "dance"};
+
+    assertThrows(
+        UnsupportedCommandException.class, () -> navigationController.processInput(commands));
   }
 }
