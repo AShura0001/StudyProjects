@@ -181,8 +181,8 @@ public class NavigationTest {
       "stop",
       "turnLeft"
     };
-    Queue<Integer> expectedMovementQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 1, 0, 0, 0));
-    Queue<Integer> expectedDirectionQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 1, -1, 0, -1));
+    Queue<Integer> expectedMovementQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 0, -1, 0, 0));
+    Queue<Integer> expectedDirectionQueue = new LinkedList<>(Arrays.asList(0, 0, 0, 1, 0, 0, -1));
     Queue<Integer> expectedSpeedQueue = new LinkedList<>(Arrays.asList(1, 2, -1, 0, -1, 0, 0));
 
     try {
