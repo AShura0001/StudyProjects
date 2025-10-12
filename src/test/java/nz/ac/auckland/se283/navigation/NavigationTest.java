@@ -3,6 +3,7 @@ package nz.ac.auckland.se283.navigation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,5 +80,17 @@ public class NavigationTest {
 
     assertThrows(
         UnsupportedCommandException.class, () -> navigationController.processInput(commands));
+  }
+
+  @Test
+  public void command_turnRight_returnMovementQueue() {
+    String[] commands = {"turnRight"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
   }
 }
