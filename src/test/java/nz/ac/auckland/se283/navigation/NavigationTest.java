@@ -169,4 +169,30 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void input_navigationSample1_returnCorrectNavigationMap() {
+    String[] commands = {
+      "moveForward",
+      "moveBackwardFast",
+      "moveForwardSlow",
+      "turnRight",
+      "moveBackwardSlow",
+      "stop",
+      "turnLeft"
+    };
+    Queue<Integer> expectedMovementQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 1, 0, 0, 0));
+    Queue<Integer> expectedDirectionQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 1, -1, 0, -1));
+    Queue<Integer> expectedSpeedQueue = new LinkedList<>(Arrays.asList(1, 2, -1, 0, -1, 0, 0));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      boolean correctMovementQueue = expectedMovementQueue.equals(result.get("movementQueue"));
+      boolean correctDirectionQueue = expectedDirectionQueue.equals(result.get("directionQueue"));
+      boolean correctSpeedQueue = expectedSpeedQueue.equals(result.get("speedQueue"));
+      assertTrue(correctMovementQueue && correctDirectionQueue && correctSpeedQueue);
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
