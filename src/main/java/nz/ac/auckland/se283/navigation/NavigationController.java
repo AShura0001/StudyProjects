@@ -26,6 +26,8 @@ public class NavigationController {
         Queue<Integer> tempQueue =
             movementMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
         tempQueue.add(validCommands.get(command));
+      } else {
+        throw new UnsupportedCommandException("Unsupported command: " + command);
       }
     }
 
