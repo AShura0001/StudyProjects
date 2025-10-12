@@ -13,6 +13,7 @@ public class NavigationController {
   public NavigationController(HardwareClient hardwareClient) {
     this.hardwareClient = hardwareClient;
     validCommands.put("moveForward", 1);
+    validCommands.put("moveBackward", 0);
   }
 
   public HashMap<String, Queue<Integer>> processInput(String[] commands) {
