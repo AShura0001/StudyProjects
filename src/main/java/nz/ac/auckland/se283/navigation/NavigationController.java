@@ -14,6 +14,7 @@ public class NavigationController {
     this.hardwareClient = hardwareClient;
     validCommands.put("moveForward", 1);
     validCommands.put("moveBackward", -1);
+    validCommands.put("stop", 2);
   }
 
   public HashMap<String, Queue<Integer>> processInput(String[] commands) {
