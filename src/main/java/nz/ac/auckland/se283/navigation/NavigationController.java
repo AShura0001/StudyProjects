@@ -32,13 +32,29 @@ public class NavigationController {
     for (String command : commands) {
       if (validCommands.containsKey(command)) {
         if (validCommands.get(command).get(0) == 1) {
-          Queue<Integer> tempQueue =
+          Queue<Integer> tempMovementQueue =
               navigationMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
-          tempQueue.add(validCommands.get(command).get(1));
-        } else if (validCommands.get(command).get(0) == 2) {
-          Queue<Integer> tempQueue =
+          tempMovementQueue.add(validCommands.get(command).get(1));
+          Queue<Integer> tempSpeedQueue =
+              navigationMap.computeIfAbsent("speedQueue", k -> new LinkedList<>());
+          if (validCommands.get(command).get(1) == 0) {
+            tempSpeedQueue.add(0); // Speed is 0 for stop command
+          } else {
+            tempSpeedQueue.add(1); // Default speed for moveForward, moveBackward, stop
+          }
+          Queue<Integer> tempDirectionQueue =
               navigationMap.computeIfAbsent("directionQueue", k -> new LinkedList<>());
-          tempQueue.add(validCommands.get(command).get(1));
+          tempDirectionQueue.add(0); // Direction is 0 for movement commands
+        } else if (validCommands.get(command).get(0) == 2) {
+          Queue<Integer> tempDirectionQueue =
+              navigationMap.computeIfAbsent("directionQueue", k -> new LinkedList<>());
+          tempDirectionQueue.add(validCommands.get(command).get(1));
+          Queue<Integer> tempSpeedQueue =
+              navigationMap.computeIfAbsent("speedQueue", k -> new LinkedList<>());
+          tempSpeedQueue.add(0); // Default speed for turn commands
+          Queue<Integer> tempMovementQueue =
+              navigationMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
+          tempMovementQueue.add(0); // Movement is 0 for turn commands
         } else if (validCommands.get(command).get(0) == 3) {
           Queue<Integer> tempMovementQueue =
               navigationMap.computeIfAbsent("movementQueue", k -> new LinkedList<>());
@@ -46,6 +62,9 @@ public class NavigationController {
           Queue<Integer> tempSpeedQueue =
               navigationMap.computeIfAbsent("speedQueue", k -> new LinkedList<>());
           tempSpeedQueue.add(validCommands.get(command).get(2));
+          Queue<Integer> tempDirectionQueue =
+              navigationMap.computeIfAbsent("directionQueue", k -> new LinkedList<>());
+          tempDirectionQueue.add(0); // Direction is 0 for movement commands
         }
       } else {
         throw new UnsupportedCommandException("Unsupported command: " + command);
