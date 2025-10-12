@@ -93,4 +93,16 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void command_turnLeft_returnMovementQueue() {
+    String[] commands = {"turnLeft"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
