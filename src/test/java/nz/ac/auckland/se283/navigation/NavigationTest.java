@@ -142,4 +142,16 @@ public class NavigationTest {
       fail(e.getMessage());
     }
   }
+
+  @Test
+  public void command_moveSlow_returnMovementQueue() {
+    String[] commands = {"moveForwardSlow", "moveBackwardSlow"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("movementQueue") && result.containsKey("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
 }
