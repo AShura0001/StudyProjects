@@ -152,7 +152,6 @@ public class MemoryController {
     updateAimTrainingGameVisibility();
     updateChatControlsState();
     applyThemeForParticipant();
-
   }
 
   // --- Cookie-consent handlers (AI Witness doesn't use them, but FXML references exist) ---
@@ -167,7 +166,6 @@ public class MemoryController {
     if (parent != null) {
       parent.backToRoom();
     }
-
   }
 
   @FXML
@@ -692,8 +690,11 @@ public class MemoryController {
     if (aimTrainingGame != null) {
       boolean showGame = (currentParticipant == Participant.DEFENDANT && !interactableUsed);
       aimTrainingGame.setVisible(showGame);
-      if (showGame && gameStateContext != null) requestOpeningMessage();
 
+      // Request opening message for Cookie Monster whether game is shown or completed
+      if (currentParticipant == Participant.DEFENDANT && gameStateContext != null) {
+        requestOpeningMessage();
+      }
     }
   }
 
@@ -701,7 +702,6 @@ public class MemoryController {
   private void updateChatControlsState() {
     if (currentParticipant == Participant.DEFENDANT) {
       boolean chatEnabled = interactableUsed;
-
 
       // Disable/enable chat input and send button
       if (txtInput != null) {
@@ -778,7 +778,6 @@ public class MemoryController {
     targetSpawnTimer.play();
 
     Platform.runLater(this::spawnTarget);
-
   }
 
   private void spawnTarget() {
@@ -790,12 +789,10 @@ public class MemoryController {
             + "-fx-pref-width: 80; -fx-pref-height: 25; -fx-font-weight: bold; "
             + "-fx-border-radius: 5; -fx-background-radius: 5; -fx-cursor: hand;");
 
-
     double areaWidth =
         gamePlayArea.getWidth() > 0 ? gamePlayArea.getWidth() : gamePlayArea.getPrefWidth();
     double areaHeight =
         gamePlayArea.getHeight() > 0 ? gamePlayArea.getHeight() : gamePlayArea.getPrefHeight();
-
 
     // Random position within the play area (with some margin)
     double maxX = Math.max(0, areaWidth - 90); // button width + margin
@@ -803,14 +800,12 @@ public class MemoryController {
     double x = random.nextDouble() * maxX + 5; // 5px margin from edge
     double y = random.nextDouble() * maxY + 5; // 5px margin from edge
 
-
     target.setLayoutX(x);
     target.setLayoutY(y);
     target.setOnAction(e -> onTargetHit(target));
 
     gamePlayArea.getChildren().add(target);
     activeTargets.add(target);
-
 
     // Debug output
     System.out.println(
@@ -890,10 +885,11 @@ public class MemoryController {
               + " -fx-pref-width: 150; -fx-pref-height: 40; -fx-border-radius: 8;"
               + " -fx-background-radius: 8;");
 
-
       // Mark interactive element as completed
       if (gameStateContext != null && currentParticipant == Participant.DEFENDANT) {
         gameStateContext.markInteractableDone(getRoleKeyOf(currentParticipant));
+        // Accept cookies since user completed Cookie Monster's auto-accept training
+        gameStateContext.acceptCookies();
         interactableUsed = true;
         updateAimTrainingGameVisibility();
         updateChatControlsState();
