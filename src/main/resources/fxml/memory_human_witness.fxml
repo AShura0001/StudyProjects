@@ -17,59 +17,59 @@
   fx:controller="nz.ac.auckland.se206.controllers.MemoryController">
 
   <center>
-    <VBox alignment="CENTER" prefWidth="750.0" spacing="10" style="-fx-padding: 5 0 5 0;">
-      <!-- Back Button -->
-      <HBox alignment="CENTER_RIGHT" style="-fx-padding: 0 20 0 0;">
-        <Button onAction="#onBackToRoom"
-          style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2);"
-          text="← Back to Room" />
-      </HBox>
+    <StackPane>
+      <VBox alignment="CENTER" prefWidth="750.0" spacing="10" style="-fx-padding: 5 0 5 0;">
+        <!-- Memory Scene Image -->
+        <ImageView fitHeight="350.0" fitWidth="600.0" preserveRatio="true">
+          <image>
+            <Image url="@/images/memoryscene1-human.png" />
+          </image>
+        </ImageView>
 
-      <!-- Memory Scene Image -->
-      <ImageView fitHeight="350.0" fitWidth="600.0" preserveRatio="true">
-        <image>
-          <Image url="@/images/memoryscene1-human.png" />
-        </image>
-      </ImageView>
+        <!-- Frustration Assessment Section (below image) -->
+        <VBox fx:id="frustrationSection" alignment="CENTER" maxWidth="700" spacing="10"
+          style="-fx-background-color: #fff5f5; -fx-border-color: #ff6b6b; -fx-border-width: 2; -fx-padding: 12; -fx-border-radius: 10;"
+          visible="true">
 
-      <!-- Frustration Assessment Section (below image) -->
-      <VBox fx:id="frustrationSection" alignment="CENTER" maxWidth="700" spacing="10"
-        style="-fx-background-color: #fff5f5; -fx-border-color: #ff6b6b; -fx-border-width: 2; -fx-padding: 12; -fx-border-radius: 10;"
-        visible="true">
+          <Label style="-fx-font-size: 14px; -fx-text-fill: #666; -fx-text-alignment: center;"
+            text="Casey is affected by the privacy violation. How frustrated do you think he is? (1-10)"
+            wrapText="true" />
 
-        <Label style="-fx-font-size: 14px; -fx-text-fill: #666; -fx-text-alignment: center;"
-          text="Casey is affected by the privacy violation. How frustrated do you think he is? (1-10)"
-          wrapText="true" />
+          <Slider fx:id="frustrationSlider" majorTickUnit="1" max="10" min="1" minorTickCount="0"
+            prefWidth="600" showTickLabels="true" showTickMarks="true" snapToTicks="true"
+            style="-fx-background-color: transparent;" value="5" />
 
-        <Slider fx:id="frustrationSlider" majorTickUnit="1" max="10" min="1" minorTickCount="0"
-          prefWidth="600" showTickLabels="true" showTickMarks="true" snapToTicks="true"
-          style="-fx-background-color: transparent;" value="5" />
+          <Button fx:id="btnUnderstandStory" onAction="#onUnderstandStory"
+            style="-fx-font-size: 16px; -fx-background-color: #ff9800; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 45; -fx-border-radius: 8; -fx-background-radius: 8;"
+            text="🎯 Guess Level" />
 
-        <Button fx:id="btnUnderstandStory" onAction="#onUnderstandStory"
-          style="-fx-font-size: 16px; -fx-background-color: #ff9800; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 45; -fx-border-radius: 8; -fx-background-radius: 8;"
-          text="🎯 Guess Level" />
+          <!-- Casey's Response (appears after correct guess) -->
+          <VBox fx:id="frustrationDialogue" alignment="CENTER" spacing="8"
+            style="-fx-padding: 12; -fx-background-color: #f8f8f8; -fx-border-color: #ddd; -fx-border-width: 2; -fx-border-radius: 8;"
+            visible="false">
+            <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"
+              text="Casey's Personal Account:" />
+            <Label fx:id="frustrationDialogueText" prefWidth="640"
+              style="-fx-font-size: 13px; -fx-text-fill: #333; -fx-text-alignment: center; -fx-line-spacing: 2px;"
+              text="" wrapText="true" />
+          </VBox>
 
-        <!-- Casey's Response (appears after correct guess) -->
-        <VBox fx:id="frustrationDialogue" alignment="CENTER" spacing="8"
-          style="-fx-padding: 12; -fx-background-color: #f8f8f8; -fx-border-color: #ddd; -fx-border-width: 2; -fx-border-radius: 8;"
-          visible="false">
-          <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"
-            text="Casey's Personal Account:" />
-          <Label fx:id="frustrationDialogueText" prefWidth="640"
-            style="-fx-font-size: 13px; -fx-text-fill: #333; -fx-text-alignment: center; -fx-line-spacing: 2px;"
-            text="" wrapText="true" />
-        </VBox>
-
-        <!-- Verdict Hint (appears after correct guess) -->
-        <VBox fx:id="contextRevelation" alignment="CENTER" spacing="6"
-          style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8;"
-          visible="false">
-          <Label fx:id="contextDetails" prefWidth="640"
-            style="-fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;"
-            text="" wrapText="true" />
+          <!-- Verdict Hint (appears after correct guess) -->
+          <VBox fx:id="contextRevelation" alignment="CENTER" spacing="6"
+            style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8;"
+            visible="false">
+            <Label fx:id="contextDetails" prefWidth="640"
+              style="-fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;"
+              text="" wrapText="true" />
+          </VBox>
         </VBox>
       </VBox>
-    </VBox>
+
+      <!-- Fixed Back Button (absolute position) -->
+      <Button onAction="#onBackToRoom" StackPane.alignment="TOP_RIGHT"
+        style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2); -fx-translate-x: -10; -fx-translate-y: 10;"
+        text="← Back to Room" />
+    </StackPane>
   </center>
 
   <!-- Consistent Chat Panel -->

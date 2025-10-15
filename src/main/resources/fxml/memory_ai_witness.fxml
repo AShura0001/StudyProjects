@@ -12,230 +12,231 @@
   fx:controller="nz.ac.auckland.se206.controllers.MemoryController">
 
   <center>
-    <VBox alignment="CENTER" spacing="10" style="-fx-padding: 5 0 5 0;">
-      <!-- Top bar with back button -->
-      <HBox alignment="CENTER_RIGHT" style="-fx-padding: 0 20 0 0;">
-        <Button fx:id="btnBackToRoom"
-          onAction="#onBackToRoom"
-          style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2);"
-          text="← Back to Room" />
-      </HBox>
+    <StackPane>
+      <VBox alignment="CENTER" spacing="10" style="-fx-padding: 5 0 5 0;">
+        <!-- Memory scene stage - unified 600x350 image -->
+        <StackPane fx:id="memoryContainer" prefHeight="350" prefWidth="600">
+          <ImageView fx:id="memoryBackground" fitHeight="350.0" fitWidth="600.0"
+            preserveRatio="true">
+            <image>
+              <Image url="@/images/memoryscene2-aiWitness.png" />
+            </image>
+          </ImageView>
 
-      <!-- Memory scene stage - unified 600x350 image -->
-      <StackPane fx:id="memoryContainer" prefHeight="350" prefWidth="600">
-        <ImageView fx:id="memoryBackground" fitHeight="350.0" fitWidth="600.0" preserveRatio="true">
-          <image>
-            <Image url="@/images/memoryscene2-aiWitness.png" />
-          </image>
-        </ImageView>
-
-        <!-- Tap-to-start prompt -->
-        <VBox fx:id="interactableContainer"
-          alignment="CENTER"
-          spacing="10"
-          style="-fx-background-color: rgba(0,0,0,0.45); -fx-padding: 14; -fx-background-radius: 8;">
-          <Label fx:id="interactableLabel"
-            style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"
-            text="Open the Simple Audit Log" />
-          <Button fx:id="interactableElement"
-            onAction="#onInteractableClick"
-            style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 220; -fx-background-radius: 8;"
-            text="Show Logs" />
-        </VBox>
-
-        <Rectangle fx:id="interactableHighlight"
-          arcHeight="20" arcWidth="20"
-          fill="transparent"
-          height="82.0"
-          stroke="#2ddf93"
-          strokeWidth="3"
-          visible="false"
-          mouseTransparent="true"
-          width="244.0" />
-
-        <!-- SIMPLE AUDIT LOG PANEL (AI Witness) -->
-        <VBox fx:id="auditPanel"
-          maxWidth="750"
-          spacing="12"
-          style="-fx-background-color: rgba(0,0,0,0.65); -fx-padding: 16; -fx-background-radius: 10;"
-          visible="false">
-          <HBox alignment="CENTER_LEFT" spacing="8">
-            <Label fx:id="auditTitle"
-              text="Audit Log"
-              maxWidth="220"
-              textOverrun="ELLIPSIS"
-              style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-            <Label fx:id="auditStatus"
-              style="-fx-text-fill: #2ddf93; -fx-font-size: 12px;"
-              text="Tap Load"
-              maxWidth="240"
-              textOverrun="ELLIPSIS" />
-            <Pane HBox.hgrow="ALWAYS" />
-            <Button fx:id="btnLoadSample"
-              text="Load"
-              onAction="#onLoadSample"
-              style="-fx-background-color: #2ddf93; -fx-text-fill: #062b20; -fx-font-weight: bold; -fx-background-radius: 6;" />
-            <Button fx:id="btnFilterAllowed"
-              text="Allowed"
-              onAction="#onFilterAllowed"
-              prefHeight="27.0" prefWidth="86.0"
-              style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
-            <Button fx:id="btnFilterBlocked"
-              text="Blocked"
-              onAction="#onFilterBlocked"
-              prefHeight="27.0" prefWidth="86.0"
-              style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
-            <Button fx:id="btnResetFilters"
-              text="Reset"
-              onAction="#onResetFilters"
-              prefHeight="27.0" prefWidth="72.0"
-              style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
-          </HBox>
-
-          <TableView fx:id="auditTable" prefHeight="260" style="-fx-background-color: transparent;">
-            <columns>
-              <TableColumn fx:id="colTime" prefWidth="130" text="When" />
-              <TableColumn fx:id="colSite" prefWidth="220" text="Site" />
-              <TableColumn fx:id="colAction" prefWidth="230" text="What" />
-              <TableColumn fx:id="colAllowed" prefWidth="140" text="Allowed?" />
-            </columns>
-          </TableView>
-
-          <HBox alignment="CENTER_RIGHT" spacing="10">
-            <Pane HBox.hgrow="ALWAYS" />
-            <Button fx:id="btnExplainSelected"
-              text="Explain"
-              onAction="#onExplainSelected"
-              style="-fx-background-color: #003a2b; -fx-text-fill: #2ddf93; -fx-border-color: #2ddf93; -fx-background-radius: 6; -fx-border-radius: 6;" />
-            <Button fx:id="btnCloseAudit"
-              text="Close"
-              onAction="#onCloseAudit"
-              style="-fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-background-radius: 6;" />
-          </HBox>
-        </VBox>
-
-        <!-- COOKIE CONSENT (Defendant only) -->
-        <VBox alignment="CENTER"
-          spacing="10"
-          style="-fx-background-color: rgba(255,255,255,0.92); -fx-padding: 16; -fx-background-radius: 10; -fx-border-color: #ddd; -fx-border-radius: 10;"
-          visible="false">
-          <Label text="This memory requires cookie consent to chat."
-            style="-fx-font-size: 14px; -fx-text-fill: #222;" />
-          <HBox spacing="10" alignment="CENTER">
-            <Button fx:id="btnAccept"
-              text="Accept &amp; Continue"
-              onAction="#onAcceptCookies"
-              style="-fx-background-color: #4caf50; -fx-text-fill: white; -fx-background-radius: 6;" />
-            <Button fx:id="btnExit"
-              text="Decline &amp; Exit"
-              onAction="#onDeclineCookies"
-              style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-background-radius: 6;" />
-          </HBox>
-          <Label fx:id="lblCookiesAccepted"
-            text="Cookies accepted ✓"
-            visible="false"
-            style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;" />
-        </VBox>
-
-        <!-- HUMAN WITNESS: Frustration mini-game container -->
-        <VBox fx:id="frustrationSection"
-          alignment="CENTER"
-          spacing="12"
-          maxWidth="720"
-          style="-fx-background-color: rgba(0,0,0,0.55); -fx-padding: 16; -fx-background-radius: 10;"
-          visible="false">
-          <!-- Header -->
-          <HBox alignment="CENTER_LEFT" spacing="10">
-            <Label text="Witness Emotional State"
-              style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
-            <Pane HBox.hgrow="ALWAYS" />
-            <Label text="Level:" style="-fx-text-fill: #ddd;" />
-            <Label fx:id="frustrationValueLabel" text="5"
-              style="-fx-text-fill: #2ddf93; -fx-font-weight: bold;" />
-          </HBox>
-
-          <!-- Slider -->
-          <Slider fx:id="frustrationSlider"
-            min="0" max="10" value="5" blockIncrement="1" majorTickUnit="1" minorTickCount="0"
-            showTickMarks="true" showTickLabels="true"
-            style="-fx-pref-width: 620;" />
-
-          <!-- Variant A: Higher/Lower buttons -->
-          <HBox alignment="CENTER" spacing="12">
-            <Button fx:id="btnLower"
-              text="Lower"
-              onAction="#onFrustrationLower"
-              style="-fx-font-size: 16px; -fx-background-color: #4caf50; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;" />
-            <Button fx:id="btnHigher"
-              text="Higher"
-              onAction="#onFrustrationHigher"
-              style="-fx-font-size: 16px; -fx-background-color: #ff5252; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;" />
-          </HBox>
-
-          <!-- Variant B: Single "Guess Level" button -->
-          <HBox alignment="CENTER">
-            <Button fx:id="btnUnderstandStory"
-              text="🎯 Guess Level"
-              onAction="#onUnderstandStory"
-              style="-fx-font-size: 16px; -fx-background-color: #ff9800; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 45; -fx-border-radius: 8; -fx-background-radius: 8;" />
-          </HBox>
-
-          <!-- Dialogue bubble -->
-          <VBox fx:id="frustrationDialogue"
-            spacing="6"
-            visible="false"
-            style="-fx-background-color: rgba(255,255,255,0.9); -fx-padding: 12; -fx-background-radius: 8;">
-            <Label fx:id="frustrationSpeaker"
-              text="Casey"
-              style="-fx-text-fill: #333; -fx-font-weight: bold;" />
-            <Label fx:id="frustrationDialogueText"
-              wrapText="true"
-              style="-fx-text-fill: #333;" />
+          <!-- Tap-to-start prompt -->
+          <VBox fx:id="interactableContainer"
+            alignment="CENTER"
+            spacing="10"
+            style="-fx-background-color: rgba(0,0,0,0.45); -fx-padding: 14; -fx-background-radius: 8;">
+            <Label fx:id="interactableLabel"
+              style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;"
+              text="Open the Simple Audit Log" />
+            <Button fx:id="interactableElement"
+              onAction="#onInteractableClick"
+              style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 220; -fx-background-radius: 8;"
+              text="Show Logs" />
           </VBox>
 
-          <!-- Context reveal after correct guess -->
-          <VBox fx:id="contextRevelation"
-            spacing="6"
+          <Rectangle fx:id="interactableHighlight"
+            arcHeight="20" arcWidth="20"
+            fill="transparent"
+            height="82.0"
+            stroke="#2ddf93"
+            strokeWidth="3"
             visible="false"
-            style="-fx-background-color: rgba(240,230,140,0.95); -fx-padding: 12; -fx-background-radius: 8;">
-            <Label text="Contextual Evidence"
-              style="-fx-text-fill: #222; -fx-font-weight: bold;" />
-            <Label fx:id="contextDetails"
-              wrapText="true"
-              style="-fx-text-fill: #222;" />
+            mouseTransparent="true"
+            width="244.0" />
+
+          <!-- SIMPLE AUDIT LOG PANEL (AI Witness) -->
+          <VBox fx:id="auditPanel"
+            maxWidth="750"
+            spacing="12"
+            style="-fx-background-color: rgba(0,0,0,0.65); -fx-padding: 16; -fx-background-radius: 10;"
+            visible="false">
+            <HBox alignment="CENTER_LEFT" spacing="8">
+              <Label fx:id="auditTitle"
+                text="Audit Log"
+                maxWidth="220"
+                textOverrun="ELLIPSIS"
+                style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
+              <Label fx:id="auditStatus"
+                style="-fx-text-fill: #2ddf93; -fx-font-size: 12px;"
+                text="Tap Load"
+                maxWidth="240"
+                textOverrun="ELLIPSIS" />
+              <Pane HBox.hgrow="ALWAYS" />
+              <Button fx:id="btnLoadSample"
+                text="Load"
+                onAction="#onLoadSample"
+                style="-fx-background-color: #2ddf93; -fx-text-fill: #062b20; -fx-font-weight: bold; -fx-background-radius: 6;" />
+              <Button fx:id="btnFilterAllowed"
+                text="Allowed"
+                onAction="#onFilterAllowed"
+                prefHeight="27.0" prefWidth="86.0"
+                style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
+              <Button fx:id="btnFilterBlocked"
+                text="Blocked"
+                onAction="#onFilterBlocked"
+                prefHeight="27.0" prefWidth="86.0"
+                style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
+              <Button fx:id="btnResetFilters"
+                text="Reset"
+                onAction="#onResetFilters"
+                prefHeight="27.0" prefWidth="72.0"
+                style="-fx-background-color: #233; -fx-text-fill: #2ddf93; -fx-background-radius: 6; -fx-border-color: #2ddf93; -fx-border-radius: 6;" />
+            </HBox>
+
+            <TableView fx:id="auditTable" prefHeight="260"
+              style="-fx-background-color: transparent;">
+              <columns>
+                <TableColumn fx:id="colTime" prefWidth="130" text="When" />
+                <TableColumn fx:id="colSite" prefWidth="220" text="Site" />
+                <TableColumn fx:id="colAction" prefWidth="230" text="What" />
+                <TableColumn fx:id="colAllowed" prefWidth="140" text="Allowed?" />
+              </columns>
+            </TableView>
+
+            <HBox alignment="CENTER_RIGHT" spacing="10">
+              <Pane HBox.hgrow="ALWAYS" />
+              <Button fx:id="btnExplainSelected"
+                text="Explain"
+                onAction="#onExplainSelected"
+                style="-fx-background-color: #003a2b; -fx-text-fill: #2ddf93; -fx-border-color: #2ddf93; -fx-background-radius: 6; -fx-border-radius: 6;" />
+              <Button fx:id="btnCloseAudit"
+                text="Close"
+                onAction="#onCloseAudit"
+                style="-fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-background-radius: 6;" />
+            </HBox>
           </VBox>
-        </VBox>
 
-        <!-- AI WITNESS: Utility buttons row -->
-        <HBox alignment="BOTTOM_CENTER"
-          spacing="10"
-          translateY="170"
-          visible="false">
-          <Button fx:id="btnAnalyzeMemory"
-            text="Analyze Data"
-            onAction="#onAnalyzeMemory"
-            style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 120;" />
-          <Button fx:id="btnValidateMemory"
-            text="Validate"
-            onAction="#onValidateMemory"
-            style="-fx-font-size: 14px; -fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-pref-width: 120;" />
-        </HBox>
+          <!-- COOKIE CONSENT (Defendant only) -->
+          <VBox alignment="CENTER"
+            spacing="10"
+            style="-fx-background-color: rgba(255,255,255,0.92); -fx-padding: 16; -fx-background-radius: 10; -fx-border-color: #ddd; -fx-border-radius: 10;"
+            visible="false">
+            <Label text="This memory requires cookie consent to chat."
+              style="-fx-font-size: 14px; -fx-text-fill: #222;" />
+            <HBox spacing="10" alignment="CENTER">
+              <Button fx:id="btnAccept"
+                text="Accept &amp; Continue"
+                onAction="#onAcceptCookies"
+                style="-fx-background-color: #4caf50; -fx-text-fill: white; -fx-background-radius: 6;" />
+              <Button fx:id="btnExit"
+                text="Decline &amp; Exit"
+                onAction="#onDeclineCookies"
+                style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-background-radius: 6;" />
+            </HBox>
+            <Label fx:id="lblCookiesAccepted"
+              text="Cookies accepted ✓"
+              visible="false"
+              style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;" />
+          </VBox>
 
-        <!-- AI WITNESS: simple log area (optional filler; visible controlled by controller if
+          <!-- HUMAN WITNESS: Frustration mini-game container -->
+          <VBox fx:id="frustrationSection"
+            alignment="CENTER"
+            spacing="12"
+            maxWidth="720"
+            style="-fx-background-color: rgba(0,0,0,0.55); -fx-padding: 16; -fx-background-radius: 10;"
+            visible="false">
+            <!-- Header -->
+            <HBox alignment="CENTER_LEFT" spacing="10">
+              <Label text="Witness Emotional State"
+                style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;" />
+              <Pane HBox.hgrow="ALWAYS" />
+              <Label text="Level:" style="-fx-text-fill: #ddd;" />
+              <Label fx:id="frustrationValueLabel" text="5"
+                style="-fx-text-fill: #2ddf93; -fx-font-weight: bold;" />
+            </HBox>
+
+            <!-- Slider -->
+            <Slider fx:id="frustrationSlider"
+              min="0" max="10" value="5" blockIncrement="1" majorTickUnit="1" minorTickCount="0"
+              showTickMarks="true" showTickLabels="true"
+              style="-fx-pref-width: 620;" />
+
+            <!-- Variant A: Higher/Lower buttons -->
+            <HBox alignment="CENTER" spacing="12">
+              <Button fx:id="btnLower"
+                text="Lower"
+                onAction="#onFrustrationLower"
+                style="-fx-font-size: 16px; -fx-background-color: #4caf50; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;" />
+              <Button fx:id="btnHigher"
+                text="Higher"
+                onAction="#onFrustrationHigher"
+                style="-fx-font-size: 16px; -fx-background-color: #ff5252; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 40; -fx-border-radius: 5;" />
+            </HBox>
+
+            <!-- Variant B: Single "Guess Level" button -->
+            <HBox alignment="CENTER">
+              <Button fx:id="btnUnderstandStory"
+                text="🎯 Guess Level"
+                onAction="#onUnderstandStory"
+                style="-fx-font-size: 16px; -fx-background-color: #ff9800; -fx-text-fill: white; -fx-pref-width: 150; -fx-pref-height: 45; -fx-border-radius: 8; -fx-background-radius: 8;" />
+            </HBox>
+
+            <!-- Dialogue bubble -->
+            <VBox fx:id="frustrationDialogue"
+              spacing="6"
+              visible="false"
+              style="-fx-background-color: rgba(255,255,255,0.9); -fx-padding: 12; -fx-background-radius: 8;">
+              <Label fx:id="frustrationSpeaker"
+                text="Casey"
+                style="-fx-text-fill: #333; -fx-font-weight: bold;" />
+              <Label fx:id="frustrationDialogueText"
+                wrapText="true"
+                style="-fx-text-fill: #333;" />
+            </VBox>
+
+            <!-- Context reveal after correct guess -->
+            <VBox fx:id="contextRevelation"
+              spacing="6"
+              visible="false"
+              style="-fx-background-color: rgba(240,230,140,0.95); -fx-padding: 12; -fx-background-radius: 8;">
+              <Label text="Contextual Evidence"
+                style="-fx-text-fill: #222; -fx-font-weight: bold;" />
+              <Label fx:id="contextDetails"
+                wrapText="true"
+                style="-fx-text-fill: #222;" />
+            </VBox>
+          </VBox>
+
+          <!-- AI WITNESS: Utility buttons row -->
+          <HBox alignment="BOTTOM_CENTER"
+            spacing="10"
+            translateY="170"
+            visible="false">
+            <Button fx:id="btnAnalyzeMemory"
+              text="Analyze Data"
+              onAction="#onAnalyzeMemory"
+              style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 120;" />
+            <Button fx:id="btnValidateMemory"
+              text="Validate"
+              onAction="#onValidateMemory"
+              style="-fx-font-size: 14px; -fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-pref-width: 120;" />
+          </HBox>
+
+          <!-- AI WITNESS: simple log area (optional filler; visible controlled by controller if
         desired) -->
-        <VBox fx:id="memoryLog"
-          visible="false"
-          spacing="6"
-          maxWidth="720"
-          style="-fx-background-color: rgba(0,0,0,0.4); -fx-padding: 10; -fx-background-radius: 8;">
-          <Label text="AI Witness Activity"
-            style="-fx-text-fill: white; -fx-font-weight: bold;" />
-          <TextArea editable="false" wrapText="true" prefRowCount="3"
-            style="-fx-control-inner-background: black; -fx-text-fill: #2ddf93; -fx-font-family: 'Consolas','Menlo','Monaco',monospace;" />
-        </VBox>
+          <VBox fx:id="memoryLog"
+            visible="false"
+            spacing="6"
+            maxWidth="720"
+            style="-fx-background-color: rgba(0,0,0,0.4); -fx-padding: 10; -fx-background-radius: 8;">
+            <Label text="AI Witness Activity"
+              style="-fx-text-fill: white; -fx-font-weight: bold;" />
+            <TextArea editable="false" wrapText="true" prefRowCount="3"
+              style="-fx-control-inner-background: black; -fx-text-fill: #2ddf93; -fx-font-family: 'Consolas','Menlo','Monaco',monospace;" />
+          </VBox>
 
-      </StackPane>
-    </VBox>
+        </StackPane>
+      </VBox>
+
+      <!-- Fixed Back Button (absolute position) -->
+      <Button fx:id="btnBackToRoom" onAction="#onBackToRoom" StackPane.alignment="TOP_RIGHT"
+        style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2); -fx-translate-x: -10; -fx-translate-y: 10;"
+        text="← Back to Room" />
+    </StackPane>
   </center>
 
   <!-- Consistent Matrix-style Chat Panel -->
