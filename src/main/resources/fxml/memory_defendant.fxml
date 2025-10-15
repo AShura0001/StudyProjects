@@ -33,13 +33,13 @@
                 <VBox fx:id="aimTrainingGame" layoutX="91.0" layoutY="48.0" maxWidth="788.0" prefHeight="455.0" prefWidth="610.0" spacing="8" style="-fx-background-color: rgba(240, 248, 255, 0.95); -fx-border-color: #4169e1; -fx-border-width: 1; -fx-padding: 10; -fx-border-radius: 5;" visible="false">
                     
                     <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;" text="Cookie Auto-Accept Training" />
-                    <Label prefWidth="330" style="-fx-font-size: 10px; -fx-text-fill: #555; -fx-text-alignment: center;" text="Hit 10 targets to complete training. Missing 3 targets will restart." wrapText="true" />
+                    <Label prefWidth="330" style="-fx-font-size: 10px; -fx-text-fill: #555; -fx-text-alignment: center;" text="Hit 5 targets to complete training. Missing 3 targets will restart." wrapText="true" />
                 
                     <!-- Compact Game Stats -->
                     <HBox alignment="CENTER" spacing="15">
                         <VBox alignment="CENTER" spacing="2">
                             <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;" text="Score" />
-                            <Label fx:id="lblScore" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #059669;" text="0/10" />
+                            <Label fx:id="lblScore" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #059669;" text="0/5" />
                         </VBox>
                         <VBox alignment="CENTER" spacing="2">
                             <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #1e3a8a;" text="Misses" />
