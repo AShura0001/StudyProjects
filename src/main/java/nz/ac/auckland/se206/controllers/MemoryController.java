@@ -496,11 +496,8 @@ public class MemoryController {
     showFrustrationDialogue(successResponse);
 
     String contextualEvidence =
-        "Casey searched privately for gym training programs and fitness supplements. Within 48"
-            + " hours, supplement and protein powder ads appeared on every website he visited."
-            + " Cookie Monster auto-accepted tracking cookies without his consent — he never chose"
-            + " 'Accept All.' This shows the defendant prioritized convenience over informed"
-            + " consent.";
+        "💡 Verdict Hint: Cookie Monster auto-accepted tracking cookies without Casey's consent. "
+            + "Consider whether convenience should override informed consent.";
     showContextualEvidence(contextualEvidence);
 
     if (gameStateContext != null && currentParticipant == Participant.HUMAN_WITNESS) {
@@ -526,8 +523,20 @@ public class MemoryController {
 
   private void showContextualEvidence(String evidenceText) {
     if (contextRevelation != null && contextDetails != null) {
-      contextDetails.setText(evidenceText);
       contextRevelation.setVisible(true);
+      contextDetails.setText(""); // Clear existing text
+
+      // Typewriter effect: reveal text character by character
+      Timeline typewriterTimeline = new Timeline();
+      for (int i = 0; i < evidenceText.length(); i++) {
+        final int index = i;
+        KeyFrame keyFrame =
+            new KeyFrame(
+                Duration.millis(30 * i), // 30ms delay per character
+                event -> contextDetails.setText(evidenceText.substring(0, index + 1)));
+        typewriterTimeline.getKeyFrames().add(keyFrame);
+      }
+      typewriterTimeline.play();
     }
   }
 
@@ -561,11 +570,8 @@ public class MemoryController {
               + " out of 10! I searched for gym training programs and supplements, then got"
               + " targeted ads everywhere. I never consented to this tracking!");
       showContextualEvidence(
-          "Casey searched privately for gym training programs and fitness supplements. Within 48"
-              + " hours, supplement and protein powder ads appeared on every website he visited."
-              + " Cookie Monster auto-accepted tracking cookies without his consent — he never"
-              + " chose 'Accept All.' This shows the defendant prioritized convenience over"
-              + " informed consent.");
+          "💡 Verdict Hint: Cookie Monster auto-accepted tracking cookies without Casey's consent. "
+              + "Consider whether convenience should override informed consent.");
     } else {
       if (frustrationDialogue != null) frustrationDialogue.setVisible(false);
       if (contextRevelation != null) contextRevelation.setVisible(false);
