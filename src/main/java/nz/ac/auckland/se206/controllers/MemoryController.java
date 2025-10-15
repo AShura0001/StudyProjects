@@ -773,7 +773,8 @@ public class MemoryController {
     System.out.println("DEBUG: Starting target spawning system");
 
     targetSpawnTimer =
-        new Timeline(new KeyFrame(Duration.millis(800 + random.nextInt(1200)), e -> spawnTarget()));
+        new Timeline(
+            new KeyFrame(Duration.millis(1000 + random.nextInt(1500)), e -> spawnTarget()));
     targetSpawnTimer.setCycleCount(Timeline.INDEFINITE);
     targetSpawnTimer.play();
 
@@ -824,7 +825,7 @@ public class MemoryController {
     activeTargets.remove(target);
     gameScore++;
     updateGameStats();
-    if (gameScore >= 10) endGame(true);
+    if (gameScore >= 5) endGame(true);
   }
 
   private void onTargetMiss(Button target) {
@@ -837,7 +838,7 @@ public class MemoryController {
   }
 
   private void updateGameStats() {
-    if (lblScore != null) lblScore.setText(gameScore + "/10");
+    if (lblScore != null) lblScore.setText(gameScore + "/5");
     if (lblMisses != null) {
       lblMisses.setText(totalMisses + "/3");
       if (totalMisses == 0) {
