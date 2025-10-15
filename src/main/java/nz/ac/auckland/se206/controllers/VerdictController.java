@@ -12,6 +12,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import nz.ac.auckland.se206.prompts.VerdictEvaluator;
+import nz.ac.auckland.se206.speech.TextToSpeech;
 
 @SuppressWarnings("unused")
 public class VerdictController {
@@ -86,10 +87,7 @@ public class VerdictController {
             ? "The actions align with ethical standards in this scenario."
             : summary);
 
-    statusPill.setText("ETHICAL");
-    statusPill.setStyle(
-        "-fx-font-size: 12px; -fx-background-color: #DCFCE7; -fx-text-fill: #065F46; -fx-padding: 4"
-            + " 10 4 10; -fx-background-radius: 9999;");
+    // Show result pill (text and color will be set by caller via setResultPill)
     statusPill.setVisible(true);
     statusPill.setManaged(true);
 
@@ -115,10 +113,7 @@ public class VerdictController {
             ? "The actions conflict with ethical standards."
             : summary);
 
-    statusPill.setText("UNETHICAL");
-    statusPill.setStyle(
-        "-fx-font-size: 12px; -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D; -fx-padding: 4"
-            + " 10 4 10; -fx-background-radius: 9999;");
+    // Show result pill (text and color will be set by caller via setResultPill)
     statusPill.setVisible(true);
     statusPill.setManaged(true);
 
@@ -167,6 +162,13 @@ public class VerdictController {
                                   playerRationale,
                                   result.getExplanation());
                           showYesResult(feedback);
+                          // Show result pill and short TTS feedback
+                          setResultPill(result.isCorrectVerdict());
+                          if (result.isCorrectVerdict()) {
+                            TextToSpeech.speakCached("You are correct");
+                          } else {
+                            TextToSpeech.speakCached("You are wrong");
+                          }
                         }))
             .exceptionally(
                 throwable -> {
@@ -187,6 +189,9 @@ public class VerdictController {
                                     + " honor explicit, granular opt-in.",
                                 playerRationale);
                         showYesResult(fallbackFeedback);
+                        // Fallback indicates incorrect in this branch (use cached audio)
+                        setResultPill(false);
+                        TextToSpeech.speakCached("You are wrong");
                       });
                   return null;
                 });
@@ -235,6 +240,13 @@ public class VerdictController {
                                   playerRationale,
                                   result.getExplanation());
                           showNoResult(feedback);
+                          // Show result pill and short TTS feedback
+                          setResultPill(result.isCorrectVerdict());
+                          if (result.isCorrectVerdict()) {
+                            TextToSpeech.speakCached("You are correct");
+                          } else {
+                            TextToSpeech.speakCached("You are wrong");
+                          }
                         }))
             .exceptionally(
                 throwable -> {
@@ -255,6 +267,9 @@ public class VerdictController {
                                     + " honor explicit, granular opt-in.",
                                 playerRationale);
                         showNoResult(fallbackFeedback);
+                        // Fallback indicates correct in this branch (use cached audio)
+                        setResultPill(true);
+                        TextToSpeech.speakCached("You are correct");
                       });
                   return null;
                 });
@@ -354,6 +369,24 @@ public class VerdictController {
     // Hide rationale input during evaluation
     rationaleBox.setVisible(false);
     rationaleBox.setManaged(false);
+  }
+
+  /** Sets the result pill to show "Correct" (green) or "Wrong" (red). */
+  private void setResultPill(boolean correct) {
+    if (statusPill == null) return;
+    if (correct) {
+      statusPill.setText("Correct");
+      statusPill.setStyle(
+          "-fx-font-size: 12px; -fx-background-color: #DCFCE7; -fx-text-fill: #065F46; -fx-padding:"
+              + " 4 10 4 10; -fx-background-radius: 9999;");
+    } else {
+      statusPill.setText("Wrong");
+      statusPill.setStyle(
+          "-fx-font-size: 12px; -fx-background-color: #FEE2E2; -fx-text-fill: #7F1D1D; -fx-padding:"
+              + " 4 10 4 10; -fx-background-radius: 9999;");
+    }
+    statusPill.setVisible(true);
+    statusPill.setManaged(true);
   }
 
   // ======== Countdown UI helpers ========

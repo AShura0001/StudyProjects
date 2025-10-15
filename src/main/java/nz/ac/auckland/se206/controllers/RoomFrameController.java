@@ -21,7 +21,6 @@ import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
 import nz.ac.auckland.se206.persona.AwarenessFormatter;
 import nz.ac.auckland.se206.persona.ConversationBus;
-import nz.ac.auckland.se206.speech.TextToSpeech;
 
 /** Main room frame controller: hosts the room, overlays, and navigation to slideshows/memories. */
 public class RoomFrameController implements GameStateContext.RoomUiFacade {
@@ -68,6 +67,14 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       loadAndInjectChatController();
     } catch (IOException e) {
       System.err.println("Failed to load chat controller: " + e.getMessage());
+    }
+
+    // Preload short verdict phrases so later TTS playback is faster
+    try {
+      nz.ac.auckland.se206.speech.TextToSpeech.preload("You are correct");
+      nz.ac.auckland.se206.speech.TextToSpeech.preload("You are wrong");
+    } catch (Throwable ignored) {
+      // Non-fatal: continue even if preload fails
     }
   }
 
@@ -150,11 +157,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       btnStart.setManaged(false);
     }
 
-    TextToSpeech.speak(
-        "In the Court of Common Clicks, Cookie Monster v2.3 is on trial for auto-accepting cookies "
-            + "to reduce pop-ups. Casey’s targeted ads and Sentri-Guard’s audit reveal a "
-            + "friction-first design that ignored consent, turning convenience into a question of "
-            + "accountability.");
+    // Opening TTS disabled per request. No speech on game start.
 
     resetTimer();
     startTimer();
