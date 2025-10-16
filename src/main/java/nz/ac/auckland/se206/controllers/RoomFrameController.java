@@ -1,7 +1,6 @@
 package nz.ac.auckland.se206.controllers;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.Set;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -451,31 +450,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
       overlayRoot.getChildren().setAll(verdictNode);
       showOverlay();
-
-      try {
-        Method m = controller.getClass().getMethod("startCountdown", int.class, Runnable.class);
-        m.invoke(controller, 60, (Runnable) this::onVerdictTimeout);
-      } catch (NoSuchMethodException nsme) {
-        // older verdict controllers without countdown—ignore
-      } catch (Exception reflectionError) {
-        reflectionError.printStackTrace();
-      }
+      controller.startCountdown(60);
     } catch (IOException ex) {
       ex.printStackTrace();
     }
-  }
-
-  private void onVerdictTimeout() {
-    javafx.application.Platform.runLater(
-        () -> {
-          hideVerdict();
-          Alert alert =
-              new Alert(
-                  Alert.AlertType.INFORMATION, "Time’s up: no verdict was provided in 60 seconds.");
-          alert.setHeaderText("Game Over");
-          alert.showAndWait();
-          javafx.application.Platform.exit();
-        });
   }
 
   public void hideVerdict() {
