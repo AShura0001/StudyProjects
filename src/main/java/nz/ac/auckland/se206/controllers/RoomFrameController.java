@@ -18,8 +18,6 @@ import javafx.util.Duration;
 import nz.ac.auckland.se206.App;
 import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
-import nz.ac.auckland.se206.persona.AwarenessFormatter;
-import nz.ac.auckland.se206.persona.ConversationBus;
 
 /** Main room frame controller: hosts the room, overlays, and navigation to slideshows/memories. */
 public class RoomFrameController implements GameStateContext.RoomUiFacade {
@@ -569,22 +567,12 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   /** Broadcast a flashback view to Awareness + Bus so all personas "hear" it. */
   private void broadcastFlashback(Participant p) {
-    String title = defaultFlashbackTitle(p);
+    GameStateContext gameState = App.getGameStateContext();
+    if (gameState == null) {
+      return;
+    }
     String summary = flashbackSummary(p);
-    String roleKey = getRoleKeyForParticipant(p);
-
-    try {
-      AwarenessFormatter.addMemoryEvent(
-          "flashback", "Flashback viewed → " + title + " — " + summary);
-      AwarenessFormatter.setFlashbackContext(roleKey, summary);
-    } catch (Throwable ignored) {
-    }
-
-    try {
-      ConversationBus.getInstance()
-          .post("room", "[AWARENESS] Flashback viewed → " + title + " — " + summary);
-    } catch (Throwable ignored) {
-    }
+    gameState.broadcastFlashbackIfNeeded(p, summary);
   }
 
   // ----------------- Game Reset -----------------

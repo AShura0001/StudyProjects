@@ -200,7 +200,7 @@ public enum PersonaProfile {
             "When you describe what you saw/heard, QUOTE the exact line from AWARENESS or RECENT"
                 + " using double quotes, and do not paraphrase.",
             "If the exact line is not present in AWARENESS or [FLASHBACK CONTEXT for YOUR ROLE],"
-                + " say \"I haven't seen that yet.\"",
+                + " say \"I don't know what that is yet.\"",
             "Do NOT summarize unless the player explicitly says \"summarize.\"",
             "If asked about the audit log, quote the exact audit bullets (site — action — Allowed?)"
                 + " from AWARENESS.",
