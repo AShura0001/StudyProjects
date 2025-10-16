@@ -99,6 +99,7 @@ public class ChatController {
       System.err.println("Warning: Could not initialize API configuration: " + e.getMessage());
       lblStatus.setText("API configuration not available - limited functionality");
     }
+    bindAutoscroll(txtaChat);
     replayCurrentHistory();
     gameContext = App.getGameStateContext();
 
@@ -300,16 +301,32 @@ public class ChatController {
     }
   }
 
+  /** Attach a listener that keeps the given TextArea pinned to the newest message. */
+  private void bindAutoscroll(TextArea area) {
+    if (area == null) return;
+    if (Boolean.TRUE.equals(area.getProperties().get("autoscrollBound"))) return;
+    area
+        .textProperty()
+        .addListener((obs, oldText, newText) -> scrollToBottom(area));
+    area.getProperties().put("autoscrollBound", Boolean.TRUE);
+  }
+
   /** Always jump TextArea caret to the end (works as scroll-to-bottom in JavaFX). */
   private void scrollToBottom(TextArea area) {
     if (area == null) return;
-    Platform.runLater(
+    Runnable scrollTask =
         () -> {
           int len = area.getText() == null ? 0 : area.getText().length();
           area.positionCaret(len);
           area.selectPositionCaret(len); // nudges viewport
+          area.setScrollTop(Double.MAX_VALUE);
           area.deselect(); // avoid selecting text
-        });
+        };
+    if (Platform.isFxApplicationThread()) {
+      scrollTask.run();
+    } else {
+      Platform.runLater(scrollTask);
+    }
   }
 
   // ---- LLM calls ----
@@ -424,6 +441,7 @@ public class ChatController {
     this.flashbackTxtaChat = txtaChat;
     this.flashbackTxtInput = txtInput;
     this.flashbackBtnSend = btnSend;
+    bindAutoscroll(this.flashbackTxtaChat);
     updateFlashbackComponents();
 
     if (this.flashbackTxtInput != null) {
