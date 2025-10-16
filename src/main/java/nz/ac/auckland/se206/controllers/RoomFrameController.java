@@ -27,6 +27,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private Button btnStart;
+  @FXML private Button btnSkipTimer;
   @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
   @FXML private Label introLabel;
@@ -100,6 +101,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       btnStart.setVisible(true);
       btnStart.setManaged(true);
     }
+    if (btnSkipTimer != null) {
+      btnSkipTimer.setVisible(false);
+      btnSkipTimer.setManaged(false);
+    }
     if (timerLabel != null) {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
@@ -145,6 +150,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       btnEndGame.setVisible(true);
       btnEndGame.setManaged(true);
     }
+    if (btnSkipTimer != null) {
+      btnSkipTimer.setVisible(true);
+      btnSkipTimer.setManaged(true);
+    }
 
     if (introLabel != null) {
       introLabel.setVisible(true);
@@ -188,6 +197,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       btnEndGame.setVisible(false);
       btnEndGame.setManaged(false);
     }
+    if (btnSkipTimer != null) {
+      btnSkipTimer.setVisible(false);
+      btnSkipTimer.setManaged(false);
+    }
     if (timerLabel != null) {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
@@ -203,6 +216,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     if (btnEndGame != null) {
       btnEndGame.setVisible(true);
       btnEndGame.setManaged(true);
+    }
+    if (btnSkipTimer != null) {
+      btnSkipTimer.setVisible(true);
+      btnSkipTimer.setManaged(true);
     }
     if (timerLabel != null) {
       timerLabel.setVisible(true);
@@ -338,6 +355,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
 
     if (timeline != null) timeline.stop();
+    if (btnSkipTimer != null) {
+      btnSkipTimer.setVisible(false);
+      btnSkipTimer.setManaged(false);
+    }
     lockRoomInteractions();
     showVerdictWithCountdown();
   }
@@ -355,13 +376,8 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
                   updateTimerLabel(remaining);
                   if (remaining == 0) {
                     timeline.stop();
-                    GameStateContext gameState = App.getGameStateContext();
-                    if (gameState != null && !gameState.hasContactedAllParticipants()) {
-                      showGameOverAlert(gameState);
-                    } else {
-                      lockRoomInteractions();
-                      showVerdictWithCountdown();
-                    }
+                    lockRoomInteractions();
+                    showVerdictWithCountdown();
                   }
                 }));
     timeline.setCycleCount(Timeline.INDEFINITE);
@@ -448,6 +464,11 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       controller.setFrame(this);
       controller.showQuestion("the AI defendant");
 
+      if (btnSkipTimer != null) {
+        btnSkipTimer.setVisible(false);
+        btnSkipTimer.setManaged(false);
+      }
+
       overlayRoot.getChildren().setAll(verdictNode);
       showOverlay();
       controller.startCountdown(60);
@@ -479,22 +500,16 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     alert.showAndWait();
   }
 
-  private void showGameOverAlert(GameStateContext gameState) {
-    Set<Participant> uncontacted = gameState.getUncontactedParticipants();
-    StringBuilder message =
-        new StringBuilder("Time's up! You did not chat with all participants.\n\nYou missed:\n");
-    for (Participant p : uncontacted) {
-      message.append("• ").append(getParticipantDisplayName(p)).append("\n");
+  @FXML
+  private void onSkipToFinalCountdown() {
+    if (timeline == null || timeline.getStatus() != Timeline.Status.RUNNING) {
+      return;
     }
-    message.append("\nGame Over - Investigation incomplete!");
-
-    Alert alert = new Alert(Alert.AlertType.ERROR);
-    alert.setTitle("Game Over");
-    alert.setHeaderText("Investigation Incomplete");
-    alert.setContentText(message.toString());
-    alert.showAndWait();
-
-    javafx.application.Platform.exit();
+    if (remaining <= 15) {
+      return;
+    }
+    remaining = 15;
+    updateTimerLabel(remaining);
   }
 
   private String getParticipantDisplayName(Participant participant) {
