@@ -24,7 +24,9 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
+  @FXML private StackPane startScreen;
   @FXML private Button btnStart;
+  @FXML private Button btnStartGame;
   @FXML private Button btnSkipTimer;
   @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
@@ -59,6 +61,13 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     if (overlayRoot != null) {
       overlayRoot.setVisible(false);
       overlayRoot.setManaged(false);
+    }
+
+    // Show start screen at the beginning
+    if (startScreen != null) {
+      startScreen.setVisible(true);
+      startScreen.setManaged(true);
+      startScreen.toFront();
     }
 
     try {
@@ -129,6 +138,18 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       System.err.println("Failed to inject ChatController: " + e.getMessage());
       throw new IOException("Failed to load chat controller", e);
     }
+  }
+
+  @FXML
+  private void onStartScreenButton() {
+    // Hide the start screen
+    if (startScreen != null) {
+      startScreen.setVisible(false);
+      startScreen.setManaged(false);
+    }
+
+    // Start the game
+    onStartGame();
   }
 
   @FXML

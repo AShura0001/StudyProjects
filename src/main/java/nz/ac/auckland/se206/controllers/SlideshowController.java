@@ -83,19 +83,19 @@ public class SlideshowController {
     {
       new Slide(
           "/images/flashbackSlide1-human.png",
-          "Human visited a website to browse content. Without any visible prompt, Cookie Monster "
-              + "AI automatically accepted all tracking cookies. The human was completely unaware "
-              + "their digital privacy had been compromised."),
+          "Cacey was enjoying seamless browsing on his newly bought PC, completely unaware that"
+              + " the preinstalled AI Cookie Monster was silently handling all the cookie ads"
+              + " and pop ups."),
       new Slide(
           "/images/flashbackSlide2-human.png",
-          "Later, the human watched a gym training video online. Unknown to them, every click, "
+          "Later, the Cacey watched a gym training video online. Unknown to them, every click, "
               + "pause, and replay was being tracked and analyzed by invisible algorithms "
               + "in the background."),
       new Slide(
           "/images/flashbackSlide3-human.png",
           "Hours later, scrolling social media, a targeted supplement ad appeared - promoting "
-              + "the exact protein powder from the gym video. The human wondered: 'How do they "
-              + "know I was just watching gym stuff?'")
+              + "the exact protein powder from the gym video. Cacey wondered: 'How do they "
+              + "know I was just watching gym stuff?' and panicked")
     }
   };
 

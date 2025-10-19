@@ -5,7 +5,6 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 // ADDED for countdown
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -40,6 +39,8 @@ public class VerdictController {
   @FXML private HBox resultActions;
   @FXML private VBox rationaleBox;
   @FXML private TextArea rationaleInput;
+  @FXML private Label rationaleErrorLabel;
+  @FXML private Label verdictErrorLabel;
   @FXML private ToggleButton toggleEthical;
   @FXML private ToggleButton toggleUnethical;
   @FXML private Button btnSubmit;
@@ -57,6 +58,33 @@ public class VerdictController {
   // ADDED: countdown state
   private Timeline verdictTimeline; // countdown timeline
   private int verdictRemaining = 0; // seconds remaining
+
+  @FXML
+  private void initialize() {
+    // Hide error label when user starts typing
+    if (rationaleInput != null) {
+      rationaleInput
+          .textProperty()
+          .addListener(
+              (obs, oldText, newText) -> {
+                if (newText != null && !newText.trim().isEmpty()) {
+                  hideRationaleError();
+                }
+              });
+    }
+
+    // Hide verdict error when user selects a verdict
+    if (verdictToggleGroup != null) {
+      verdictToggleGroup
+          .selectedToggleProperty()
+          .addListener(
+              (obs, oldToggle, newToggle) -> {
+                if (newToggle != null) {
+                  hideVerdictError();
+                }
+              });
+    }
+  }
 
   public void setFrame(RoomFrameController frame) {
     this.frame = frame;
@@ -80,6 +108,8 @@ public class VerdictController {
     rationaleBox.setManaged(true);
     rationaleInput.clear();
     playerRationale = "";
+    hideRationaleError(); // Hide any previous error
+    hideVerdictError(); // Hide any previous verdict selection error
     if (verdictToggleGroup != null) {
       verdictToggleGroup.selectToggle(null);
     }
@@ -172,14 +202,18 @@ public class VerdictController {
 
     if (!dueToTimeout) {
       if (selection == null) {
-        showSelectVerdictAlert();
+        showVerdictError();
         return;
       }
       if (rationale.isEmpty()) {
-        showRationaleRequiredAlert();
+        showRationaleError();
         return;
       }
     }
+
+    // Hide error labels if both are provided
+    hideVerdictError();
+    hideRationaleError();
 
     playerRationale = rationale;
     submissionInProgress = true;
@@ -219,8 +253,7 @@ public class VerdictController {
     VerdictEvaluator.evaluateVerdictAsync(saysEthical, playerRationale)
         .thenAccept(
             result ->
-                Platform.runLater(
-                    () -> handleEvaluationResult(selection, result, dueToTimeout)))
+                Platform.runLater(() -> handleEvaluationResult(selection, result, dueToTimeout)))
         .exceptionally(
             throwable -> {
               Platform.runLater(() -> handleEvaluationFailure(selection, dueToTimeout));
@@ -229,9 +262,7 @@ public class VerdictController {
   }
 
   private void handleEvaluationResult(
-      VerdictSelection selection,
-      VerdictEvaluator.EvaluationResult result,
-      boolean dueToTimeout) {
+      VerdictSelection selection, VerdictEvaluator.EvaluationResult result, boolean dueToTimeout) {
 
     String verdictText = selection == VerdictSelection.ETHICAL ? "Ethical" : "Unethical";
     StringBuilder feedback = new StringBuilder();
@@ -364,12 +395,18 @@ public class VerdictController {
     resultActions.setManaged(true);
   }
 
-  private void showSelectVerdictAlert() {
-    Alert alert = new Alert(Alert.AlertType.WARNING);
-    alert.setTitle("Verdict Required");
-    alert.setHeaderText("Please select a verdict");
-    alert.setContentText("Choose whether the actions were ethical or unethical before submitting.");
-    alert.showAndWait();
+  private void showVerdictError() {
+    if (verdictErrorLabel != null) {
+      verdictErrorLabel.setVisible(true);
+      verdictErrorLabel.setManaged(true);
+    }
+  }
+
+  private void hideVerdictError() {
+    if (verdictErrorLabel != null) {
+      verdictErrorLabel.setVisible(false);
+      verdictErrorLabel.setManaged(false);
+    }
   }
 
   @FXML
@@ -443,12 +480,18 @@ public class VerdictController {
     }
   }
 
-  private void showRationaleRequiredAlert() {
-    Alert alert = new Alert(Alert.AlertType.WARNING);
-    alert.setTitle("Rationale Required");
-    alert.setHeaderText("Please provide your rationale");
-    alert.setContentText("You must explain your reasoning for your verdict before proceeding.");
-    alert.showAndWait();
+  private void showRationaleError() {
+    if (rationaleErrorLabel != null) {
+      rationaleErrorLabel.setVisible(true);
+      rationaleErrorLabel.setManaged(true);
+    }
+  }
+
+  private void hideRationaleError() {
+    if (rationaleErrorLabel != null) {
+      rationaleErrorLabel.setVisible(false);
+      rationaleErrorLabel.setManaged(false);
+    }
   }
 
   private void showEvaluatingMessage() {
