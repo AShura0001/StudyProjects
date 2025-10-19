@@ -425,7 +425,7 @@ public class MemoryController {
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
-      gameStateContext.markParticipantContacted(currentParticipant);
+      // Don't mark as contacted here - only mark when leaving after actual chat
       gameStateContext.getChatController().selectParticipant(currentParticipant);
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
@@ -780,7 +780,7 @@ public class MemoryController {
 
     targetSpawnTimer =
         new Timeline(
-            new KeyFrame(Duration.millis(1000 + random.nextInt(1500)), e -> spawnTarget()));
+            new KeyFrame(Duration.millis(1250 + random.nextInt(2000)), e -> spawnTarget()));
     targetSpawnTimer.setCycleCount(Timeline.INDEFINITE);
     targetSpawnTimer.play();
 
@@ -818,10 +818,10 @@ public class MemoryController {
     System.out.println(
         "DEBUG: Spawned target at (" + x + ", " + y + ") in area " + areaWidth + "x" + areaHeight);
 
-    // Set target to disappear after 0.7 seconds (faster for increased difficulty)
+    // Set target to disappear after 0.85 seconds (decreased for easier gameplay)
 
     Timeline disappearTimer =
-        new Timeline(new KeyFrame(Duration.seconds(0.7), e -> onTargetMiss(target)));
+        new Timeline(new KeyFrame(Duration.seconds(0.85), e -> onTargetMiss(target)));
     disappearTimer.play();
   }
 

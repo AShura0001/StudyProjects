@@ -480,7 +480,37 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     if (overlayRoot != null) overlayRoot.getChildren().clear();
   }
 
+  public void showEndGameOverlay(Node endGameNode) {
+    overlayRoot.getChildren().setAll(endGameNode);
+    showOverlay();
+  }
+
+  public void hideWarning() {
+    hideOverlay();
+    if (overlayRoot != null) overlayRoot.getChildren().clear();
+  }
+
   private void showIncompleteContactAlert(GameStateContext gameState) {
+    try {
+      Set<Participant> uncontacted = gameState.getUncontactedParticipants();
+
+      FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/incomplete_warning.fxml"));
+      Node warningNode = loader.load();
+
+      IncompleteWarningController controller = loader.getController();
+      controller.setFrame(this);
+      controller.setUncontactedParticipants(uncontacted);
+
+      overlayRoot.getChildren().setAll(warningNode);
+      showOverlay();
+    } catch (IOException ex) {
+      ex.printStackTrace();
+      // Fallback to old alert if FXML fails
+      showIncompleteContactAlertFallback(gameState);
+    }
+  }
+
+  private void showIncompleteContactAlertFallback(GameStateContext gameState) {
     Set<Participant> uncontacted = gameState.getUncontactedParticipants();
     StringBuilder message =
         new StringBuilder(
