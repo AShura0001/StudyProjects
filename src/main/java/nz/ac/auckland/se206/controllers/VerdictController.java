@@ -293,35 +293,41 @@ public class VerdictController {
     if (frame != null) {
       frame.hideVerdict();
     }
-    // Show end of game popup with Replay and Exit buttons
-    javafx.application.Platform.runLater(
-        () -> {
-          javafx.scene.control.Alert alert =
-              new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
-          alert.setTitle("End of Game");
-          alert.setHeaderText("Game Complete");
-          alert.setContentText(
-              "End of game. Thank you for playing! Please hit Exit or Replay to move forward!");
+    // Load end game scene instead of showing popup
+    showEndGameScene();
+  }
 
-          javafx.scene.control.ButtonType replayButton =
-              new javafx.scene.control.ButtonType(
-                  "Replay", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
-          javafx.scene.control.ButtonType exitButton =
-              new javafx.scene.control.ButtonType(
-                  "Exit", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+  private void showEndGameScene() {
+    try {
+      javafx.fxml.FXMLLoader loader =
+          new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/end_game.fxml"));
+      javafx.scene.Node endGameNode = loader.load();
 
-          alert.getButtonTypes().setAll(replayButton, exitButton);
+      // Get the controller from end_game.fxml (it reuses this VerdictController)
+      VerdictController endGameController = loader.getController();
+      endGameController.setFrame(this.frame);
 
-          javafx.scene.control.ButtonType result = alert.showAndWait().orElse(exitButton);
+      // Show the end game scene in the overlay
+      if (frame != null) {
+        frame.showEndGameOverlay(endGameNode);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      // Fallback: exit if loading fails
+      javafx.application.Platform.exit();
+    }
+  }
 
-          if (result == replayButton) {
-            // Reset the game state and return to main room
-            resetGame();
-          } else if (result == exitButton) {
-            // Exit the application
-            javafx.application.Platform.exit();
-          }
-        });
+  @FXML
+  private void onReplay() {
+    // Reset the game state and return to main room
+    resetGame();
+  }
+
+  @FXML
+  private void onExit() {
+    // Exit the application
+    javafx.application.Platform.exit();
   }
 
   private void resetGame() {
