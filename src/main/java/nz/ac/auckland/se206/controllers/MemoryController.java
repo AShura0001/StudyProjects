@@ -425,7 +425,7 @@ public class MemoryController {
     if (gameStateContext != null
         && gameStateContext.getChatController() != null
         && currentParticipant != null) {
-      gameStateContext.markParticipantContacted(currentParticipant);
+      // Don't mark as contacted here - only mark when leaving after actual chat
       gameStateContext.getChatController().selectParticipant(currentParticipant);
       gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
     }
@@ -780,7 +780,7 @@ public class MemoryController {
 
     targetSpawnTimer =
         new Timeline(
-            new KeyFrame(Duration.millis(1500 + random.nextInt(2500)), e -> spawnTarget()));
+            new KeyFrame(Duration.millis(1250 + random.nextInt(2000)), e -> spawnTarget()));
     targetSpawnTimer.setCycleCount(Timeline.INDEFINITE);
     targetSpawnTimer.play();
 
