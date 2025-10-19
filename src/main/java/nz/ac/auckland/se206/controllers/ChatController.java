@@ -43,12 +43,14 @@ public class ChatController {
   private static final Map<String, String> FLASHBACK_SUMMARY =
       Map.of(
           "ai_defendant",
-          "An uncloseable cookie pop-up blocks access until 'Accept All' is clicked, bypassing"
-              + " explicit consent and triggering targeted ads.",
+          "Cookie Monster auto-accepted the consent banner to keep the page flowing, silently"
+              + " enabling broad tracking and targeted ads without explicit approval.",
           "human_witness",
-          "",
+          "Casey searched for gym recovery plans and supplements in private, then saw matching ads"
+              + " everywhere despite never opting in to tracking.",
           "ai_witness",
-          "");
+          "Sentri-Guard logged Cookie Monster's auto-accepts: gym recovery video -> cross-site"
+              + " tracking -> targeted supplement ads, all without consent.");
 
   // Main chat UI
   @FXML private TextArea txtaChat;
@@ -99,6 +101,7 @@ public class ChatController {
       System.err.println("Warning: Could not initialize API configuration: " + e.getMessage());
       lblStatus.setText("API configuration not available - limited functionality");
     }
+    bindAutoscroll(txtaChat);
     replayCurrentHistory();
     gameContext = App.getGameStateContext();
 
@@ -300,16 +303,32 @@ public class ChatController {
     }
   }
 
+  /** Attach a listener that keeps the given TextArea pinned to the newest message. */
+  private void bindAutoscroll(TextArea area) {
+    if (area == null) return;
+    if (Boolean.TRUE.equals(area.getProperties().get("autoscrollBound"))) return;
+    area
+        .textProperty()
+        .addListener((obs, oldText, newText) -> scrollToBottom(area));
+    area.getProperties().put("autoscrollBound", Boolean.TRUE);
+  }
+
   /** Always jump TextArea caret to the end (works as scroll-to-bottom in JavaFX). */
   private void scrollToBottom(TextArea area) {
     if (area == null) return;
-    Platform.runLater(
+    Runnable scrollTask =
         () -> {
           int len = area.getText() == null ? 0 : area.getText().length();
           area.positionCaret(len);
           area.selectPositionCaret(len); // nudges viewport
+          area.setScrollTop(Double.MAX_VALUE);
           area.deselect(); // avoid selecting text
-        });
+        };
+    if (Platform.isFxApplicationThread()) {
+      scrollTask.run();
+    } else {
+      Platform.runLater(scrollTask);
+    }
   }
 
   // ---- LLM calls ----
@@ -424,6 +443,7 @@ public class ChatController {
     this.flashbackTxtaChat = txtaChat;
     this.flashbackTxtInput = txtInput;
     this.flashbackBtnSend = btnSend;
+    bindAutoscroll(this.flashbackTxtaChat);
     updateFlashbackComponents();
 
     if (this.flashbackTxtInput != null) {
@@ -644,18 +664,8 @@ public class ChatController {
     GameStateContext ctx = (gameContext != null) ? gameContext : App.getGameStateContext();
     if (ctx == null) return;
 
-    String roleKey = roleKeyOf(p);
-    Set<String> seen = ctx.getFlashbacksSeen();
-    boolean firstTime = (seen == null) || !seen.contains(roleKey);
-
-    ctx.markFlashbackSeen(p);
-
-    if (firstTime) {
-      String note = FLASHBACK_SUMMARY.getOrDefault(roleKey, "");
-      if (!note.isBlank()) {
-        ConversationBus.getInstance().post(roleKey, "[Flashback] " + note);
-      }
-    }
+    String summary = FLASHBACK_SUMMARY.getOrDefault(roleKeyOf(p), "");
+    ctx.broadcastFlashbackIfNeeded(p, summary);
   }
 
   public void onFlashbackCompleted(String id) {
@@ -684,18 +694,8 @@ public class ChatController {
     GameStateContext ctx = App.getGameStateContext();
     if (ctx == null) return;
 
-    String roleKey = roleKeyOf(p);
-    Set<String> seen = ctx.getFlashbacksSeen();
-    boolean firstTime = (seen == null) || !seen.contains(roleKey);
-
-    ctx.markFlashbackSeen(p);
-
-    if (firstTime) {
-      String note = FLASHBACK_SUMMARY.getOrDefault(roleKey, "");
-      if (!note.isBlank()) {
-        ConversationBus.getInstance().post(roleKey, "[Flashback] " + note);
-      }
-    }
+    String summary = FLASHBACK_SUMMARY.getOrDefault(roleKeyOf(p), "");
+    ctx.broadcastFlashbackIfNeeded(p, summary);
   }
 
   public static void announceFlashbackViewedStatic(String id) {

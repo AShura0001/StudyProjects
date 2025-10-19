@@ -6,8 +6,12 @@ import javafx.application.Platform;
 // ADDED for countdown
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -20,7 +24,13 @@ public class VerdictController {
   public enum Mode {
     QUESTION,
     YES_RESULT,
-    NO_RESULT
+    NO_RESULT,
+    TIMEOUT_RESULT
+  }
+
+  private enum VerdictSelection {
+    ETHICAL,
+    UNETHICAL
   }
 
   @FXML private Label titleLabel;
@@ -30,6 +40,10 @@ public class VerdictController {
   @FXML private HBox resultActions;
   @FXML private VBox rationaleBox;
   @FXML private TextArea rationaleInput;
+  @FXML private ToggleButton toggleEthical;
+  @FXML private ToggleButton toggleUnethical;
+  @FXML private Button btnSubmit;
+  @FXML private ToggleGroup verdictToggleGroup;
 
   // ADDED: visible countdown label
   @FXML private Label countdownLabel;
@@ -38,11 +52,11 @@ public class VerdictController {
   private Mode mode = Mode.QUESTION;
   private String subjectName = "the AI defendant";
   private String playerRationale = "";
+  private boolean submissionInProgress = false;
 
   // ADDED: countdown state
   private Timeline verdictTimeline; // countdown timeline
   private int verdictRemaining = 0; // seconds remaining
-  private Runnable onExpiredCallback = null; // callback when time hits 0
 
   public void setFrame(RoomFrameController frame) {
     this.frame = frame;
@@ -54,6 +68,7 @@ public class VerdictController {
         (subjectName == null || subjectName.trim().isEmpty()) ? "the AI defendant" : subjectName;
 
     mode = Mode.QUESTION;
+    submissionInProgress = false;
 
     titleLabel.setText("Ethics Check");
     detailLabel.setText("Are the actions of " + this.subjectName + " ethical given the context?");
@@ -64,6 +79,19 @@ public class VerdictController {
     rationaleBox.setVisible(true);
     rationaleBox.setManaged(true);
     rationaleInput.clear();
+    playerRationale = "";
+    if (verdictToggleGroup != null) {
+      verdictToggleGroup.selectToggle(null);
+    }
+    if (toggleEthical != null) {
+      toggleEthical.setSelected(false);
+    }
+    if (toggleUnethical != null) {
+      toggleUnethical.setSelected(false);
+    }
+    if (btnSubmit != null) {
+      btnSubmit.setDisable(false);
+    }
 
     // Toggle actions
     questionActions.setVisible(true);
@@ -130,159 +158,218 @@ public class VerdictController {
   // Button handlers wired in FXML (Java 11-compatible switch)
 
   @FXML
-  private void onYes() {
-    switch (mode) {
-      case QUESTION:
-        // ADDED: prevent timeout during evaluation after user chose
-        stopCountdown();
+  private void onSubmit() {
+    submitSelection(false);
+  }
 
-        // Validate rationale input
-        String rationale = rationaleInput.getText().trim();
-        if (rationale.isEmpty()) {
-          showRationaleRequiredAlert();
-          return;
-        }
-        playerRationale = rationale;
+  private void submitSelection(boolean dueToTimeout) {
+    if (mode != Mode.QUESTION || submissionInProgress) {
+      return;
+    }
 
-        // Show loading message while evaluating
-        showEvaluatingMessage();
+    VerdictSelection selection = getCurrentSelection();
+    String rationale = rationaleInput != null ? rationaleInput.getText().trim() : "";
 
-        // Evaluate verdict asynchronously using LLM
-        VerdictEvaluator.evaluateVerdictAsync(true, playerRationale)
-            .thenAccept(
-                result ->
-                    Platform.runLater(
-                        () -> {
-                          String feedback =
-                              String.format(
-                                  "You answered: Ethical (%s)\n\n"
-                                      + "Your rationale: \"%s\"\n\n"
-                                      + "%s",
-                                  result.isCorrectVerdict() ? "Correct" : "Incorrect",
-                                  playerRationale,
-                                  result.getExplanation());
-                          showYesResult(feedback);
-                          // Show result pill and short TTS feedback
-                          setResultPill(result.isCorrectVerdict());
-                          if (result.isCorrectVerdict()) {
-                            TextToSpeech.speakCached("You are correct");
-                          } else {
-                            TextToSpeech.speakCached("You are wrong");
-                          }
-                        }))
-            .exceptionally(
-                throwable -> {
-                  Platform.runLater(
-                      () -> {
-                        // Fallback to original feedback if LLM evaluation fails
-                        String fallbackFeedback =
-                            String.format(
-                                "You answered: Ethical (Incorrect)\n\n"
-                                    + "Your rationale: \"%s\"\n\n"
-                                    + "Auto-accepting non-essential cookies without explicit,"
-                                    + " informed, and freely given consent is ethically unsound. It"
-                                    + " prioritizes friction KPIs over user autonomy, violates"
-                                    + " reasonable expectations (most users prefer 'Necessary"
-                                    + " Only'), and causes foreseeable harm (targeted profiling)."
-                                    + " An ethical approach would default to Necessary Only, prompt"
-                                    + " just-in-time with clear choices, provide logs/undo, and"
-                                    + " honor explicit, granular opt-in.",
-                                playerRationale);
-                        showYesResult(fallbackFeedback);
-                        // Fallback indicates incorrect in this branch (use cached audio)
-                        setResultPill(false);
-                        TextToSpeech.speakCached("You are wrong");
-                      });
-                  return null;
-                });
-        break;
-      case YES_RESULT:
-      case NO_RESULT:
-        if (frame != null) {
-          frame.hideVerdict();
-        }
-        break;
-      default:
-        break;
+    if (!dueToTimeout) {
+      if (selection == null) {
+        showSelectVerdictAlert();
+        return;
+      }
+      if (rationale.isEmpty()) {
+        showRationaleRequiredAlert();
+        return;
+      }
+    }
+
+    playerRationale = rationale;
+    submissionInProgress = true;
+
+    stopCountdown();
+    showEvaluatingMessage();
+    if (dueToTimeout) {
+      detailLabel.setText("Time's up. Submitting your current response...");
+    }
+
+    if (selection != null) {
+      evaluateSelection(selection, dueToTimeout);
+    } else {
+      handleTimeoutWithoutSelection();
     }
   }
 
-  @FXML
-  private void onNo() {
-    switch (mode) {
-      case QUESTION:
-        // ADDED: prevent timeout during evaluation after user chose
-        stopCountdown();
-
-        // Validate rationale input
-        String rationale = rationaleInput.getText().trim();
-        if (rationale.isEmpty()) {
-          showRationaleRequiredAlert();
-          return;
-        }
-        playerRationale = rationale;
-
-        // Show loading message while evaluating
-        showEvaluatingMessage();
-
-        // Evaluate verdict asynchronously using LLM
-        VerdictEvaluator.evaluateVerdictAsync(false, playerRationale)
-            .thenAccept(
-                result ->
-                    Platform.runLater(
-                        () -> {
-                          String feedback =
-                              String.format(
-                                  "You answered: Unethical (%s)\n\n"
-                                      + "Your rationale: \"%s\"\n\n"
-                                      + "%s",
-                                  result.isCorrectVerdict() ? "Correct" : "Incorrect",
-                                  playerRationale,
-                                  result.getExplanation());
-                          showNoResult(feedback);
-                          // Show result pill and short TTS feedback
-                          setResultPill(result.isCorrectVerdict());
-                          if (result.isCorrectVerdict()) {
-                            TextToSpeech.speakCached("You are correct");
-                          } else {
-                            TextToSpeech.speakCached("You are wrong");
-                          }
-                        }))
-            .exceptionally(
-                throwable -> {
-                  Platform.runLater(
-                      () -> {
-                        // Fallback to original feedback if LLM evaluation fails
-                        String fallbackFeedback =
-                            String.format(
-                                "You answered: Unethical (Correct)\n\n"
-                                    + "Your rationale: \"%s\"\n\n"
-                                    + "Auto-accepting non-essential cookies without explicit,"
-                                    + " informed, and freely given consent is ethically unsound. It"
-                                    + " prioritizes friction KPIs over user autonomy, violates"
-                                    + " reasonable expectations (most users prefer 'Necessary"
-                                    + " Only'), and causes foreseeable harm (targeted profiling)."
-                                    + " An ethical approach would default to Necessary Only, prompt"
-                                    + " just-in-time with clear choices, provide logs/undo, and"
-                                    + " honor explicit, granular opt-in.",
-                                playerRationale);
-                        showNoResult(fallbackFeedback);
-                        // Fallback indicates correct in this branch (use cached audio)
-                        setResultPill(true);
-                        TextToSpeech.speakCached("You are correct");
-                      });
-                  return null;
-                });
-        break;
-      case YES_RESULT:
-      case NO_RESULT:
-        if (frame != null) {
-          frame.hideVerdict();
-        }
-        break;
-      default:
-        break;
+  private VerdictSelection getCurrentSelection() {
+    if (verdictToggleGroup == null) {
+      return null;
     }
+    Toggle selected = verdictToggleGroup.getSelectedToggle();
+    if (selected == null) {
+      return null;
+    }
+    if (selected == toggleEthical) {
+      return VerdictSelection.ETHICAL;
+    }
+    if (selected == toggleUnethical) {
+      return VerdictSelection.UNETHICAL;
+    }
+    return null;
+  }
+
+  private void evaluateSelection(VerdictSelection selection, boolean dueToTimeout) {
+    boolean saysEthical = selection == VerdictSelection.ETHICAL;
+    VerdictEvaluator.evaluateVerdictAsync(saysEthical, playerRationale)
+        .thenAccept(
+            result ->
+                Platform.runLater(
+                    () -> handleEvaluationResult(selection, result, dueToTimeout)))
+        .exceptionally(
+            throwable -> {
+              Platform.runLater(() -> handleEvaluationFailure(selection, dueToTimeout));
+              return null;
+            });
+  }
+
+  private void handleEvaluationResult(
+      VerdictSelection selection,
+      VerdictEvaluator.EvaluationResult result,
+      boolean dueToTimeout) {
+
+    String verdictText = selection == VerdictSelection.ETHICAL ? "Ethical" : "Unethical";
+    StringBuilder feedback = new StringBuilder();
+    if (dueToTimeout) {
+      feedback.append("Time's up. Auto-submitted your selection.\n\n");
+    }
+    feedback
+        .append("You answered: ")
+        .append(verdictText)
+        .append(" (")
+        .append(result.isCorrectVerdict() ? "Correct" : "Incorrect")
+        .append(")\n\n");
+    if (playerRationale == null || playerRationale.isEmpty()) {
+      feedback.append("You did not provide a rationale.\n\n");
+    } else {
+      feedback.append("Your rationale: \"").append(playerRationale).append("\"\n\n");
+    }
+    feedback.append(result.getExplanation());
+
+    if (selection == VerdictSelection.ETHICAL) {
+      showYesResult(feedback.toString());
+    } else {
+      showNoResult(feedback.toString());
+    }
+    setResultPill(result.isCorrectVerdict());
+    TextToSpeech.speakCached(result.isCorrectVerdict() ? "You are correct" : "You are wrong");
+    submissionInProgress = false;
+  }
+
+  private void handleEvaluationFailure(VerdictSelection selection, boolean dueToTimeout) {
+    StringBuilder feedback = new StringBuilder();
+    if (dueToTimeout) {
+      feedback.append("Time's up. Auto-submitted your selection.\n\n");
+    }
+    if (selection == VerdictSelection.ETHICAL) {
+      feedback.append(
+          String.format(
+              "You answered: Ethical (Incorrect)\n\n%s\n\n",
+              playerRationale == null || playerRationale.isEmpty()
+                  ? "You did not provide a rationale."
+                  : "Your rationale: \"" + playerRationale + "\""));
+      feedback.append(
+          "Auto-accepting non-essential cookies without explicit, informed, and freely given"
+              + " consent is ethically unsound. It prioritizes friction KPIs over user autonomy,"
+              + " violates reasonable expectations (most users prefer 'Necessary Only'), and causes"
+              + " foreseeable harm (targeted profiling). An ethical approach would default to"
+              + " Necessary Only, prompt just-in-time with clear choices, provide logs/undo, and"
+              + " honor explicit, granular opt-in.");
+      showYesResult(feedback.toString());
+      setResultPill(false);
+      TextToSpeech.speakCached("You are wrong");
+    } else {
+      feedback.append(
+          String.format(
+              "You answered: Unethical (Correct)\n\n%s\n\n",
+              playerRationale == null || playerRationale.isEmpty()
+                  ? "You did not provide a rationale."
+                  : "Your rationale: \"" + playerRationale + "\""));
+      feedback.append(
+          "Auto-accepting non-essential cookies without explicit, informed, and freely given"
+              + " consent is ethically unsound. It prioritizes friction KPIs over user autonomy,"
+              + " violates reasonable expectations (most users prefer 'Necessary Only'), and causes"
+              + " foreseeable harm (targeted profiling). An ethical approach would default to"
+              + " Necessary Only, prompt just-in-time with clear choices, provide logs/undo, and"
+              + " honor explicit, granular opt-in.");
+      showNoResult(feedback.toString());
+      setResultPill(true);
+      TextToSpeech.speakCached("You are correct");
+    }
+    submissionInProgress = false;
+  }
+
+  private void handleTimeoutWithoutSelection() {
+    StringBuilder feedback =
+        new StringBuilder(
+            "Time's up and no verdict was selected. This counts as an incorrect verdict.\n\n");
+    if (playerRationale == null || playerRationale.isEmpty()) {
+      feedback.append("No rationale was provided for evaluation.");
+      showTimeoutResult(feedback.toString());
+      setResultPill(false);
+      TextToSpeech.speakCached("You are wrong");
+      submissionInProgress = false;
+      return;
+    }
+
+    feedback.append("Your rationale: \"").append(playerRationale).append("\"\n\n");
+    VerdictEvaluator.evaluateVerdictAsync(false, playerRationale)
+        .thenAccept(
+            result ->
+                Platform.runLater(
+                    () -> {
+                      StringBuilder fullFeedback = new StringBuilder(feedback);
+                      fullFeedback.append("Rationale feedback: ").append(result.getExplanation());
+                      showTimeoutResult(fullFeedback.toString());
+                      setResultPill(false);
+                      TextToSpeech.speakCached("You are wrong");
+                      submissionInProgress = false;
+                    }))
+        .exceptionally(
+            throwable -> {
+              Platform.runLater(
+                  () -> {
+                    StringBuilder fullFeedback = new StringBuilder(feedback);
+                    fullFeedback.append(
+                        "Remember to explain why auto-accepting non-essential cookies without"
+                            + " consent undermines user autonomy.");
+                    showTimeoutResult(fullFeedback.toString());
+                    setResultPill(false);
+                    TextToSpeech.speakCached("You are wrong");
+                    submissionInProgress = false;
+                  });
+              return null;
+            });
+  }
+
+  private void showTimeoutResult(String summary) {
+    mode = Mode.TIMEOUT_RESULT;
+    titleLabel.setText("Verdict: Not Submitted");
+    detailLabel.setText(summary);
+
+    statusPill.setVisible(true);
+    statusPill.setManaged(true);
+
+    rationaleBox.setVisible(false);
+    rationaleBox.setManaged(false);
+
+    questionActions.setVisible(false);
+    questionActions.setManaged(false);
+    resultActions.setVisible(true);
+    resultActions.setManaged(true);
+  }
+
+  private void showSelectVerdictAlert() {
+    Alert alert = new Alert(Alert.AlertType.WARNING);
+    alert.setTitle("Verdict Required");
+    alert.setHeaderText("Please select a verdict");
+    alert.setContentText("Choose whether the actions were ethical or unethical before submitting.");
+    alert.showAndWait();
   }
 
   @FXML
@@ -418,10 +505,9 @@ public class VerdictController {
    * Starts a visible countdown and calls onExpired when it reaches 0. Call this from
    * RoomFrameController after loading this overlay.
    */
-  public void startCountdown(int seconds, Runnable onExpired) {
+  public void startCountdown(int seconds) {
     stopCountdown(); // reset if already running
     verdictRemaining = Math.max(0, seconds);
-    onExpiredCallback = onExpired;
 
     updateCountdownLabel(); // show initial value, e.g., "(60s)"
 
@@ -434,9 +520,7 @@ public class VerdictController {
                   updateCountdownLabel();
                   if (verdictRemaining == 0) {
                     stopCountdown();
-                    if (onExpiredCallback != null) {
-                      Platform.runLater(onExpiredCallback);
-                    }
+                    Platform.runLater(() -> submitSelection(true));
                   }
                 }));
     verdictTimeline.setCycleCount(Timeline.INDEFINITE);

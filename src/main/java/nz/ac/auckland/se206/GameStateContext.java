@@ -12,6 +12,7 @@ import java.util.Set;
 import javafx.application.Platform;
 import nz.ac.auckland.se206.controllers.ChatController;
 import nz.ac.auckland.se206.controllers.ChatController.Participant;
+import nz.ac.auckland.se206.persona.AwarenessFormatter;
 import nz.ac.auckland.se206.persona.ConversationBus;
 import org.yaml.snakeyaml.Yaml;
 
@@ -100,6 +101,19 @@ public class GameStateContext {
     }
   }
 
+  private static String flashbackOwnerLabel(Participant p) {
+    if (p == null) return "Cookie Monster";
+    switch (p) {
+      case HUMAN_WITNESS:
+        return "Casey";
+      case AI_WITNESS:
+        return "Sentri-Guard";
+      case DEFENDANT:
+      default:
+        return "Cookie Monster";
+    }
+  }
+
   // -------- Flashback broadcasting --------
 
   /**
@@ -109,24 +123,49 @@ public class GameStateContext {
    * summary that all personas may reference.
    */
   public synchronized boolean broadcastFlashbackIfNeeded(Participant owner, String conciseSummary) {
-    String roleKey = roleKeyOf(owner);
+    Participant actualOwner = (owner == null) ? Participant.DEFENDANT : owner;
+    String roleKey = roleKeyOf(actualOwner);
     if (roleKey == null || roleKey.isBlank()) return false;
-    if (flashbackPrimedOwners.contains(roleKey)) return false;
+    markFlashbackSeen(actualOwner);
+
+    boolean alreadyPrimed = flashbackPrimedOwners.contains(roleKey);
+    String summary = (conciseSummary == null) ? "" : conciseSummary.trim();
+
+    if (!summary.isBlank()) {
+      try {
+        AwarenessFormatter.setFlashbackContext(roleKey, summary);
+        if (!alreadyPrimed) {
+          AwarenessFormatter.addMemoryEvent(
+              "flashback", flashbackOwnerLabel(actualOwner) + " flashback: " + summary);
+        }
+      } catch (Throwable ignored) {
+      }
+    }
+
+    if (alreadyPrimed) {
+      return false;
+    }
 
     // 1) Private context for the owner
     String privateKey = "flashback_private_" + roleKey;
-    String ownerMsg =
-        "[FLASHBACK CONTEXT for "
-            + owner.name()
-            + "]\n"
-            + conciseSummary
-            + "\nYou may rely on this memory when speaking as "
-            + owner.name()
-            + ".";
-    ConversationBus.getInstance().post(privateKey, ownerMsg);
+    if (!summary.isBlank()) {
+      String ownerMsg =
+          "[FLASHBACK CONTEXT for "
+              + actualOwner.name()
+              + "]\n"
+              + summary
+              + "\nYou may rely on this memory when speaking as "
+              + actualOwner.name()
+              + ".";
+      ConversationBus.getInstance().post(privateKey, ownerMsg);
+    }
 
     // 2) Shared awareness for everyone
-    String roomAwareness = "[AWARENESS] Flashback viewed (" + owner.name() + "): " + conciseSummary;
+    String roomAwareness =
+        "[AWARENESS] Flashback viewed ("
+            + actualOwner.name()
+            + "): "
+            + (summary.isBlank() ? "(details pending)" : summary);
     ConversationBus.getInstance().post("room", roomAwareness);
 
     flashbackPrimedOwners.add(roleKey);
