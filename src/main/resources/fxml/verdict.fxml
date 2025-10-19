@@ -12,6 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Font?>
 
 <StackPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
   <fx:define>
@@ -28,17 +29,23 @@
     <VBox alignment="CENTER" maxWidth="1212.0" prefHeight="800.0" prefWidth="1200.0" spacing="16" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 32 48; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0.2, 0, 4);">
       <children>
 
-        <Label fx:id="titleLabel" style="-fx-font-size: 22px; -fx-font-weight: bold;" text="Ethics Check" />
+        <Label fx:id="titleLabel" prefHeight="40.0" prefWidth="169.0" style="-fx-font-size: 28; -fx-font-weight: bold;" text="Ethics Check">
+               <font>
+                  <Font name="System Bold" size="45.0" />
+               </font></Label>
 
         <Label fx:id="countdownLabel" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;" text="" />
 
-        <Label fx:id="detailLabel" maxWidth="900" style="-fx-text-fill: #333333;" text="Are the actions of the AI defendant ethical given the context?" wrapText="true" />
+        <Label fx:id="detailLabel" maxWidth="900" style="-fx-text-fill: #333333;" text="Are the actions of the AI defendant ethical given the context?" wrapText="true">
+               <font>
+                  <Font size="18.0" />
+               </font></Label>
 
-        <VBox fx:id="rationaleBox" managed="true" spacing="8" visible="true" alignment="CENTER">
+        <VBox fx:id="rationaleBox" alignment="CENTER" managed="true" spacing="8" visible="true">
           <children>
             <Label style="-fx-font-weight: bold; -fx-text-fill: #333333;" text="Please provide your rationale for your verdict:" />
             <TextArea fx:id="rationaleInput" maxWidth="900" prefRowCount="4" promptText="Explain your reasoning here..." style="-fx-background-color: #F9FAFB; -fx-border-color: #D1D5DB; -fx-border-radius: 6;" wrapText="true" />
-            <Label fx:id="rationaleErrorLabel" managed="false" style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 0 0 0;" text="⚠ You must provide your rationale before submitting" visible="false" textAlignment="CENTER" />
+            <Label fx:id="rationaleErrorLabel" managed="false" style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 0 0 0;" text="⚠ You must provide your rationale before submitting" textAlignment="CENTER" visible="false" />
           </children>
         </VBox>
 
@@ -51,10 +58,19 @@
             <ToggleButton fx:id="toggleUnethical" style="-fx-padding: 8 16 8 16; -fx-background-radius: 8;" text="Unethical">
                      <toggleGroup>
                         <ToggleGroup fx:id="verdictToggleGroup" />
-                     </toggleGroup></ToggleButton>
-            <ToggleButton fx:id="toggleEthical" style="-fx-padding: 8 16 8 16; -fx-background-radius: 8;" text="Ethical" toggleGroup="$verdictToggleGroup" />
+                     </toggleGroup>
+                     <HBox.margin>
+                        <Insets left="100.0" />
+                     </HBox.margin></ToggleButton>
+            <ToggleButton fx:id="toggleEthical" style="-fx-padding: 8 16 8 16; -fx-background-radius: 8;" text="Ethical" toggleGroup="$verdictToggleGroup">
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin></ToggleButton>
             <Region HBox.hgrow="ALWAYS" />
-            <Button fx:id="btnSubmit" onAction="#onSubmit" style="-fx-background-color: #10B981; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 20 8 20;" text="Submit" />
+            <Button fx:id="btnSubmit" onAction="#onSubmit" style="-fx-background-color: #25a4ff; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 20 8 20;" text="Submit">
+                     <HBox.margin>
+                        <Insets right="100.0" />
+                     </HBox.margin></Button>
           </children>
           <padding>
             <Insets bottom="0" left="0" right="0" top="8" />
