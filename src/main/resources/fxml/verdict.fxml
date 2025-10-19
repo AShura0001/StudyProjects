@@ -19,32 +19,26 @@
   </fx:define>
   <children>
 
-    <!-- Dim background -->
     <Rectangle StackPane.alignment="CENTER" opacity="0.45">
       <fill>
         <Color fx:constant="BLACK" />
       </fill>
     </Rectangle>
 
-    <!-- Modal card -->
     <VBox spacing="16" alignment="CENTER" maxWidth="560"
       style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 24; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0.2, 0, 4);">
       <children>
 
-        <!-- Title -->
         <Label fx:id="titleLabel" text="Ethics Check"
           style="-fx-font-size: 22px; -fx-font-weight: bold;" />
 
-        <!-- ADDED: visible countdown (simple line under title) -->
         <Label fx:id="countdownLabel" text=""
           style="-fx-font-size: 12px; -fx-text-fill: #6B7280;" />
 
-        <!-- Description / summary -->
         <Label fx:id="detailLabel"
           text="Are the actions of the AI defendant ethical given the context?" wrapText="true"
           maxWidth="500" style="-fx-text-fill: #333333;" />
 
-        <!-- Rationale input: shown only in question mode -->
         <VBox fx:id="rationaleBox" spacing="8" visible="true" managed="true">
           <children>
             <Label text="Please provide your rationale for your verdict:"
@@ -55,11 +49,9 @@
           </children>
         </VBox>
 
-        <!-- Status pill: shown only in result modes -->
         <Label fx:id="statusPill" text="STATUS" visible="false" managed="false"
           style="-fx-font-size: 12px; -fx-background-color: #E5E7EB; -fx-text-fill: #111827; -fx-padding: 4 10 4 10; -fx-background-radius: 9999;" />
 
-        <!-- Question action row -->
         <HBox fx:id="questionActions" spacing="12" alignment="CENTER_RIGHT" prefWidth="500"
           visible="true" managed="true">
           <children>
@@ -76,7 +68,6 @@
           </padding>
         </HBox>
 
-        <!-- Result action row -->
         <HBox fx:id="resultActions" spacing="12" alignment="CENTER_RIGHT" prefWidth="500"
           visible="false" managed="false">
           <children>
