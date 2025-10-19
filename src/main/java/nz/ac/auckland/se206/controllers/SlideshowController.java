@@ -83,10 +83,9 @@ public class SlideshowController {
     {
       new Slide(
           "/images/flashbackSlide1-human.png",
-          "Cacey just started bought a new pc and started exploring the internet. Cacey was"
-              + " enjoying theSeamless browsing with no ads completely unaware that the"
-              + " preinstalled AI cookie monster washandlilng all the cookie ads and pop ups and"
-              + " his digital privacy had been compromised."),
+          "Cacey was enjoying seamless browsing on his newly bought PC, completely unaware that"
+              + " the preinstalled AI Cookie Monster was silently handling all the cookie ads"
+              + " and pop ups."),
       new Slide(
           "/images/flashbackSlide2-human.png",
           "Later, the Cacey watched a gym training video online. Unknown to them, every click, "
@@ -96,7 +95,7 @@ public class SlideshowController {
           "/images/flashbackSlide3-human.png",
           "Hours later, scrolling social media, a targeted supplement ad appeared - promoting "
               + "the exact protein powder from the gym video. Cacey wondered: 'How do they "
-              + "know I was just watching gym stuff?' and started panicking about his privacy.")
+              + "know I was just watching gym stuff?' and panicked")
     }
   };
 
