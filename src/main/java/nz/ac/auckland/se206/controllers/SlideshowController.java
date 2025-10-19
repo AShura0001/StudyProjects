@@ -212,6 +212,7 @@ public class SlideshowController {
     // Mark flashback as seen
     if (gameStateContext != null && currentParticipant != null) {
       gameStateContext.markFlashbackSeen(currentParticipant);
+      ChatController.announceFlashbackViewedStatic(currentParticipant);
       System.out.println("DEBUG: Flashback completed for " + currentParticipant);
     }
 

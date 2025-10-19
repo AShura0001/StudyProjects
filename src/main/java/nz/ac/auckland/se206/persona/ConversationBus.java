@@ -24,7 +24,15 @@ public class ConversationBus {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, Deque<String>> e : lastByRole.entrySet()) {
       String role = e.getKey();
-      if (role.equals(excludeRole)) continue;
+      boolean isPrivateFlashback = role.startsWith("flashback_private_");
+      if (isPrivateFlashback) {
+        String owner = role.substring("flashback_private_".length());
+        if (!owner.equals(excludeRole)) {
+          continue; // skip private flashback notes not meant for this persona
+        }
+      } else if (role.equals(excludeRole)) {
+        continue;
+      }
       if (e.getValue().isEmpty()) continue;
       sb.append(roleLabel(role)).append(": ");
       sb.append(joinSamples(e.getValue()));
@@ -46,6 +54,9 @@ public class ConversationBus {
       case "room":
         return "Room awareness";
       default:
+        if (role.startsWith("flashback_private_")) {
+          return "Flashback context (yours)";
+        }
         return role;
     }
   }
