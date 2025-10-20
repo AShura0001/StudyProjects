@@ -11,8 +11,8 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.ImageView;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -28,7 +28,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   @FXML private StackPane overlayRoot;
   @FXML private StackPane startScreen;
   @FXML private HBox headerBar;
-  @FXML private Button btnStart;
   @FXML private Button btnStartGame;
   @FXML private Button btnSkipTimer;
   @FXML private Button btnEndGame;
@@ -147,10 +146,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       introLabel.setManaged(false);
     }
 
-    if (btnStart != null) {
-      btnStart.setVisible(true);
-      btnStart.setManaged(true);
-    }
     if (btnSkipTimer != null) {
       btnSkipTimer.setVisible(false);
       btnSkipTimer.setManaged(false);
@@ -225,11 +220,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       introLabel.setManaged(true);
     }
 
-    if (btnStart != null) {
-      btnStart.setVisible(false);
-      btnStart.setManaged(false);
-    }
-
     // Opening TTS disabled per request. No speech on game start.
 
     resetTimer();
@@ -296,43 +286,43 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     showEvidencePanel();
     setHeaderAccentColor(null);
   }
-  
+
   /** Updates the evidence notebook with discovered hints */
   private void updateHintsInNotebook() {
     if (evidenceNotesArea == null) {
       return;
     }
-    
+
     GameStateContext gameState = App.getGameStateContext();
     if (gameState == null) {
       return;
     }
-    
+
     java.util.List<String> hints = gameState.getDiscoveredHints();
     if (hints.isEmpty()) {
       return;
     }
-    
+
     // Build the hints section
     StringBuilder hintsText = new StringBuilder();
     hintsText.append("=== DISCOVERED HINTS ===\n\n");
     for (String hint : hints) {
       hintsText.append("• ").append(hint).append("\n\n");
     }
-    
+
     // Check if hints section already exists in the text area
     String currentText = evidenceNotesArea.getText();
     if (currentText.contains("=== DISCOVERED HINTS ===")) {
       // Replace the existing hints section
       int startIndex = currentText.indexOf("=== DISCOVERED HINTS ===");
       int endIndex = currentText.indexOf("=== END HINTS ===");
-      
+
       if (endIndex != -1) {
         // Remove old hints section
         currentText = currentText.substring(0, startIndex) + currentText.substring(endIndex + 18);
       }
     }
-    
+
     // Add the hints section at the top
     hintsText.append("=== END HINTS ===\n\n");
     evidenceNotesArea.setText(hintsText.toString() + currentText);
@@ -698,19 +688,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
-  /** Default flashback title per role (used in broadcast lines). */
-  private String defaultFlashbackTitle(Participant p) {
-    switch (p) {
-      case HUMAN_WITNESS:
-        return "Casey’s Memory";
-      case AI_WITNESS:
-        return "Sentri-Guard Audit Snapshot";
-      case DEFENDANT:
-      default:
-        return "Cookie Monster’s Memory";
-    }
-  }
-
   /** 🔧 Restored helper lost in merge: concise summary that personas can quote. */
   private String flashbackSummary(Participant p) {
     switch (p) {
@@ -724,19 +701,6 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       default:
         return "Cookie Monster optimized for fast cookie acceptance; consent and friction"
             + " considerations deferred.";
-    }
-  }
-
-  /** 🔧 Restored helper lost in merge: role key for AwarenessFormatter. */
-  private String getRoleKeyForParticipant(Participant p) {
-    switch (p) {
-      case HUMAN_WITNESS:
-        return "human_witness";
-      case AI_WITNESS:
-        return "ai_witness";
-      case DEFENDANT:
-      default:
-        return "ai_defendant";
     }
   }
 

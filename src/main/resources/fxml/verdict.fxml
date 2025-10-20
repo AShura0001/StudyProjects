@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -13,27 +12,20 @@
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.text.TextFlow?>
-
 <StackPane prefHeight="800.0" prefWidth="1200.0" stylesheets="@../css/verdict.css" styleClass="verdict-root" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
   <fx:define>
     <ToggleGroup fx:id="verdictToggleGroup" />
   </fx:define>
   <children>
-
     <Rectangle arcHeight="60.0" arcWidth="60.0" styleClass="verdict-overlay" StackPane.alignment="CENTER" />
-
     <VBox alignment="CENTER" maxWidth="1212.0" prefHeight="800.0" prefWidth="1200.0" spacing="20" styleClass="verdict-card">
       <padding>
         <Insets bottom="32.0" left="48.0" right="48.0" top="32.0" />
       </padding>
       <children>
-
         <Label alignment="CENTER" maxWidth="Infinity" styleClass="verdict-header-chip" text="VERDICT REVIEW" />
-
         <Label fx:id="titleLabel" alignment="CENTER" maxWidth="Infinity" prefHeight="40.0" prefWidth="600.0" styleClass="verdict-title" text="Ethics Check" textAlignment="CENTER" />
-
         <Label fx:id="countdownLabel" styleClass="badge-timer" text="" />
-
         <TextFlow fx:id="detailTextFlow" lineSpacing="6.0" maxWidth="1024" prefWidth="1024" styleClass="verdict-prompt">
           <children>
             <Text styleClass="prompt-text" text="Are the actions of Cookie Monster ethical given the context?" />
@@ -42,7 +34,6 @@
             <Insets bottom="0.0" left="4.0" right="4.0" top="0.0" />
           </padding>
         </TextFlow>
-
         <VBox fx:id="rationaleBox" alignment="CENTER" managed="true" spacing="8" visible="true">
           <children>
             <Label styleClass="section-heading" text="Please provide your rationale for your verdict:" />
@@ -50,18 +41,14 @@
             <Label fx:id="rationaleErrorLabel" managed="false" styleClass="error-text" text="Please provide your rationale before submitting." textAlignment="CENTER" visible="false" />
           </children>
         </VBox>
-
         <VBox fx:id="hintsBox" alignment="CENTER" managed="true" maxWidth="900" spacing="10" styleClass="hints-card" visible="true">
           <children>
             <Label styleClass="hints-title" text="Discovered Hints" />
             <TextArea fx:id="hintsDisplay" editable="false" maxWidth="880" prefRowCount="6" styleClass="hints-area" wrapText="true" />
           </children>
         </VBox>
-
         <Label fx:id="statusPill" managed="false" styleClass="badge-muted" text="STATUS" visible="false" />
-
         <Label fx:id="verdictErrorLabel" managed="false" styleClass="error-text" text="Please select either Ethical or Unethical before submitting." visible="false" />
-
         <HBox fx:id="questionActions" alignment="CENTER_RIGHT" managed="true" prefWidth="900" spacing="14" styleClass="verdict-actions" visible="true">
           <children>
             <ToggleButton fx:id="toggleUnethical" styleClass="toggle-chip" text="Unethical" toggleGroup="$verdictToggleGroup">
@@ -81,7 +68,6 @@
             <Insets bottom="0.0" left="0.0" right="0.0" top="8.0" />
           </padding>
         </HBox>
-
         <HBox fx:id="resultActions" alignment="CENTER_RIGHT" managed="false" prefWidth="900" spacing="12" styleClass="verdict-actions" visible="false">
           <children>
             <Button fx:id="btnClose" onAction="#onClose" styleClass="btn-ghost" text="Close" />

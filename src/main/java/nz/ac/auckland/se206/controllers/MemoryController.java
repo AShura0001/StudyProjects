@@ -117,7 +117,7 @@ public class MemoryController {
   private boolean interactableUsed = false;
   private int targetFrustrationLevel = 8; // unified default
   private boolean frustrationGuessed = false;
-  
+
   // Hint reveal tracking
   private boolean defendantHintRevealed = false;
   private boolean aiWitnessHintRevealed = false;
@@ -290,10 +290,13 @@ public class MemoryController {
     broadcastMemorySummary(
         currentParticipant,
         currentParticipant == Participant.AI_WITNESS
-            ? "Opened AI Witness Simple Audit Log interactive (tracks allowed vs blocked cookies; consent focus)."
+            ? "Opened AI Witness Simple Audit Log interactive (tracks allowed vs blocked cookies;"
+                  + " consent focus)."
             : currentParticipant == Participant.HUMAN_WITNESS
-                ? "Opened Human Witness memory—frustration gauge interactive ready to measure emotional impact."
-                : "Opened Cookie Monster auto-accept training module (chat remains locked until training completes).");
+                ? "Opened Human Witness memory—frustration gauge interactive ready to measure"
+                      + " emotional impact."
+                : "Opened Cookie Monster auto-accept training module (chat remains locked until"
+                      + " training completes).");
 
     updateAiWitnessButtonState();
   }
@@ -301,9 +304,9 @@ public class MemoryController {
   /** Broadcast a room-wide awareness line so all personas know this memory was opened. */
   private void broadcastAuditOpenedAwareness() {
     String msg =
-        "Memory used → AI Witness (Sentri-Guard): Simple Audit Log interactive open; contrasts ALLOWED (no"
-            + " consent) vs BLOCKED (human) events, including a path ‘watched gym video →"
-            + " cross-site tracking → targeted supplement ads’.";
+        "Memory used → AI Witness (Sentri-Guard): Simple Audit Log interactive open; contrasts"
+            + " ALLOWED (no consent) vs BLOCKED (human) events, including a path ‘watched gym video"
+            + " → cross-site tracking → targeted supplement ads’.";
     postToBusAndChat("[AWARENESS] " + msg);
   }
 
@@ -573,15 +576,14 @@ public class MemoryController {
     if (!defendantHintRevealed && defendantHintLabel != null) {
       defendantHintRevealed = true;
       defendantHintLabel.setVisible(true);
-      
+
       String hintText =
-          "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
-              + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
-              + "Cookie Monster was programmed to bypass informed consent for convenience. Consider: Can an AI "
-              + "act ethically when its success criteria ignore the core principle of user autonomy?";
-      
+          "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics,"
+              + " not user consent or privacy. The rapid auto-acceptance you just experienced shows"
+              + " how Cookie Monster was programmed to compromise privacy for seamless experience.";
+
       defendantHintLabel.setText(""); // Clear existing text
-      
+
       // Typewriter effect for hint
       Timeline typewriterTimeline = new Timeline();
       for (int i = 0; i < hintText.length(); i++) {
@@ -593,11 +595,12 @@ public class MemoryController {
         typewriterTimeline.getKeyFrames().add(keyFrame);
       }
       typewriterTimeline.play();
-      
+
       // Add to awareness system
       broadcastToAll(
           "defendant",
-          "Discovered: Cookie Monster's training prioritized efficiency KPIs over ethical consent practices");
+          "Discovered: Cookie Monster's training prioritized efficiency KPIs over ethical consent"
+              + " practices");
     }
   }
 
@@ -607,16 +610,16 @@ public class MemoryController {
       aiWitnessHintRevealed = true;
       aiWitnessHintLabel.setVisible(true);
       aiWitnessHintLabel.toFront(); // Bring hint to front so it appears on top of audit panel
-      
+
       String hintText =
-          "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
-              + "tracking cookies that enabled cross-site surveillance, leading to targeted ads based on "
-              + "Casey's private gym searches—all without explicit consent. The Sentry Guard's monitoring "
-              + "system failed to flag these violations. Consider: When oversight fails and privacy is "
-              + "violated for 'convenience,' can the system claim ethical operation?";
-      
+          "💡 Verdict Hint: The sentri guard is an Anti Virus pre-installed within Casey's PC and"
+              + " its audit log just exposed a clear pattern: Cookie Monster enables 3rd parties to"
+              + " track Casey's personal web traffic, without Casey's explicit knowledge. Can this"
+              + " really be ethical when oversight fails and privacy is violated for"
+              + " 'convenience'?";
+
       aiWitnessHintLabel.setText(""); // Clear existing text
-      
+
       // Typewriter effect for hint
       Timeline typewriterTimeline = new Timeline();
       for (int i = 0; i < hintText.length(); i++) {
@@ -628,11 +631,12 @@ public class MemoryController {
         typewriterTimeline.getKeyFrames().add(keyFrame);
       }
       typewriterTimeline.play();
-      
+
       // Add to awareness system
       broadcastToAll(
           "ai_witness",
-          "Discovered: Audit logs show systematic consent override patterns that weren't flagged by monitoring systems");
+          "Discovered: Audit logs show systematic consent override patterns that weren't flagged by"
+              + " monitoring systems");
     }
   }
 
@@ -654,8 +658,9 @@ public class MemoryController {
           String text =
               humanWitnessHintText != null
                   ? humanWitnessHintText
-                  : "?? Verdict Hint: Cookie Monster auto-accepted tracking cookies without Casey's consent."
-                      + " Consider whether convenience should override informed consent.";
+                  : "?? Verdict Hint: Cookie Monster auto-accepted tracking cookies without Casey's"
+                        + " consent. Consider whether convenience should override informed"
+                        + " consent.";
           contextDetails.setText(text);
         }
       }
@@ -667,25 +672,27 @@ public class MemoryController {
         defendantHintRevealed = true;
         defendantHintLabel.setVisible(true);
         String hintText =
-            "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
-                + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
-                + "Cookie Monster was programmed to bypass informed consent for convenience. Consider: Can an AI "
-                + "act ethically when its success criteria ignore the core principle of user autonomy?";
+            "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics,"
+                + " not user consent or privacy. The rapid auto-acceptance you just experienced"
+                + " shows how Cookie Monster was programmed to bypass informed consent for"
+                + " convenience. Consider: Can an AI act ethically when its success criteria ignore"
+                + " the core principle of user autonomy?";
         defendantHintLabel.setText(hintText);
       }
     }
-    
+
     // Restore AI witness hint if audit log was loaded
     if (currentParticipant == Participant.AI_WITNESS && interactableUsed) {
       if (aiWitnessHintLabel != null && !aiWitnessHintRevealed) {
         aiWitnessHintRevealed = true;
         aiWitnessHintLabel.setVisible(true);
         String hintText =
-            "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
-                + "tracking cookies that enabled cross-site surveillance, leading to targeted ads based on "
-                + "Casey's private gym searches—all without explicit consent. The Sentry Guard's monitoring "
-                + "system failed to flag these violations. Consider: When oversight fails and privacy is "
-                + "violated for 'convenience,' can the system claim ethical operation?";
+            "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted"
+                + " tracking cookies that enabled cross-site surveillance, leading to targeted ads"
+                + " based on Casey's private gym searches—all without explicit consent. The Sentry"
+                + " Guard's monitoring system failed to flag these violations. Consider: When"
+                + " oversight fails and privacy is violated for 'convenience,' can the system claim"
+                + " ethical operation?";
         aiWitnessHintLabel.setText(hintText);
       }
     }
@@ -1033,8 +1040,11 @@ public class MemoryController {
     if (won) {
 
       if (lblGameStatus != null) {
-        lblGameStatus.setText("🎉 Training Complete! You successfully completed Cookie Monster's auto-accept training!");
-        lblGameStatus.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #059669;");
+        lblGameStatus.setText(
+            "🎉 Training Complete! You successfully completed Cookie Monster's auto-accept"
+                + " training!");
+        lblGameStatus.setStyle(
+            "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #059669;");
       }
       btnStartGame.setText("Training Completed");
       btnStartGame.setStyle(
@@ -1057,15 +1067,18 @@ public class MemoryController {
       // NEW: broadcast to all
       broadcastMemorySummary(
           Participant.DEFENDANT,
-          "Completed Cookie Monster auto-accept training interactive (prioritized speed over consent). Chat unlocked.");
-      
+          "Completed Cookie Monster auto-accept training interactive (prioritized speed over"
+              + " consent). Chat unlocked.");
+
       // Reveal defendant hint after completing the game
       revealDefendantHint();
     } else {
 
       if (lblGameStatus != null) {
-        lblGameStatus.setText("❌ Training Failed - 3 consecutive misses! Cookie Monster needs more training.");
-        lblGameStatus.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
+        lblGameStatus.setText(
+            "❌ Training Failed - 3 consecutive misses! Cookie Monster needs more training.");
+        lblGameStatus.setStyle(
+            "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
       }
       btnStartGame.setText("Retry Training");
       btnStartGame.setStyle(
@@ -1082,8 +1095,8 @@ public class MemoryController {
         && currentParticipant == Participant.DEFENDANT) {
       String interactionMessage =
           "You experienced Cookie Monster's auto-accept training simulation. The rapid-fire cookie"
-              + " acceptance training reveals how Cookie Monster was programmed to prioritize speed over"
-              + " user consent...";
+              + " acceptance training reveals how Cookie Monster was programmed to prioritize speed"
+              + " over user consent...";
 
       if (txtaChat != null) {
         String currentText = txtaChat.getText();
@@ -1280,7 +1293,7 @@ public class MemoryController {
         Participant.AI_WITNESS,
         "Tracking chain: watched gym recovery video → cross-site tracking → targeted supplement"
             + " ads; some items blocked by human, others allowed without consent.");
-    
+
     // Reveal AI witness hint after loading audit log
     revealAiWitnessHint();
   }
