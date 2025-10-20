@@ -33,7 +33,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   @FXML private Button btnSkipTimer;
   @FXML private Button btnEndGame;
   @FXML private Label timerLabel;
-  @FXML private Label introLabel;
+  @FXML private VBox introLabel; // Changed from Label to VBox for better styling
   @FXML private VBox chatBox;
   @FXML private ImageView roomImage;
   @FXML private StackPane imageHost;
@@ -250,6 +250,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   public void backToRoom() {
     showRoom();
     showMainCourtUIForRoom();
+    updateHintsInNotebook(); // Update the notebook with discovered hints
   }
 
   /** Hides main courtroom UI elements that shouldn't appear in memory scenes */
@@ -294,6 +295,47 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
     showEvidencePanel();
     setHeaderAccentColor(null);
+  }
+  
+  /** Updates the evidence notebook with discovered hints */
+  private void updateHintsInNotebook() {
+    if (evidenceNotesArea == null) {
+      return;
+    }
+    
+    GameStateContext gameState = App.getGameStateContext();
+    if (gameState == null) {
+      return;
+    }
+    
+    java.util.List<String> hints = gameState.getDiscoveredHints();
+    if (hints.isEmpty()) {
+      return;
+    }
+    
+    // Build the hints section
+    StringBuilder hintsText = new StringBuilder();
+    hintsText.append("=== DISCOVERED HINTS ===\n\n");
+    for (String hint : hints) {
+      hintsText.append("• ").append(hint).append("\n\n");
+    }
+    
+    // Check if hints section already exists in the text area
+    String currentText = evidenceNotesArea.getText();
+    if (currentText.contains("=== DISCOVERED HINTS ===")) {
+      // Replace the existing hints section
+      int startIndex = currentText.indexOf("=== DISCOVERED HINTS ===");
+      int endIndex = currentText.indexOf("=== END HINTS ===");
+      
+      if (endIndex != -1) {
+        // Remove old hints section
+        currentText = currentText.substring(0, startIndex) + currentText.substring(endIndex + 18);
+      }
+    }
+    
+    // Add the hints section at the top
+    hintsText.append("=== END HINTS ===\n\n");
+    evidenceNotesArea.setText(hintsText.toString() + currentText);
   }
 
   // Show slideshow (flashback) for first-time interaction
