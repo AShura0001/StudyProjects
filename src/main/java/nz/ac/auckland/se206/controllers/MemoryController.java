@@ -36,6 +36,7 @@ import nz.ac.auckland.se206.persona.ConversationBus; // awareness broadcast bus;
  * unique interactable elements. Also implements the AI Witness "Simple Audit Log".
  */
 public class MemoryController {
+  private static final String HUMAN_HINT_KEY = "human_witness_hint_revealed";
   private RoomFrameController parent;
   private GameStateContext gameStateContext;
   private Participant currentParticipant;
@@ -120,7 +121,8 @@ public class MemoryController {
   // Hint reveal tracking
   private boolean defendantHintRevealed = false;
   private boolean aiWitnessHintRevealed = false;
-  private boolean humanWitnessHintAdded = false; // Track if hint has been added to avoid duplicates
+  private boolean humanWitnessHintRevealed = false;
+  private String humanWitnessHintText;
 
   // Aim training game state
   private int gameScore = 0;
@@ -530,9 +532,29 @@ public class MemoryController {
   private void showContextualEvidence(String evidenceText) {
     if (contextRevelation != null && contextDetails != null) {
       contextRevelation.setVisible(true);
+      contextRevelation.setManaged(true);
+      humanWitnessHintText = evidenceText;
+
+      boolean alreadyRevealed = humanWitnessHintRevealed;
+      if (!alreadyRevealed && gameStateContext != null) {
+        alreadyRevealed =
+            Boolean.TRUE.equals(gameStateContext.getInteractableDone().get(HUMAN_HINT_KEY));
+      }
+
+      if (alreadyRevealed) {
+        humanWitnessHintRevealed = true;
+        contextDetails.setText(evidenceText);
+        return;
+      }
+
+      humanWitnessHintRevealed = true;
+      if (gameStateContext != null) {
+        gameStateContext.markInteractableDone(HUMAN_HINT_KEY);
+      }
+
       contextDetails.setText(""); // Clear existing text
 
-      // Typewriter effect: reveal text character by character
+      // Typewriter effect: reveal text character by character (first reveal only)
       Timeline typewriterTimeline = new Timeline();
       for (int i = 0; i < evidenceText.length(); i++) {
         final int index = i;
@@ -543,12 +565,6 @@ public class MemoryController {
         typewriterTimeline.getKeyFrames().add(keyFrame);
       }
       typewriterTimeline.play();
-      
-      // Add hint to game state for notebook collection (only once)
-      if (gameStateContext != null && !humanWitnessHintAdded) {
-        humanWitnessHintAdded = true;
-        gameStateContext.addHint("Cookie Monster auto-accepted tracking cookies without Casey's consent. Convenience vs. informed consent.");
-      }
     }
   }
 
@@ -582,11 +598,6 @@ public class MemoryController {
       broadcastToAll(
           "defendant",
           "Discovered: Cookie Monster's training prioritized efficiency KPIs over ethical consent practices");
-      
-      // Add hint to game state for notebook collection
-      if (gameStateContext != null) {
-        gameStateContext.addHint("Cookie Monster's training optimized for speed, not user consent. AI programmed to bypass informed consent for convenience.");
-      }
     }
   }
 
@@ -622,16 +633,34 @@ public class MemoryController {
       broadcastToAll(
           "ai_witness",
           "Discovered: Audit logs show systematic consent override patterns that weren't flagged by monitoring systems");
-      
-      // Add hint to game state for notebook collection
-      if (gameStateContext != null) {
-        gameStateContext.addHint("Audit logs expose Cookie Monster auto-accepting tracking cookies without consent, leading to targeted ads based on private searches.");
-      }
     }
   }
 
   /** Restores hint visibility when returning to memory scene after completing interactive */
   private void restoreHintVisibility() {
+    // Ensure human witness hint stays visible after first reveal
+    if (currentParticipant == Participant.HUMAN_WITNESS) {
+      if (!humanWitnessHintRevealed && gameStateContext != null) {
+        humanWitnessHintRevealed =
+            Boolean.TRUE.equals(gameStateContext.getInteractableDone().get(HUMAN_HINT_KEY));
+      }
+
+      if (humanWitnessHintRevealed) {
+        if (contextRevelation != null) {
+          contextRevelation.setVisible(true);
+          contextRevelation.setManaged(true);
+        }
+        if (contextDetails != null) {
+          String text =
+              humanWitnessHintText != null
+                  ? humanWitnessHintText
+                  : "?? Verdict Hint: Cookie Monster auto-accepted tracking cookies without Casey's consent."
+                      + " Consider whether convenience should override informed consent.";
+          contextDetails.setText(text);
+        }
+      }
+    }
+
     // Restore defendant hint if game was completed
     if (currentParticipant == Participant.DEFENDANT && interactableUsed) {
       if (defendantHintLabel != null && !defendantHintRevealed) {

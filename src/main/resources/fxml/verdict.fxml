@@ -10,37 +10,33 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.paint.Color?>
 <?import javafx.scene.shape.Rectangle?>
-<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.text.TextFlow?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
+<StackPane prefHeight="800.0" prefWidth="1200.0" stylesheets="@../css/verdict.css" styleClass="verdict-root" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.VerdictController">
   <fx:define>
     <ToggleGroup fx:id="verdictToggleGroup" />
   </fx:define>
   <children>
 
-    <Rectangle opacity="0.45" StackPane.alignment="CENTER">
-      <fill>
-        <Color fx:constant="BLACK" />
-      </fill>
-    </Rectangle>
+    <Rectangle arcHeight="60.0" arcWidth="60.0" styleClass="verdict-overlay" StackPane.alignment="CENTER" />
 
-    <VBox alignment="CENTER" maxWidth="1212.0" prefHeight="800.0" prefWidth="1200.0" spacing="16" style="-fx-background-color: white; -fx-background-radius: 12; -fx-padding: 32 48; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0.2, 0, 4);">
+    <VBox alignment="CENTER" maxWidth="1212.0" prefHeight="800.0" prefWidth="1200.0" spacing="20" styleClass="verdict-card">
+      <padding>
+        <Insets bottom="32.0" left="48.0" right="48.0" top="32.0" />
+      </padding>
       <children>
 
-        <Label fx:id="titleLabel" prefHeight="40.0" prefWidth="600.0" maxWidth="Infinity" alignment="CENTER" textAlignment="CENTER" style="-fx-font-size: 28; -fx-font-weight: bold;" text="Ethics Check">
-               <font>
-                  <Font name="System Bold" size="45.0" />
-               </font></Label>
+        <Label alignment="CENTER" maxWidth="Infinity" styleClass="verdict-header-chip" text="VERDICT REVIEW" />
 
-        <Label fx:id="countdownLabel" style="-fx-font-size: 12px; -fx-text-fill: #6B7280;" text="" />
+        <Label fx:id="titleLabel" alignment="CENTER" maxWidth="Infinity" prefHeight="40.0" prefWidth="600.0" styleClass="verdict-title" text="Ethics Check" textAlignment="CENTER" />
 
-        <TextFlow fx:id="detailTextFlow" lineSpacing="6.0" maxWidth="1024" prefWidth="1024">
+        <Label fx:id="countdownLabel" styleClass="badge-timer" text="" />
+
+        <TextFlow fx:id="detailTextFlow" lineSpacing="6.0" maxWidth="1024" prefWidth="1024" styleClass="verdict-prompt">
           <children>
-            <Text style="-fx-fill: #333333; -fx-font-size: 18;" text="Are the actions of Cookie Monster ethical given the context?" />
+            <Text styleClass="prompt-text" text="Are the actions of Cookie Monster ethical given the context?" />
           </children>
           <padding>
             <Insets bottom="0.0" left="4.0" right="4.0" top="0.0" />
@@ -49,60 +45,52 @@
 
         <VBox fx:id="rationaleBox" alignment="CENTER" managed="true" spacing="8" visible="true">
           <children>
-            <Label style="-fx-font-weight: bold; -fx-text-fill: #333333;" text="Please provide your rationale for your verdict:" />
-            <TextArea fx:id="rationaleInput" maxWidth="900" prefRowCount="4" promptText="Explain your reasoning here..." style="-fx-background-color: #F9FAFB; -fx-border-color: #D1D5DB; -fx-border-radius: 6;" wrapText="true" />
-            <Label fx:id="rationaleErrorLabel" managed="false" style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 0 0 0;" text="Please provide your rationale before submitting." textAlignment="CENTER" visible="false" />
-          </children>
-        </VBox>
-        
-        <!-- Hints Display Section -->
-        <VBox fx:id="hintsBox" alignment="CENTER" managed="true" maxWidth="900" spacing="8" style="-fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 12;" visible="true">
-          <children>
-            <Label style="-fx-font-weight: bold; -fx-text-fill: #1b5e20; -fx-font-size: 15px;" text="💡 Discovered Hints" />
-            <TextArea fx:id="hintsDisplay" editable="false" maxWidth="880" prefRowCount="6" style="-fx-background-color: #f0f9f4; -fx-border-color: #86c18c; -fx-border-radius: 4; -fx-control-inner-background: #f0f9f4; -fx-text-fill: #1b5e20; -fx-font-size: 13px; -fx-font-family: 'Segoe UI', 'Arial'; -fx-line-spacing: 3px;" wrapText="true" />
+            <Label styleClass="section-heading" text="Please provide your rationale for your verdict:" />
+            <TextArea fx:id="rationaleInput" maxWidth="900" prefRowCount="4" promptText="Explain your reasoning here..." styleClass="input-area" wrapText="true" />
+            <Label fx:id="rationaleErrorLabel" managed="false" styleClass="error-text" text="Please provide your rationale before submitting." textAlignment="CENTER" visible="false" />
           </children>
         </VBox>
 
-        <Label fx:id="statusPill" managed="false" style="-fx-font-size: 12px; -fx-background-color: #E5E7EB; -fx-text-fill: #111827; -fx-padding: 4 10 4 10; -fx-background-radius: 9999;" text="STATUS" visible="false" />
-
-        <Label fx:id="verdictErrorLabel" managed="false" style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 0 4 0;" text="Please select either Ethical or Unethical before submitting." visible="false" />
-
-        <HBox fx:id="questionActions" alignment="CENTER_RIGHT" managed="true" prefWidth="900" spacing="12" visible="true">
+        <VBox fx:id="hintsBox" alignment="CENTER" managed="true" maxWidth="900" spacing="10" styleClass="hints-card" visible="true">
           <children>
-            <ToggleButton fx:id="toggleUnethical" style="-fx-padding: 8 16 8 16; -fx-background-radius: 8;" text="Unethical">
-                     <toggleGroup>
-                        <ToggleGroup fx:id="verdictToggleGroup" />
-                     </toggleGroup>
-                     <HBox.margin>
-                        <Insets left="100.0" />
-                     </HBox.margin></ToggleButton>
-            <ToggleButton fx:id="toggleEthical" style="-fx-padding: 8 16 8 16; -fx-background-radius: 8;" text="Ethical" toggleGroup="$verdictToggleGroup">
-                     <HBox.margin>
-                        <Insets />
-                     </HBox.margin></ToggleButton>
+            <Label styleClass="hints-title" text="Discovered Hints" />
+            <TextArea fx:id="hintsDisplay" editable="false" maxWidth="880" prefRowCount="6" styleClass="hints-area" wrapText="true" />
+          </children>
+        </VBox>
+
+        <Label fx:id="statusPill" managed="false" styleClass="badge-muted" text="STATUS" visible="false" />
+
+        <Label fx:id="verdictErrorLabel" managed="false" styleClass="error-text" text="Please select either Ethical or Unethical before submitting." visible="false" />
+
+        <HBox fx:id="questionActions" alignment="CENTER_RIGHT" managed="true" prefWidth="900" spacing="14" styleClass="verdict-actions" visible="true">
+          <children>
+            <ToggleButton fx:id="toggleUnethical" styleClass="toggle-chip" text="Unethical" toggleGroup="$verdictToggleGroup">
+              <HBox.margin>
+                <Insets left="100.0" />
+              </HBox.margin>
+            </ToggleButton>
+            <ToggleButton fx:id="toggleEthical" styleClass="toggle-chip" text="Ethical" toggleGroup="$verdictToggleGroup" />
             <Region HBox.hgrow="ALWAYS" />
-            <Button fx:id="btnSubmit" onAction="#onSubmit" style="-fx-background-color: #25a4ff; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 8 20 8 20;" text="Submit">
-                     <HBox.margin>
-                        <Insets right="100.0" />
-                     </HBox.margin></Button>
+            <Button fx:id="btnSubmit" onAction="#onSubmit" styleClass="btn-primary" text="Submit">
+              <HBox.margin>
+                <Insets right="100.0" />
+              </HBox.margin>
+            </Button>
           </children>
           <padding>
-            <Insets bottom="0" left="0" right="0" top="8" />
+            <Insets bottom="0.0" left="0.0" right="0.0" top="8.0" />
           </padding>
         </HBox>
 
-        <HBox fx:id="resultActions" alignment="CENTER_RIGHT" managed="false" prefWidth="900" spacing="12" visible="false">
+        <HBox fx:id="resultActions" alignment="CENTER_RIGHT" managed="false" prefWidth="900" spacing="12" styleClass="verdict-actions" visible="false">
           <children>
-            <Button fx:id="btnClose" onAction="#onClose" style="-fx-background-color: #F3F4F6; -fx-text-fill: #111827; -fx-background-radius: 8; -fx-padding: 8 16 8 16;" text="Close" />
+            <Button fx:id="btnClose" onAction="#onClose" styleClass="btn-ghost" text="Close" />
           </children>
           <padding>
-            <Insets bottom="0" left="0" right="0" top="8" />
+            <Insets bottom="0.0" left="0.0" right="0.0" top="8.0" />
           </padding>
         </HBox>
       </children>
-      <padding>
-        <Insets bottom="8" left="8" right="8" top="8" />
-      </padding>
     </VBox>
   </children>
 </StackPane>
