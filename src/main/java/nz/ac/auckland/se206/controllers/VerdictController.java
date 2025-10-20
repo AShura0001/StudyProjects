@@ -65,7 +65,7 @@ public class VerdictController {
 
   private RoomFrameController frame;
   private Mode mode = Mode.QUESTION;
-  private String subjectName = "the AI defendant";
+  private String subjectName = "Cookie Monster";
   private String playerRationale = "";
   private boolean submissionInProgress = false;
 
@@ -107,7 +107,7 @@ public class VerdictController {
   // Public API used by RoomFrameController
   public void showQuestion(String subjectName) {
     this.subjectName =
-        (subjectName == null || subjectName.trim().isEmpty()) ? "the AI defendant" : subjectName;
+        (subjectName == null || subjectName.trim().isEmpty()) ? "Cookie Monster" : subjectName;
 
     mode = Mode.QUESTION;
     submissionInProgress = false;
@@ -174,6 +174,12 @@ public class VerdictController {
     questionActions.setManaged(false);
     resultActions.setVisible(true);
     resultActions.setManaged(true);
+    
+    // Hide hints during feedback
+    if (hintsBox != null) {
+      hintsBox.setVisible(false);
+      hintsBox.setManaged(false);
+    }
   }
 
   private void setDetailText(String text) {
@@ -272,6 +278,12 @@ public class VerdictController {
     questionActions.setManaged(false);
     resultActions.setVisible(true);
     resultActions.setManaged(true);
+    
+    // Hide hints during feedback
+    if (hintsBox != null) {
+      hintsBox.setVisible(false);
+      hintsBox.setManaged(false);
+    }
   }
 
   // Button handlers wired in FXML (Java 11-compatible switch)
