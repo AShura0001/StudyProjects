@@ -115,7 +115,7 @@
         </StackPane>
        
           <!-- Hint label that appears after loading audit log - positioned to overlay image -->
-       <Label fx:id="aiWitnessHintLabel" maxWidth="720.0" prefHeight="90.0" prefWidth="720.0" style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8; -fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;" text="" visible="false" wrapText="true" />
+       <Label fx:id="aiWitnessHintLabel" maxWidth="720.0" prefHeight="102.0" prefWidth="720.0" style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8; -fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;" text="" visible="false" wrapText="true" />
       </VBox>
 
       <Button fx:id="btnBackToRoom" onAction="#onBackToRoom" style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2); -fx-translate-x: -10; -fx-translate-y: 10;" text="← Back to Room" StackPane.alignment="TOP_LEFT">
@@ -136,7 +136,7 @@
       <TextArea fx:id="txtaChat" editable="false" prefHeight="460.0" prefWidth="380.0" style="-fx-control-inner-background: black; -fx-text-fill: #00ff88; -fx-highlight-fill: #00ff88; -fx-highlight-text-fill: black; -fx-font-family: 'Consolas','Menlo','Monaco',monospace; -fx-font-size: 14px;" wrapText="true" VBox.vgrow="NEVER" />
 
       <HBox spacing="6">
-        <TextField fx:id="txtInput" promptText="Type a message..." style="-fx-background-color: black; -fx-text-fill: #00ff88; -fx-prompt-text-fill: #2ddf93; -fx-border-color: #00ff88; -fx-font-family: 'Consolas','Menlo','Monaco',monospace; -fx-font-size: 14px;" HBox.hgrow="ALWAYS" />
+        <TextField fx:id="txtInput" onAction="#onSendMessage" promptText="Type a message..." style="-fx-background-color: black; -fx-text-fill: #00ff88; -fx-prompt-text-fill: #2ddf93; -fx-border-color: #00ff88; -fx-font-family: 'Consolas','Menlo','Monaco',monospace; -fx-font-size: 14px;" HBox.hgrow="ALWAYS" />
         <Button fx:id="btnSend" onAction="#onSendMessage" style="-fx-font-size: 14px; -fx-background-color: #003a2b; -fx-text-fill: #00ff88; -fx-border-color: #00ff88; -fx-background-radius: 6; -fx-border-radius: 6;" text="Send" />
       </HBox>
     </VBox>

@@ -40,7 +40,7 @@
 
         <TextFlow fx:id="detailTextFlow" lineSpacing="6.0" maxWidth="1024" prefWidth="1024">
           <children>
-            <Text style="-fx-fill: #333333; -fx-font-size: 18;" text="Are the actions of the AI defendant ethical given the context?" />
+            <Text style="-fx-fill: #333333; -fx-font-size: 18;" text="Are the actions of Cookie Monster ethical given the context?" />
           </children>
           <padding>
             <Insets bottom="0.0" left="4.0" right="4.0" top="0.0" />

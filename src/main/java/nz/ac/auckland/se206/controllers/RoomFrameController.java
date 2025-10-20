@@ -603,7 +603,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
       VerdictController controller = loader.getController();
       controller.setFrame(this);
-      controller.showQuestion("the AI defendant");
+      controller.showQuestion("Cookie Monster");
 
       if (btnSkipTimer != null) {
         btnSkipTimer.setVisible(false);

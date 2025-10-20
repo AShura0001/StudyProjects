@@ -120,6 +120,7 @@ public class MemoryController {
   // Hint reveal tracking
   private boolean defendantHintRevealed = false;
   private boolean aiWitnessHintRevealed = false;
+  private boolean humanWitnessHintAdded = false; // Track if hint has been added to avoid duplicates
 
   // Aim training game state
   private int gameScore = 0;
@@ -543,8 +544,9 @@ public class MemoryController {
       }
       typewriterTimeline.play();
       
-      // Add hint to game state for notebook collection
-      if (gameStateContext != null) {
+      // Add hint to game state for notebook collection (only once)
+      if (gameStateContext != null && !humanWitnessHintAdded) {
+        humanWitnessHintAdded = true;
         gameStateContext.addHint("Cookie Monster auto-accepted tracking cookies without Casey's consent. Convenience vs. informed consent.");
       }
     }
@@ -559,7 +561,7 @@ public class MemoryController {
       String hintText =
           "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
               + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
-              + "the AI was programmed to bypass informed consent for convenience. Consider: Can an AI "
+              + "Cookie Monster was programmed to bypass informed consent for convenience. Consider: Can an AI "
               + "act ethically when its success criteria ignore the core principle of user autonomy?";
       
       defendantHintLabel.setText(""); // Clear existing text
@@ -638,7 +640,7 @@ public class MemoryController {
         String hintText =
             "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
                 + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
-                + "the AI was programmed to bypass informed consent for convenience. Consider: Can an AI "
+                + "Cookie Monster was programmed to bypass informed consent for convenience. Consider: Can an AI "
                 + "act ethically when its success criteria ignore the core principle of user autonomy?";
         defendantHintLabel.setText(hintText);
       }
@@ -1051,7 +1053,7 @@ public class MemoryController {
         && currentParticipant == Participant.DEFENDANT) {
       String interactionMessage =
           "You experienced Cookie Monster's auto-accept training simulation. The rapid-fire cookie"
-              + " acceptance training reveals how the AI was programmed to prioritize speed over"
+              + " acceptance training reveals how Cookie Monster was programmed to prioritize speed over"
               + " user consent...";
 
       if (txtaChat != null) {

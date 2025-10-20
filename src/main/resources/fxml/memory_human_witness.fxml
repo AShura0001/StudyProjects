@@ -60,7 +60,7 @@
       <TextArea fx:id="txtaChat" editable="false" prefHeight="460.0" style="-fx-font-size: 14px;" wrapText="true" VBox.vgrow="NEVER" />
 
       <HBox spacing="6">
-        <TextField fx:id="txtInput" promptText="Type a message..." style="-fx-font-size: 14px;" HBox.hgrow="ALWAYS" />
+        <TextField fx:id="txtInput" onAction="#onSendMessage" promptText="Type a message..." style="-fx-font-size: 14px;" HBox.hgrow="ALWAYS" />
         <Button fx:id="btnSend" onAction="#onSendMessage" style="-fx-font-size: 14px;" text="Send" />
       </HBox>
     </VBox>
