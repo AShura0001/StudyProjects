@@ -76,7 +76,6 @@ public class MemoryController {
 
   // Hint labels for defendant and AI witness (similar to human witness context revelation)
   @FXML private Label defendantHintLabel;
-  @FXML private VBox aiWitnessHintBox;
   @FXML private Label aiWitnessHintLabel;
 
   // ===== AI witness: extra controls =====
@@ -581,9 +580,10 @@ public class MemoryController {
 
   /** Reveals hint for Sentry Guard (AI witness) after interacting with audit log */
   private void revealAiWitnessHint() {
-    if (!aiWitnessHintRevealed && aiWitnessHintBox != null && aiWitnessHintLabel != null) {
+    if (!aiWitnessHintRevealed && aiWitnessHintLabel != null) {
       aiWitnessHintRevealed = true;
-      aiWitnessHintBox.setVisible(true);
+      aiWitnessHintLabel.setVisible(true);
+      aiWitnessHintLabel.toFront(); // Bring hint to front so it appears on top of audit panel
       
       String hintText =
           "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
@@ -631,9 +631,9 @@ public class MemoryController {
     
     // Restore AI witness hint if audit log was loaded
     if (currentParticipant == Participant.AI_WITNESS && interactableUsed) {
-      if (aiWitnessHintBox != null && aiWitnessHintLabel != null && !aiWitnessHintRevealed) {
+      if (aiWitnessHintLabel != null && !aiWitnessHintRevealed) {
         aiWitnessHintRevealed = true;
-        aiWitnessHintBox.setVisible(true);
+        aiWitnessHintLabel.setVisible(true);
         String hintText =
             "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
                 + "tracking cookies that enabled cross-site surveillance, leading to targeted ads based on "

@@ -29,11 +29,6 @@
             </image>
           </ImageView>
 
-          <VBox fx:id="interactableContainer" alignment="CENTER" spacing="10" style="-fx-background-color: rgba(0,0,0,0.45); -fx-padding: 14; -fx-background-radius: 8;">
-            <Label fx:id="interactableLabel" style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;" text="Open the Simple Audit Log" />
-            <Button fx:id="interactableElement" onAction="#onInteractableClick" style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 220; -fx-background-radius: 8;" text="Show Logs" />
-          </VBox>
-
           <Rectangle fx:id="interactableHighlight" arcHeight="20" arcWidth="20" fill="transparent" height="82.0" mouseTransparent="true" stroke="#2ddf93" strokeWidth="3" visible="false" width="244.0" />
 
           <VBox fx:id="auditPanel" maxWidth="750" spacing="12" style="-fx-background-color: rgba(0,0,0,0.65); -fx-padding: 16; -fx-background-radius: 10;" visible="false">
@@ -61,11 +56,6 @@
               <Button fx:id="btnExplainSelected" onAction="#onExplainSelected" style="-fx-background-color: #003a2b; -fx-text-fill: #2ddf93; -fx-border-color: #2ddf93; -fx-background-radius: 6; -fx-border-radius: 6;" text="Explain" />
               <Button fx:id="btnCloseAudit" onAction="#onCloseAudit" style="-fx-background-color: #f0e68c; -fx-text-fill: #222; -fx-background-radius: 6;" text="Close" />
             </HBox>
-          </VBox>
-          
-          <!-- Hint box that appears after loading audit log - positioned to overlay image -->
-          <VBox fx:id="aiWitnessHintBox" alignment="CENTER" maxWidth="720" spacing="6" style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8;" visible="false">
-            <Label fx:id="aiWitnessHintLabel" prefWidth="680" style="-fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;" text="" wrapText="true" />
           </VBox>
 
           <VBox alignment="CENTER" spacing="10" style="-fx-background-color: rgba(255,255,255,0.92); -fx-padding: 16; -fx-background-radius: 10; -fx-border-color: #ddd; -fx-border-radius: 10;" visible="false">
@@ -116,8 +106,16 @@
             <Label style="-fx-text-fill: white; -fx-font-weight: bold;" text="AI Witness Activity" />
             <TextArea editable="false" prefRowCount="3" style="-fx-control-inner-background: black; -fx-text-fill: #2ddf93; -fx-font-family: 'Consolas','Menlo','Monaco',monospace;" wrapText="true" />
           </VBox>
+   
+          <VBox fx:id="interactableContainer" alignment="CENTER" spacing="10" style="-fx-background-color: rgba(0,0,0,0.45); -fx-padding: 14; -fx-background-radius: 8;">
+            <Label fx:id="interactableLabel" style="-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;" text="Open the Simple Audit Log" />
+            <Button fx:id="interactableElement" onAction="#onInteractableClick" style="-fx-font-size: 14px; -fx-background-color: #ffebcd; -fx-text-fill: #222; -fx-pref-width: 220; -fx-background-radius: 8;" text="Show Logs" />
+          </VBox>
 
         </StackPane>
+       
+          <!-- Hint label that appears after loading audit log - positioned to overlay image -->
+       <Label fx:id="aiWitnessHintLabel" maxWidth="720.0" prefHeight="90.0" prefWidth="720.0" style="-fx-padding: 10; -fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8; -fx-font-size: 13px; -fx-text-fill: #1b5e20; -fx-text-alignment: center; -fx-line-spacing: 2px;" text="" visible="false" wrapText="true" />
       </VBox>
 
       <Button fx:id="btnBackToRoom" onAction="#onBackToRoom" style="-fx-font-size: 16px; -fx-background-color: #f44336; -fx-text-fill: white; -fx-pref-width: 160; -fx-pref-height: 45; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 2, 2); -fx-translate-x: -10; -fx-translate-y: 10;" text="← Back to Room" StackPane.alignment="TOP_LEFT">
