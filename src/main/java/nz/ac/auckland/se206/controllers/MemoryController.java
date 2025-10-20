@@ -542,6 +542,11 @@ public class MemoryController {
         typewriterTimeline.getKeyFrames().add(keyFrame);
       }
       typewriterTimeline.play();
+      
+      // Add hint to game state for notebook collection
+      if (gameStateContext != null) {
+        gameStateContext.addHint("Cookie Monster auto-accepted tracking cookies without Casey's consent. Convenience vs. informed consent.");
+      }
     }
   }
 
@@ -575,6 +580,11 @@ public class MemoryController {
       broadcastToAll(
           "defendant",
           "Discovered: Cookie Monster's training prioritized efficiency KPIs over ethical consent practices");
+      
+      // Add hint to game state for notebook collection
+      if (gameStateContext != null) {
+        gameStateContext.addHint("Cookie Monster's training optimized for speed, not user consent. AI programmed to bypass informed consent for convenience.");
+      }
     }
   }
 
@@ -610,6 +620,11 @@ public class MemoryController {
       broadcastToAll(
           "ai_witness",
           "Discovered: Audit logs show systematic consent override patterns that weren't flagged by monitoring systems");
+      
+      // Add hint to game state for notebook collection
+      if (gameStateContext != null) {
+        gameStateContext.addHint("Audit logs expose Cookie Monster auto-accepting tracking cookies without consent, leading to targeted ads based on private searches.");
+      }
     }
   }
 

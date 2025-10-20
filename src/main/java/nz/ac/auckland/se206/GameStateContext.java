@@ -25,9 +25,12 @@ public class GameStateContext {
   private final Set<String> flashbacksSeen = new HashSet<>();
   private final Map<String, Boolean> interactableDone = new HashMap<>();
 
-  // Track which owners’ flashbacks have already been broadcast
+  // Track which owners' flashbacks have already been broadcast
   private final Set<String> flashbackPrimedOwners = new HashSet<>();
   private final Set<Participant> slideshowSeen = new HashSet<>();
+  
+  // Track discovered hints from memory interactions
+  private final java.util.List<String> discoveredHints = new java.util.ArrayList<>();
 
   public boolean hasSeenSlideshow(Participant p) {
     return slideshowSeen.contains(p);
@@ -79,6 +82,7 @@ public class GameStateContext {
     flashbacksSeen.clear();
     interactableDone.clear();
     flashbackPrimedOwners.clear();
+    discoveredHints.clear();
   }
 
   public boolean isCookiesAccepted() {
@@ -87,6 +91,32 @@ public class GameStateContext {
 
   public void acceptCookies() {
     interactableDone.put("cookies_accepted", true);
+  }
+  
+  // -------- Hint Management --------
+  
+  /** Add a discovered hint to the collection */
+  public void addHint(String hintText) {
+    if (hintText != null && !hintText.trim().isEmpty()) {
+      discoveredHints.add(hintText.trim());
+    }
+  }
+  
+  /** Get all discovered hints */
+  public java.util.List<String> getDiscoveredHints() {
+    return Collections.unmodifiableList(discoveredHints);
+  }
+  
+  /** Get hints formatted as bullet points */
+  public String getHintsAsBulletPoints() {
+    if (discoveredHints.isEmpty()) {
+      return "No hints discovered yet.";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (String hint : discoveredHints) {
+      sb.append("• ").append(hint).append("\n");
+    }
+    return sb.toString();
   }
 
   private static String roleKeyOf(Participant p) {

@@ -54,6 +54,14 @@
             <Label fx:id="rationaleErrorLabel" managed="false" style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 0 0 0;" text="Please provide your rationale before submitting." textAlignment="CENTER" visible="false" />
           </children>
         </VBox>
+        
+        <!-- Hints Display Section -->
+        <VBox fx:id="hintsBox" alignment="CENTER" managed="true" maxWidth="900" spacing="8" style="-fx-background-color: #e8f5f8; -fx-border-color: #4caf50; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 12;" visible="true">
+          <children>
+            <Label style="-fx-font-weight: bold; -fx-text-fill: #1b5e20; -fx-font-size: 15px;" text="💡 Discovered Hints" />
+            <TextArea fx:id="hintsDisplay" editable="false" maxWidth="880" prefRowCount="6" style="-fx-background-color: #f0f9f4; -fx-border-color: #86c18c; -fx-border-radius: 4; -fx-control-inner-background: #f0f9f4; -fx-text-fill: #1b5e20; -fx-font-size: 13px; -fx-font-family: 'Segoe UI', 'Arial'; -fx-line-spacing: 3px;" wrapText="true" />
+          </children>
+        </VBox>
 
         <Label fx:id="statusPill" managed="false" style="-fx-font-size: 12px; -fx-background-color: #E5E7EB; -fx-text-fill: #111827; -fx-padding: 4 10 4 10; -fx-background-radius: 9999;" text="STATUS" visible="false" />
 

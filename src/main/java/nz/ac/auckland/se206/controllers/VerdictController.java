@@ -16,6 +16,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
+import nz.ac.auckland.se206.App;
+import nz.ac.auckland.se206.GameStateContext;
 import nz.ac.auckland.se206.prompts.VerdictEvaluator;
 import nz.ac.auckland.se206.speech.TextToSpeech;
 
@@ -47,6 +49,8 @@ public class VerdictController {
   @FXML private ToggleButton toggleUnethical;
   @FXML private Button btnSubmit;
   @FXML private ToggleGroup verdictToggleGroup;
+  @FXML private VBox hintsBox;
+  @FXML private TextArea hintsDisplay;
 
   private static final String DETAIL_TEXT_STYLE = "-fx-fill: #333333; -fx-font-size: 18;";
   private static final String BASE_FALLBACK_FEEDBACK =
@@ -141,6 +145,9 @@ public class VerdictController {
 
     // Ensure countdown label is empty until a countdown starts
     updateCountdownLabel();
+    
+    // Populate hints display
+    populateHints();
   }
 
   public void showYesResult(String summary) {
@@ -635,6 +642,39 @@ public class VerdictController {
                 }));
     verdictTimeline.setCycleCount(Timeline.INDEFINITE);
     verdictTimeline.playFromStart();
+  }
+  
+  // ======== Hints Display ========
+  
+  /** Populates the hints display with all discovered hints */
+  private void populateHints() {
+    if (hintsDisplay == null || hintsBox == null) {
+      return;
+    }
+    
+    GameStateContext gameState = App.getGameStateContext();
+    if (gameState == null) {
+      hintsBox.setVisible(false);
+      hintsBox.setManaged(false);
+      return;
+    }
+    
+    java.util.List<String> hints = gameState.getDiscoveredHints();
+    if (hints.isEmpty()) {
+      hintsBox.setVisible(false);
+      hintsBox.setManaged(false);
+      return;
+    }
+    
+    // Build hints text
+    StringBuilder hintsText = new StringBuilder();
+    for (String hint : hints) {
+      hintsText.append("• ").append(hint).append("\n\n");
+    }
+    
+    hintsDisplay.setText(hintsText.toString().trim());
+    hintsBox.setVisible(true);
+    hintsBox.setManaged(true);
   }
 }
 
