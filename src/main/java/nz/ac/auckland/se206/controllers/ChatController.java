@@ -65,6 +65,7 @@ public class ChatController {
     ChatCompletionRequest req;
     final List<ChatMessage> history = new ArrayList<>(); // includes system/user/assistant
     boolean openingSent = false;
+    boolean openingInFlight = false;
   }
 
   private final Map<Participant, ThreadState> threads = new EnumMap<>(Participant.class);
@@ -351,6 +352,8 @@ public class ChatController {
     // Awareness bus (player speaks)
     ConversationBus.getInstance().post("player", userMsg.getContent());
 
+    final ThreadState threadState = state;
+
     ioExecutor.submit(
         () -> {
           try {
@@ -369,8 +372,8 @@ public class ChatController {
 
             // Last ~8 visible (non-system) messages for context
             List<ChatMessage> visible = new ArrayList<>();
-            synchronized (state.history) {
-              for (ChatMessage m : state.history) {
+            synchronized (threadState.history) {
+              for (ChatMessage m : threadState.history) {
                 if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
               }
             }
@@ -383,8 +386,8 @@ public class ChatController {
 
             // Echo locally (chat + state)
             Platform.runLater(() -> appendChatMessage(p, userMsg));
-            synchronized (state.history) {
-              state.history.add(userMsg);
+            synchronized (threadState.history) {
+              threadState.history.add(userMsg);
             }
 
             // Call LLM
@@ -393,8 +396,8 @@ public class ChatController {
             ChatMessage assistant = choice.getChatMessage();
 
             // Save reply + show
-            synchronized (state.history) {
-              state.history.add(assistant);
+            synchronized (threadState.history) {
+              threadState.history.add(assistant);
             }
             Platform.runLater(() -> appendChatMessage(p, assistant));
 
@@ -402,7 +405,7 @@ public class ChatController {
             ConversationBus.getInstance().post(roleKeyOf(p), assistant.getContent());
 
             // Update thread's last request pointer
-            state.req = fresh;
+            threadState.req = fresh;
 
             clearLoadingState();
           } catch (Exception ex) {
@@ -512,6 +515,7 @@ public class ChatController {
     replayCurrentHistory(); // auto-scroll runs inside
     updateFlashbackComponents(); // keep flashback header in sync
     focusInput();
+    ensureOpeningMessageIfNeeded(participant);
   }
 
   /** Select a participant via string id (aliases supported). */
@@ -537,6 +541,20 @@ public class ChatController {
       default:
         selectParticipant(Participant.DEFENDANT);
     }
+  }
+
+  /** Ensure the first LLM opening line is sent at least once per participant. */
+  public void ensureOpeningMessageIfNeeded(Participant participant) {
+    ThreadState state = threads.get(participant);
+    if (state == null) {
+      return;
+    }
+    synchronized (state) {
+      if (state.openingSent || state.openingInFlight) {
+        return;
+      }
+    }
+    requestOpeningMessageFromLlm(participant);
   }
 
   public void lock() {
@@ -586,8 +604,17 @@ public class ChatController {
   /** Ask the LLM to produce an opening line (injects a fresh dynamic system prompt). */
   public void requestOpeningMessageFromLlm(Participant participant) {
     ThreadState state = threads.get(participant);
-    selectParticipant(participant);
-    if (state == null || state.openingSent) return;
+    if (state == null) {
+      return;
+    }
+
+    if (currentParticipant != participant) {
+      selectParticipant(participant);
+      state = threads.get(participant);
+      if (state == null) {
+        return;
+      }
+    }
 
     // For Cookie Monster: require cookies accepted before sending opener
     if (participant == Participant.DEFENDANT
@@ -596,8 +623,16 @@ public class ChatController {
       return;
     }
 
+    synchronized (state) {
+      if (state.openingSent || state.openingInFlight) {
+        return;
+      }
+      state.openingInFlight = true;
+    }
+
     setLoadingState();
 
+    final ThreadState targetState = state;
     ioExecutor.submit(
         () -> {
           try {
@@ -614,8 +649,8 @@ public class ChatController {
             fresh.addMessage(sysMsg);
 
             List<ChatMessage> visible = new ArrayList<>();
-            synchronized (state.history) {
-              for (ChatMessage m : state.history) {
+            synchronized (targetState.history) {
+              for (ChatMessage m : targetState.history) {
                 if (!"system".equalsIgnoreCase(m.getRole())) visible.add(m);
               }
             }
@@ -637,21 +672,25 @@ public class ChatController {
             Platform.runLater(() -> appendChatMessage(participant, userMsg));
             Platform.runLater(() -> appendChatMessage(participant, assistant));
 
-            synchronized (state.history) {
-              state.history.add(userMsg);
-              state.history.add(assistant);
+            synchronized (targetState.history) {
+              targetState.history.add(userMsg);
+              targetState.history.add(assistant);
             }
             ConversationBus.getInstance().post(roleKeyOf(participant), assistant.getContent());
 
-            state.req = fresh;
-
-            state.openingSent = true;
+            synchronized (targetState) {
+              targetState.req = fresh;
+              targetState.openingSent = true;
+              targetState.openingInFlight = false;
+            }
             clearLoadingState();
           } catch (ApiProxyException ex) {
             ex.printStackTrace();
             appendMeta("Error contacting LLM for opening message.");
-            if (state != null) {
-              state.openingSent = false;
+            if (targetState != null) {
+              synchronized (targetState) {
+                targetState.openingInFlight = false;
+              }
             }
             clearLoadingState();
           }
@@ -734,3 +773,4 @@ public class ChatController {
         });
   }
 }
+

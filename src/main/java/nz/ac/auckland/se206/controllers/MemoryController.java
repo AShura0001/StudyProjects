@@ -291,10 +291,10 @@ public class MemoryController {
     broadcastMemorySummary(
         currentParticipant,
         currentParticipant == Participant.AI_WITNESS
-            ? "Opened AI Witness ‘Simple Audit Log’ (allowed vs blocked; consent focus)."
+            ? "Opened AI Witness Simple Audit Log interactive (tracks allowed vs blocked cookies; consent focus)."
             : currentParticipant == Participant.HUMAN_WITNESS
-                ? "Opened Human Witness evidence; emotion/impact assessment available."
-                : "Opened AI Defendant journal (cookie-gated chat).");
+                ? "Opened Human Witness memory—frustration gauge interactive ready to measure emotional impact."
+                : "Opened Cookie Monster auto-accept training module (chat remains locked until training completes).");
 
     updateAiWitnessButtonState();
   }
@@ -302,7 +302,7 @@ public class MemoryController {
   /** Broadcast a room-wide awareness line so all personas know this memory was opened. */
   private void broadcastAuditOpenedAwareness() {
     String msg =
-        "Memory used → AI Witness (Sentri-Guard): Simple Audit Log opened; shows ALLOWED (no"
+        "Memory used → AI Witness (Sentri-Guard): Simple Audit Log interactive open; contrasts ALLOWED (no"
             + " consent) vs BLOCKED (human) events, including a path ‘watched gym video →"
             + " cross-site tracking → targeted supplement ads’.";
     postToBusAndChat("[AWARENESS] " + msg);
@@ -338,7 +338,6 @@ public class MemoryController {
       ConversationBus.getInstance().post("room", message);
     } catch (Throwable ignored) {
     }
-    if (txtaChat != null) txtaChat.appendText(message + "\n");
   }
 
   private void updateMemoryContext() {
@@ -417,11 +416,11 @@ public class MemoryController {
   private String getInteractionMessage() {
     switch (currentParticipant) {
       case DEFENDANT:
-        return "You checked the defendant’s journal.";
+        return "You launched Cookie Monster's auto-accept training simulator.";
       case AI_WITNESS:
-        return "You opened the audit log (allowed vs blocked).";
+        return "You opened Sentri-Guard's Simple Audit Log console.";
       case HUMAN_WITNESS:
-        return "You reviewed the witness’s evidence.";
+        return "You activated Casey's frustration gauge.";
       default:
         return "You examine the memory object.";
     }
@@ -437,7 +436,7 @@ public class MemoryController {
         && currentParticipant != null) {
       // Don't mark as contacted here - only mark when leaving after actual chat
       gameStateContext.getChatController().selectParticipant(currentParticipant);
-      gameStateContext.getChatController().requestOpeningMessageFromLlm(currentParticipant);
+      gameStateContext.getChatController().ensureOpeningMessageIfNeeded(currentParticipant);
     }
   }
 
@@ -518,7 +517,7 @@ public class MemoryController {
     // Broadcast outcome summary
     broadcastMemorySummary(
         Participant.HUMAN_WITNESS,
-        "Witness frustration = "
+        "Frustration gauge result = "
             + targetFrustrationLevel
             + "/10; private gym/supplement searches led to ubiquitous ads; tracking occurred"
             + " without consent.");
@@ -984,7 +983,7 @@ public class MemoryController {
       // NEW: broadcast to all
       broadcastMemorySummary(
           Participant.DEFENDANT,
-          "Completed Cookie Monster AIM training (auto-accept speed over consent). Chat unlocked.");
+          "Completed Cookie Monster auto-accept training interactive (prioritized speed over consent). Chat unlocked.");
       
       // Reveal defendant hint after completing the game
       revealDefendantHint();

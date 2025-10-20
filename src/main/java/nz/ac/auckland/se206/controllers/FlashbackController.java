@@ -182,7 +182,7 @@ public class FlashbackController {
       gameStateContext.getChatController().selectParticipant(ChatController.Participant.DEFENDANT);
       gameStateContext
           .getChatController()
-          .requestOpeningMessageFromLlm(ChatController.Participant.DEFENDANT);
+          .ensureOpeningMessageIfNeeded(ChatController.Participant.DEFENDANT);
     }
   }
 }

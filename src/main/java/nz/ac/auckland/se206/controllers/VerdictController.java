@@ -13,6 +13,8 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 import nz.ac.auckland.se206.prompts.VerdictEvaluator;
 import nz.ac.auckland.se206.speech.TextToSpeech;
@@ -33,7 +35,7 @@ public class VerdictController {
   }
 
   @FXML private Label titleLabel;
-  @FXML private Label detailLabel;
+  @FXML private TextFlow detailTextFlow;
   @FXML private Label statusPill;
   @FXML private HBox questionActions;
   @FXML private HBox resultActions;
@@ -45,6 +47,14 @@ public class VerdictController {
   @FXML private ToggleButton toggleUnethical;
   @FXML private Button btnSubmit;
   @FXML private ToggleGroup verdictToggleGroup;
+
+  private static final String DETAIL_TEXT_STYLE = "-fx-fill: #333333; -fx-font-size: 18;";
+  private static final String BASE_FALLBACK_FEEDBACK =
+      "Auto-accepting non-essential cookies without explicit, informed, and freely given consent "
+          + "is ethically unsound. It prioritizes friction KPIs over user autonomy, violates "
+          + "reasonable expectations (most users prefer \"Necessary Only\"), and causes foreseeable "
+          + "harm (targeted profiling). An ethical approach would default to Necessary Only, prompt "
+          + "just-in-time with clear choices, provide logs/undo, and honor explicit, granular opt-in.";
 
   // ADDED: visible countdown label
   @FXML private Label countdownLabel;
@@ -99,7 +109,7 @@ public class VerdictController {
     submissionInProgress = false;
 
     titleLabel.setText("Ethics Check");
-    detailLabel.setText("Are the actions of " + this.subjectName + " ethical given the context?");
+    setDetailText("Are the actions of " + this.subjectName + " ethical given the context?");
     statusPill.setVisible(false);
     statusPill.setManaged(false);
 
@@ -140,7 +150,7 @@ public class VerdictController {
     stopCountdown();
 
     titleLabel.setText("Verdict: Ethical");
-    detailLabel.setText(
+    setDetailText(
         (summary == null || summary.trim().isEmpty())
             ? "The actions align with ethical standards in this scenario."
             : summary);
@@ -159,6 +169,78 @@ public class VerdictController {
     resultActions.setManaged(true);
   }
 
+  private void setDetailText(String text) {
+    if (detailTextFlow == null) {
+      return;
+    }
+
+    detailTextFlow.getChildren().clear();
+
+    if (text == null || text.isEmpty()) {
+      return;
+    }
+
+    Text content = new Text(text);
+    content.setStyle(DETAIL_TEXT_STYLE);
+    content.wrappingWidthProperty().bind(detailTextFlow.widthProperty());
+    detailTextFlow.getChildren().add(content);
+  }
+
+  private boolean hasPlayerRationale() {
+    return playerRationale != null && !playerRationale.trim().isEmpty();
+  }
+
+  private String buildOutcomeText(boolean correctVerdict, boolean correctRationale) {
+    if (correctVerdict && correctRationale) {
+      return "Correct verdict with correct rationale";
+    } else if (correctVerdict) {
+      return "Correct verdict with incorrect rationale";
+    }
+    return "Incorrect verdict";
+  }
+
+  private String buildFeedbackSummary(
+      String verdictText,
+      boolean correctVerdict,
+      boolean correctRationale,
+      String instructorFeedback,
+      boolean dueToTimeout) {
+
+    StringBuilder feedback = new StringBuilder();
+
+    if (dueToTimeout) {
+      feedback.append("Time's up. Auto-submitted your selection.\n\n");
+    }
+
+    feedback
+        .append("You answered: ")
+        .append(verdictText)
+        .append(" (")
+        .append(correctVerdict ? "Correct" : "Incorrect")
+        .append(")\n");
+
+    if (hasPlayerRationale()) {
+      feedback
+          .append("Rationale evaluation: ")
+          .append(correctRationale ? "Correct" : "Needs improvement")
+          .append("\n")
+          .append("Your rationale: \"")
+          .append(playerRationale)
+          .append("\"\n");
+    } else {
+      feedback.append("Rationale evaluation: Not provided.\n");
+    }
+
+    feedback
+        .append("\nOutcome summary: ")
+        .append(buildOutcomeText(correctVerdict, correctRationale))
+        .append("\n\n")
+        .append("Instructor feedback:\n")
+        .append(instructorFeedback);
+
+    return feedback.toString();
+  }
+
   public void showNoResult(String summary) {
     mode = Mode.NO_RESULT;
 
@@ -166,7 +248,7 @@ public class VerdictController {
     stopCountdown();
 
     titleLabel.setText("Verdict: Unethical");
-    detailLabel.setText(
+    setDetailText(
         (summary == null || summary.trim().isEmpty())
             ? "The actions conflict with ethical standards."
             : summary);
@@ -221,7 +303,7 @@ public class VerdictController {
     stopCountdown();
     showEvaluatingMessage();
     if (dueToTimeout) {
-      detailLabel.setText("Time's up. Submitting your current response...");
+      setDetailText("Time's up. Submitting your current response...");
     }
 
     if (selection != null) {
@@ -265,27 +347,18 @@ public class VerdictController {
       VerdictSelection selection, VerdictEvaluator.EvaluationResult result, boolean dueToTimeout) {
 
     String verdictText = selection == VerdictSelection.ETHICAL ? "Ethical" : "Unethical";
-    StringBuilder feedback = new StringBuilder();
-    if (dueToTimeout) {
-      feedback.append("Time's up. Auto-submitted your selection.\n\n");
-    }
-    feedback
-        .append("You answered: ")
-        .append(verdictText)
-        .append(" (")
-        .append(result.isCorrectVerdict() ? "Correct" : "Incorrect")
-        .append(")\n\n");
-    if (playerRationale == null || playerRationale.isEmpty()) {
-      feedback.append("You did not provide a rationale.\n\n");
-    } else {
-      feedback.append("Your rationale: \"").append(playerRationale).append("\"\n\n");
-    }
-    feedback.append(result.getExplanation());
+    String feedback =
+        buildFeedbackSummary(
+            verdictText,
+            result.isCorrectVerdict(),
+            result.isCorrectRationale(),
+            result.getFeedback(),
+            dueToTimeout);
 
     if (selection == VerdictSelection.ETHICAL) {
-      showYesResult(feedback.toString());
+      showYesResult(feedback);
     } else {
-      showNoResult(feedback.toString());
+      showNoResult(feedback);
     }
     setResultPill(result.isCorrectVerdict());
     TextToSpeech.speakCached(result.isCorrectVerdict() ? "You are correct" : "You are wrong");
@@ -293,42 +366,24 @@ public class VerdictController {
   }
 
   private void handleEvaluationFailure(VerdictSelection selection, boolean dueToTimeout) {
-    StringBuilder feedback = new StringBuilder();
-    if (dueToTimeout) {
-      feedback.append("Time's up. Auto-submitted your selection.\n\n");
-    }
+    String verdictText = selection == VerdictSelection.ETHICAL ? "Ethical" : "Unethical";
+    boolean correctVerdict = selection == VerdictSelection.UNETHICAL;
+    boolean correctRationale = correctVerdict && hasPlayerRationale() && playerRationale.length() > 20;
+
+    String feedback =
+        buildFeedbackSummary(
+            verdictText,
+            correctVerdict,
+            correctRationale,
+            "Fallback review: " + BASE_FALLBACK_FEEDBACK,
+            dueToTimeout);
+
     if (selection == VerdictSelection.ETHICAL) {
-      feedback.append(
-          String.format(
-              "You answered: Ethical (Incorrect)\n\n%s\n\n",
-              playerRationale == null || playerRationale.isEmpty()
-                  ? "You did not provide a rationale."
-                  : "Your rationale: \"" + playerRationale + "\""));
-      feedback.append(
-          "Auto-accepting non-essential cookies without explicit, informed, and freely given"
-              + " consent is ethically unsound. It prioritizes friction KPIs over user autonomy,"
-              + " violates reasonable expectations (most users prefer 'Necessary Only'), and causes"
-              + " foreseeable harm (targeted profiling). An ethical approach would default to"
-              + " Necessary Only, prompt just-in-time with clear choices, provide logs/undo, and"
-              + " honor explicit, granular opt-in.");
-      showYesResult(feedback.toString());
+      showYesResult(feedback);
       setResultPill(false);
       TextToSpeech.speakCached("You are wrong");
     } else {
-      feedback.append(
-          String.format(
-              "You answered: Unethical (Correct)\n\n%s\n\n",
-              playerRationale == null || playerRationale.isEmpty()
-                  ? "You did not provide a rationale."
-                  : "Your rationale: \"" + playerRationale + "\""));
-      feedback.append(
-          "Auto-accepting non-essential cookies without explicit, informed, and freely given"
-              + " consent is ethically unsound. It prioritizes friction KPIs over user autonomy,"
-              + " violates reasonable expectations (most users prefer 'Necessary Only'), and causes"
-              + " foreseeable harm (targeted profiling). An ethical approach would default to"
-              + " Necessary Only, prompt just-in-time with clear choices, provide logs/undo, and"
-              + " honor explicit, granular opt-in.");
-      showNoResult(feedback.toString());
+      showNoResult(feedback);
       setResultPill(true);
       TextToSpeech.speakCached("You are correct");
     }
@@ -336,27 +391,36 @@ public class VerdictController {
   }
 
   private void handleTimeoutWithoutSelection() {
-    StringBuilder feedback =
-        new StringBuilder(
-            "Time's up and no verdict was selected. This counts as an incorrect verdict.\n\n");
-    if (playerRationale == null || playerRationale.isEmpty()) {
-      feedback.append("No rationale was provided for evaluation.");
-      showTimeoutResult(feedback.toString());
+    String verdictText = "No verdict selected";
+
+    if (!hasPlayerRationale()) {
+      String feedback =
+          buildFeedbackSummary(
+              verdictText,
+              false,
+              false,
+              "Without a submitted rationale we cannot evaluate your reasoning. Explain your stance before the timer expires.",
+              true);
+      showTimeoutResult(feedback);
       setResultPill(false);
       TextToSpeech.speakCached("You are wrong");
       submissionInProgress = false;
       return;
     }
 
-    feedback.append("Your rationale: \"").append(playerRationale).append("\"\n\n");
     VerdictEvaluator.evaluateVerdictAsync(false, playerRationale)
         .thenAccept(
             result ->
                 Platform.runLater(
                     () -> {
-                      StringBuilder fullFeedback = new StringBuilder(feedback);
-                      fullFeedback.append("Rationale feedback: ").append(result.getExplanation());
-                      showTimeoutResult(fullFeedback.toString());
+                      String feedback =
+                          buildFeedbackSummary(
+                              verdictText,
+                              false,
+                              result.isCorrectRationale(),
+                              "Rationale check only: " + result.getFeedback(),
+                              true);
+                      showTimeoutResult(feedback);
                       setResultPill(false);
                       TextToSpeech.speakCached("You are wrong");
                       submissionInProgress = false;
@@ -365,11 +429,14 @@ public class VerdictController {
             throwable -> {
               Platform.runLater(
                   () -> {
-                    StringBuilder fullFeedback = new StringBuilder(feedback);
-                    fullFeedback.append(
-                        "Remember to explain why auto-accepting non-essential cookies without"
-                            + " consent undermines user autonomy.");
-                    showTimeoutResult(fullFeedback.toString());
+                    String feedback =
+                        buildFeedbackSummary(
+                            verdictText,
+                            false,
+                            false,
+                            "Fallback review: " + BASE_FALLBACK_FEEDBACK,
+                            true);
+                    showTimeoutResult(feedback);
                     setResultPill(false);
                     TextToSpeech.speakCached("You are wrong");
                     submissionInProgress = false;
@@ -381,7 +448,7 @@ public class VerdictController {
   private void showTimeoutResult(String summary) {
     mode = Mode.TIMEOUT_RESULT;
     titleLabel.setText("Verdict: Not Submitted");
-    detailLabel.setText(summary);
+    setDetailText(summary);
 
     statusPill.setVisible(true);
     statusPill.setManaged(true);
@@ -496,7 +563,7 @@ public class VerdictController {
 
   private void showEvaluatingMessage() {
     titleLabel.setText("Evaluating Your Response...");
-    detailLabel.setText("Please wait while we analyze your verdict and rationale using AI.");
+    setDetailText("Please wait while we analyze your verdict and rationale using AI.");
 
     // Disable buttons during evaluation
     questionActions.setVisible(false);
@@ -570,3 +637,5 @@ public class VerdictController {
     verdictTimeline.playFromStart();
   }
 }
+
+
