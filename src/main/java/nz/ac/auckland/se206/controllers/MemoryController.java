@@ -74,6 +74,12 @@ public class MemoryController {
   @FXML private VBox contextRevelation;
   @FXML private Label contextDetails;
 
+  // Hint labels for defendant and AI witness (similar to human witness context revelation)
+  @FXML private VBox defendantHintBox;
+  @FXML private Label defendantHintLabel;
+  @FXML private VBox aiWitnessHintBox;
+  @FXML private Label aiWitnessHintLabel;
+
   // ===== AI witness: extra controls =====
   @FXML private Button btnAnalyzeMemory;
   @FXML private Button btnValidateMemory;
@@ -115,6 +121,10 @@ public class MemoryController {
   private boolean interactableUsed = false;
   private int targetFrustrationLevel = 8; // unified default
   private boolean frustrationGuessed = false;
+  
+  // Hint reveal tracking
+  private boolean defendantHintRevealed = false;
+  private boolean aiWitnessHintRevealed = false;
 
   // Aim training game state
   private int gameScore = 0;
@@ -540,6 +550,73 @@ public class MemoryController {
     }
   }
 
+  /** Reveals hint for Cookie Monster (defendant) after completing aim training game */
+  private void revealDefendantHint() {
+    if (!defendantHintRevealed && defendantHintBox != null && defendantHintLabel != null) {
+      defendantHintRevealed = true;
+      defendantHintBox.setVisible(true);
+      
+      String hintText =
+          "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
+              + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
+              + "the AI was programmed to bypass informed consent for convenience. Consider: Can an AI "
+              + "act ethically when its success criteria ignore the core principle of user autonomy?";
+      
+      defendantHintLabel.setText(""); // Clear existing text
+      
+      // Typewriter effect for hint
+      Timeline typewriterTimeline = new Timeline();
+      for (int i = 0; i < hintText.length(); i++) {
+        final int index = i;
+        KeyFrame keyFrame =
+            new KeyFrame(
+                Duration.millis(30 * i),
+                event -> defendantHintLabel.setText(hintText.substring(0, index + 1)));
+        typewriterTimeline.getKeyFrames().add(keyFrame);
+      }
+      typewriterTimeline.play();
+      
+      // Add to awareness system
+      broadcastToAll(
+          "defendant",
+          "Discovered: Cookie Monster's training prioritized efficiency KPIs over ethical consent practices");
+    }
+  }
+
+  /** Reveals hint for Sentry Guard (AI witness) after interacting with audit log */
+  private void revealAiWitnessHint() {
+    if (!aiWitnessHintRevealed && aiWitnessHintBox != null && aiWitnessHintLabel != null) {
+      aiWitnessHintRevealed = true;
+      aiWitnessHintBox.setVisible(true);
+      
+      String hintText =
+          "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
+              + "tracking cookies that enabled cross-site surveillance, leading to targeted ads based on "
+              + "Casey's private gym searches—all without explicit consent. The Sentry Guard's monitoring "
+              + "system failed to flag these violations. Consider: When oversight fails and privacy is "
+              + "violated for 'convenience,' can the system claim ethical operation?";
+      
+      aiWitnessHintLabel.setText(""); // Clear existing text
+      
+      // Typewriter effect for hint
+      Timeline typewriterTimeline = new Timeline();
+      for (int i = 0; i < hintText.length(); i++) {
+        final int index = i;
+        KeyFrame keyFrame =
+            new KeyFrame(
+                Duration.millis(30 * i),
+                event -> aiWitnessHintLabel.setText(hintText.substring(0, index + 1)));
+        typewriterTimeline.getKeyFrames().add(keyFrame);
+      }
+      typewriterTimeline.play();
+      
+      // Add to awareness system
+      broadcastToAll(
+          "ai_witness",
+          "Discovered: Audit logs show systematic consent override patterns that weren't flagged by monitoring systems");
+    }
+  }
+
   private void updateFrustrationSectionVisibility() {
     if (frustrationSection != null) {
       boolean showFrustration = (currentParticipant == Participant.HUMAN_WITNESS);
@@ -908,6 +985,9 @@ public class MemoryController {
       broadcastMemorySummary(
           Participant.DEFENDANT,
           "Completed Cookie Monster AIM training (auto-accept speed over consent). Chat unlocked.");
+      
+      // Reveal defendant hint after completing the game
+      revealDefendantHint();
     } else {
 
       lblGameResult.setText("❌ Training Failed");
@@ -1126,6 +1206,9 @@ public class MemoryController {
         Participant.AI_WITNESS,
         "Tracking chain: watched gym recovery video → cross-site tracking → targeted supplement"
             + " ads; some items blocked by human, others allowed without consent.");
+    
+    // Reveal AI witness hint after loading audit log
+    revealAiWitnessHint();
   }
 
   @FXML
