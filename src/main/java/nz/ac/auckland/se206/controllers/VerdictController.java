@@ -235,7 +235,7 @@ public class VerdictController {
         .append("\nOutcome summary: ")
         .append(buildOutcomeText(correctVerdict, correctRationale))
         .append("\n\n")
-        .append("Instructor feedback:\n")
+        .append("Rationale feedback:\n")
         .append(instructorFeedback);
 
     return feedback.toString();

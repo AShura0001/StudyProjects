@@ -75,7 +75,6 @@ public class MemoryController {
   @FXML private Label contextDetails;
 
   // Hint labels for defendant and AI witness (similar to human witness context revelation)
-  @FXML private VBox defendantHintBox;
   @FXML private Label defendantHintLabel;
   @FXML private VBox aiWitnessHintBox;
   @FXML private Label aiWitnessHintLabel;
@@ -93,9 +92,6 @@ public class MemoryController {
   @FXML private Label lblGameStatus;
   @FXML private Button btnStartGame;
   @FXML private Pane gamePlayArea;
-  @FXML private VBox gameResults;
-  @FXML private Label lblGameResult;
-  @FXML private Label lblFinalStats;
 
   // ---- Simple Audit Log ----
   @FXML private VBox auditPanel;
@@ -162,6 +158,7 @@ public class MemoryController {
     updateAimTrainingGameVisibility();
     updateChatControlsState();
     applyThemeForParticipant();
+    restoreHintVisibility();
   }
 
   // --- Cookie-consent handlers (AI Witness doesn't use them, but FXML references exist) ---
@@ -551,9 +548,9 @@ public class MemoryController {
 
   /** Reveals hint for Cookie Monster (defendant) after completing aim training game */
   private void revealDefendantHint() {
-    if (!defendantHintRevealed && defendantHintBox != null && defendantHintLabel != null) {
+    if (!defendantHintRevealed && defendantHintLabel != null) {
       defendantHintRevealed = true;
-      defendantHintBox.setVisible(true);
+      defendantHintLabel.setVisible(true);
       
       String hintText =
           "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
@@ -613,6 +610,38 @@ public class MemoryController {
       broadcastToAll(
           "ai_witness",
           "Discovered: Audit logs show systematic consent override patterns that weren't flagged by monitoring systems");
+    }
+  }
+
+  /** Restores hint visibility when returning to memory scene after completing interactive */
+  private void restoreHintVisibility() {
+    // Restore defendant hint if game was completed
+    if (currentParticipant == Participant.DEFENDANT && interactableUsed) {
+      if (defendantHintLabel != null && !defendantHintRevealed) {
+        defendantHintRevealed = true;
+        defendantHintLabel.setVisible(true);
+        String hintText =
+            "💡 Verdict Hint: Cookie Monster's training optimized for speed and efficiency metrics, "
+                + "not user consent or privacy. The rapid auto-acceptance you just experienced shows how "
+                + "the AI was programmed to bypass informed consent for convenience. Consider: Can an AI "
+                + "act ethically when its success criteria ignore the core principle of user autonomy?";
+        defendantHintLabel.setText(hintText);
+      }
+    }
+    
+    // Restore AI witness hint if audit log was loaded
+    if (currentParticipant == Participant.AI_WITNESS && interactableUsed) {
+      if (aiWitnessHintBox != null && aiWitnessHintLabel != null && !aiWitnessHintRevealed) {
+        aiWitnessHintRevealed = true;
+        aiWitnessHintBox.setVisible(true);
+        String hintText =
+            "💡 Verdict Hint: The audit logs expose a clear pattern: Cookie Monster auto-accepted "
+                + "tracking cookies that enabled cross-site surveillance, leading to targeted ads based on "
+                + "Casey's private gym searches—all without explicit consent. The Sentry Guard's monitoring "
+                + "system failed to flag these violations. Consider: When oversight fails and privacy is "
+                + "violated for 'convenience,' can the system claim ethical operation?";
+        aiWitnessHintLabel.setText(hintText);
+      }
     }
   }
 
@@ -840,7 +869,6 @@ public class MemoryController {
       btnStartGame.setDisable(true);
     }
     if (gamePlayArea != null) gamePlayArea.setVisible(true);
-    if (gameResults != null) gameResults.setVisible(false);
 
     // Start the timers
     gameTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateGameTimer()));
@@ -952,16 +980,16 @@ public class MemoryController {
     activeTargets.clear();
 
     if (gamePlayArea != null) gamePlayArea.setVisible(false);
-    if (gameResults != null) gameResults.setVisible(true);
     if (btnStartGame != null) {
       btnStartGame.setDisable(false);
     }
 
     if (won) {
 
-      lblGameResult.setText("🎉 Training Complete!");
-      lblGameResult.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #059669;");
-      lblFinalStats.setText("You successfully completed Cookie Monster's auto-accept training!");
+      if (lblGameStatus != null) {
+        lblGameStatus.setText("🎉 Training Complete! You successfully completed Cookie Monster's auto-accept training!");
+        lblGameStatus.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #059669;");
+      }
       btnStartGame.setText("Training Completed");
       btnStartGame.setStyle(
           "-fx-font-size: 16px; -fx-background-color: #22c55e; -fx-text-fill: white;"
@@ -989,9 +1017,10 @@ public class MemoryController {
       revealDefendantHint();
     } else {
 
-      lblGameResult.setText("❌ Training Failed");
-      lblGameResult.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
-      lblFinalStats.setText("3 consecutive misses! Cookie Monster needs more training.");
+      if (lblGameStatus != null) {
+        lblGameStatus.setText("❌ Training Failed - 3 consecutive misses! Cookie Monster needs more training.");
+        lblGameStatus.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
+      }
       btnStartGame.setText("Retry Training");
       btnStartGame.setStyle(
           "-fx-font-size: 16px; -fx-background-color: #3b82f6; -fx-text-fill: white;"
