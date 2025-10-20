@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="750.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.MemoryController">
+<BorderPane prefHeight="750.0" prefWidth="1200.0" style="-fx-background-color: #C98357;" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nz.ac.auckland.se206.controllers.MemoryController">
 
   <center>
     <StackPane>
@@ -51,7 +51,7 @@
   </center>
 
   <right>
-    <VBox prefHeight="750.0" prefWidth="400.0" spacing="10" style="-fx-padding: 10; -fx-background-color: #f7f7f7;">
+    <VBox prefHeight="750.0" prefWidth="400.0" spacing="10" style="-fx-padding: 10; -fx-background-color: #C98357;">
       <HBox alignment="CENTER_LEFT" spacing="8">
         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Chat with" />
         <Label fx:id="lblStatus" style="-fx-text-fill: #222; -fx-font-size: 16px; -fx-font-weight: bold;" />

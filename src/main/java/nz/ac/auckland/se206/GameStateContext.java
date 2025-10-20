@@ -294,7 +294,7 @@ public class GameStateContext {
 
   public void requestOpeningMessage(ChatController.Participant p) {
     if (chatController != null) {
-      chatController.requestOpeningMessageFromLlm(p);
+      chatController.ensureOpeningMessageIfNeeded(p);
     }
   }
 

@@ -12,6 +12,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -25,6 +27,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   @FXML private StackPane contentHost;
   @FXML private StackPane overlayRoot;
   @FXML private StackPane startScreen;
+  @FXML private HBox headerBar;
   @FXML private Button btnStart;
   @FXML private Button btnStartGame;
   @FXML private Button btnSkipTimer;
@@ -37,6 +40,14 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   @FXML private Button hotspotA;
   @FXML private Button hotspotB;
   @FXML private Button hotspotC;
+  @FXML private VBox evidencePanel;
+  @FXML private TextArea evidenceNotesArea;
+
+  private static final String HUMAN_MEMORY_ACCENT_COLOR = "#C98357";
+  private static final String DEFENDANT_MEMORY_ACCENT_COLOR = "#F4E1C7";
+  private static final String AI_MEMORY_ACCENT_COLOR = "#000000";
+  private static final String FLASHBACK_ACCENT_COLOR = "#2F2116";
+  private String headerOriginalStyle;
 
   // Store original room content for restoration
   private Node originalRoomContent;
@@ -48,6 +59,10 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
   @FXML
   public void initialize() {
+    if (headerBar != null) {
+      headerOriginalStyle = headerBar.getStyle();
+    }
+
     // Register this room UI with the shared GameStateContext
     GameStateContext gameState = App.getGameStateContext();
     if (gameState != null) {
@@ -85,6 +100,34 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     }
   }
 
+  private void setHeaderAccentColor(String colorHex) {
+    if (headerBar == null) {
+      return;
+    }
+
+    if (headerOriginalStyle == null) {
+      headerOriginalStyle = headerBar.getStyle();
+    }
+
+    if (colorHex == null || colorHex.isBlank()) {
+      headerBar.setStyle(headerOriginalStyle == null ? "" : headerOriginalStyle);
+      return;
+    }
+
+    String baseStyle = headerOriginalStyle == null ? "" : headerOriginalStyle.trim();
+    StringBuilder newStyle = new StringBuilder();
+    if (!baseStyle.isEmpty()) {
+      newStyle.append(baseStyle);
+      if (!baseStyle.endsWith(";")) {
+        newStyle.append(";");
+      }
+      newStyle.append(" ");
+    }
+    newStyle.append("-fx-background-color: ").append(colorHex).append(";");
+
+    headerBar.setStyle(newStyle.toString());
+  }
+
   private void initializeInitialState() {
     if (contentHost.getChildren().size() > 0) {
       originalRoomContent = contentHost.getChildren().get(0);
@@ -116,6 +159,9 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
     }
+
+    showEvidencePanel();
+    setHeaderAccentColor(null);
   }
 
   /** Loads chat.fxml and injects the ChatController into GameStateContext. */
@@ -224,6 +270,8 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
     }
+    hideEvidencePanel();
+    setHeaderAccentColor(null);
   }
 
   /** Shows main courtroom UI elements when returning to the main room */
@@ -244,6 +292,8 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       timerLabel.setVisible(true);
       timerLabel.setManaged(true);
     }
+    showEvidencePanel();
+    setHeaderAccentColor(null);
   }
 
   // Show slideshow (flashback) for first-time interaction
@@ -267,6 +317,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
       contentHost.getChildren().setAll(node);
       hideMainCourtUIForMemory();
+      setHeaderAccentColor(FLASHBACK_ACCENT_COLOR);
 
       // Broadcast this flashback to everyone's awareness immediately
       broadcastFlashback(participant);
@@ -298,6 +349,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
 
       contentHost.getChildren().setAll(node);
       hideMainCourtUIForMemory();
+      applyHeaderThemeForMemory(participant);
 
       GameStateContext gameState = App.getGameStateContext();
       if (gameState != null) {
@@ -307,6 +359,18 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     } catch (Exception ex) {
       contentHost.getChildren().setAll(placeholderNode("Failed to load memory scene"));
       ex.printStackTrace();
+    }
+  }
+
+  private void applyHeaderThemeForMemory(Participant participant) {
+    if (participant == Participant.HUMAN_WITNESS) {
+      setHeaderAccentColor(HUMAN_MEMORY_ACCENT_COLOR);
+    } else if (participant == Participant.AI_WITNESS) {
+      setHeaderAccentColor(AI_MEMORY_ACCENT_COLOR);
+    } else if (participant == Participant.DEFENDANT) {
+      setHeaderAccentColor(DEFENDANT_MEMORY_ACCENT_COLOR);
+    } else {
+      setHeaderAccentColor(null);
     }
   }
 
@@ -452,6 +516,21 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
     overlayRoot.setManaged(false);
   }
 
+  public void showEvidencePanel() {
+    setEvidencePanelVisible(true);
+  }
+
+  public void hideEvidencePanel() {
+    setEvidencePanelVisible(false);
+  }
+
+  private void setEvidencePanelVisible(boolean visible) {
+    if (evidencePanel != null) {
+      evidencePanel.setVisible(visible);
+      evidencePanel.setManaged(visible);
+    }
+  }
+
   // Verdict helpers
 
   public void showVerdictQuestion(String subjectName) {
@@ -464,6 +543,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       controller.showQuestion(subjectName);
 
       overlayRoot.getChildren().setAll(verdictNode);
+      showEvidencePanel();
       showOverlay();
     } catch (IOException ex) {
       ex.printStackTrace();
@@ -489,6 +569,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
       }
 
       overlayRoot.getChildren().setAll(verdictNode);
+      showEvidencePanel();
       showOverlay();
       controller.startCountdown(60);
     } catch (IOException ex) {
@@ -499,6 +580,7 @@ public class RoomFrameController implements GameStateContext.RoomUiFacade {
   public void hideVerdict() {
     hideOverlay();
     if (overlayRoot != null) overlayRoot.getChildren().clear();
+    showEvidencePanel();
   }
 
   public void showEndGameOverlay(Node endGameNode) {
