@@ -2,7 +2,7 @@ package nz.ac.auckland.se283.tools;
 
 public interface ApiCaller {
 
-  public String call(Object data, String apiKey);
+  public String call(Object data, String formaat);
 
   public void setModel(String model);
 
@@ -17,4 +17,6 @@ public interface ApiCaller {
   public void setMode(String mode);
 
   public void setDataFormat(String format);
+
+  public void setApiKey(String apiKey);
 }

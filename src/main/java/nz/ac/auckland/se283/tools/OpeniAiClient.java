@@ -10,6 +10,7 @@ public class OpeniAiClient implements AiClient {
     caller.setTopP(1);
     caller.setTemperature(0.2);
     caller.setMaxTokens(10000);
+    caller.setApiKey("h9Xz7pVbL2qJwT1zKm4Yf");
   }
 
   @Override
