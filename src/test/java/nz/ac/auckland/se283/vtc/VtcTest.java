@@ -198,4 +198,14 @@ public class VtcTest {
     // Cleanup
     file.delete();
   }
+
+  @Test
+  public void transcribe_whenAudioDataIsNull_returnTooSmallToTranscribe() {
+
+    byte[] audioData = null;
+    String format = "mp3";
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Too small to transcribe!", result);
+  }
 }
