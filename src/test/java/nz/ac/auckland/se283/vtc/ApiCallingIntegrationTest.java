@@ -2,6 +2,7 @@ package nz.ac.auckland.se283.vtc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import nz.ac.auckland.se283.tools.AiClient;
 import nz.ac.auckland.se283.tools.ApiCaller;
@@ -35,5 +36,13 @@ public class ApiCallingIntegrationTest {
 
     // Assert
     assertEquals("while true: print(\"Hellow World!\")", result);
+
+    // Cleanup
+    File file =
+        new File(
+            "src\\main\\java\\n"
+                + //
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
+    file.delete();
   }
 }
