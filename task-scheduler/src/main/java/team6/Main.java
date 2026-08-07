@@ -24,5 +24,13 @@ public class Main {
                             "Ensure the file is provided in the format INPUT.dot");
             return;
         }
+        try {
+            int processorCount = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.out.println(
+                    "Invalid number of processors specified.\n" +
+                            "Ensure the number is provided as an integer.");
+            return;
+        }
     }
 }
