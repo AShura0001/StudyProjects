@@ -8,12 +8,21 @@ public class Main {
             System.out.println(
                     "Usage:\n" +
                             "java −jar scheduler.jar INPUT.dot P [OPTION]\n" +
-                            "INPUT.dot a task graph with integer weights in dot format\n" +
-                            "P number of processors to schedule the INPUT graph on\n\n" +
+                            "INPUT.dot  a task graph with integer weights in dot format\n" +
+                            "P          number of processors to schedule the INPUT graph on\n\n" +
                             "Optional:\n" +
-                            "−p N use N cores for execution in parallel (default is sequential)\n" +
-                            "−v visualise the search\n" +
-                            "−o OUPUT output file is named OUTPUT (default is INPUT−output.dot)");
+                            "−p N       use N cores for execution in parallel (default is sequential)\n" +
+                            "−v         visualise the search\n" +
+                            "−o OUPUT   output file is named OUTPUT (default is INPUT−output.dot)");
+            return;
+        }
+        String dotFile = args[0];
+        // Check that the provided file is a valid .dot file
+        if (dotFile.length() < 5 || !dotFile.substring(dotFile.length() - 4, dotFile.length()).equals(".dot")) {
+            System.out.println(
+                    "Invalid graph file provided.\n" +
+                            "Ensure the file is provided in the format INPUT.dot");
+            return;
         }
     }
 }
