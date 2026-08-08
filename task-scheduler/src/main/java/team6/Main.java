@@ -36,7 +36,7 @@ public class Main {
         int parallelCount = 0;
         boolean visualiseSearch = false;
         String inputName = dotFile.substring(0, dotFile.length() - 4);
-        String outputFile = inputName + "-output.dot";
+        String outputName = inputName + "-output";
 
         // Process optional requirements
         if (args.length > 2) {
@@ -58,9 +58,22 @@ public class Main {
                         }
                         i++;
                         break;
+                    case "-v":
+                        visualiseSearch = true;
+                        break;
+                    case "-o":
+                        if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                            outputName = args[i + 1];
+                        } else {
+                            System.out.println("Error: -o argument requires a value. (-o OUTPUT)");
+                            return;
+                        }
+                        i++;
+                        break;
                 }
             }
         }
+        String outputFile = outputName + ".dot";
 
         System.out.println("Detected Arguments:\n" +
                 "dotFile: " + dotFile + "\n" +
