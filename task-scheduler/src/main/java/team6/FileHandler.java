@@ -13,6 +13,12 @@ import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.jgrapht.nio.dot.DOTImporter;
 
 public class FileHandler {
+    /**
+     * Returns a <code>Graph</code> object corresponding to the dot file input.
+     *
+     * @param filePath the path of the dot that is being read
+     * @return graph of the input dot file
+     */
     public static Graph<TaskNode, DefaultWeightedEdge> readGraph(String filePath) {
         // Use the jgrapht implementation of graphs temporarily
         Graph<TaskNode, DefaultWeightedEdge> graph = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);

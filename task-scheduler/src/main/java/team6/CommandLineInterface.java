@@ -36,7 +36,7 @@ public class CommandLineInterface {
             System.out.println(
                     graph.getEdgeSource(edge) + "->" +
                             graph.getEdgeTarget(edge) + " [Weight=" +
-                            graph.getEdgeWeight(edge) + "]");
+                            (int) graph.getEdgeWeight(edge) + "]");
         }
 
         System.out.println("\nPredecessors of node 4:");
