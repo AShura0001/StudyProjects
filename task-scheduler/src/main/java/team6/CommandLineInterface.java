@@ -1,5 +1,9 @@
 package team6;
 
+import org.jgrapht.Graph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultWeightedEdge;
+
 public class CommandLineInterface {
     private String[] args;
 
@@ -19,6 +23,37 @@ public class CommandLineInterface {
     public void run() {
         parseArgs();
         displayVals();
+        System.out.println("Reading dot file.\n");
+        Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
+        // Display the graph
+        System.out.println("Nodes:");
+        for (TaskNode node : graph.vertexSet()) {
+            System.out.println(
+                    node.getId() + " [Weight=" + node.getWeight() + "]");
+        }
+        System.out.println("Edges:");
+        for (DefaultWeightedEdge edge : graph.edgeSet()) {
+            System.out.println(
+                    graph.getEdgeSource(edge) + "->" +
+                            graph.getEdgeTarget(edge) + " [Weight=" +
+                            (int) graph.getEdgeWeight(edge) + "]");
+        }
+
+        System.out.println("\nPredecessors of node 4:");
+        for (TaskNode node : graph.vertexSet()) {
+            if (node.getId().equals("4")) {
+                System.out.println(Graphs.predecessorListOf(graph, node));
+            }
+        }
+
+        System.out.println("\nPredecessors and Successors of node 1:");
+        for (TaskNode node : graph.vertexSet()) {
+            if (node.getId().equals("1")) {
+                System.out.println(Graphs.predecessorListOf(graph, node));
+                System.out.println(Graphs.successorListOf(graph, node));
+            }
+        }
+
         return;
     }
 
