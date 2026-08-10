@@ -85,6 +85,32 @@ public class Scheduler {
         return startTime;
     }
 
+    /**
+     * Chooses the processor that allows the given task to start as early as possible.
+     * Ties are broken by choosing the lowest processor number.
+     *
+     * @param graph              the task graph being scheduled
+     * @param task               the task being placed
+     * @param processorFreeTimes the time each processor becomes available, indexed by processor number - 1
+     * @return the processor number (1 to nProcessors) the task should be placed on
+     */
+    private static int selectProcessor(Graph<TaskNode, DefaultWeightedEdge> graph, TaskNode task, int[] processorFreeTimes) {
+        
+        int bestProcessor = 1;
+        int bestStartTime = earliestStartTime(graph, task, 1, processorFreeTimes[0]);
+
+        for(int processor = 2; processor <= processorFreeTimes.length; processor++){
+            int StartTime = earliestStartTime(graph, task, processor, processorFreeTimes[processor - 1]);
+
+            if(StartTime < bestStartTime){
+                bestStartTime = StartTime;
+                bestProcessor = processor;
+            }
+        }
+        
+        return bestProcessor;
+    }
+
     // TODO Implement serial scheduler
 
     // might be useful?
