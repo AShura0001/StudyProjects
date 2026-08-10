@@ -1,15 +1,22 @@
 package team6;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.Writer;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.jgrapht.*;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
+import org.jgrapht.nio.Attribute;
+import org.jgrapht.nio.DefaultAttribute;
+import org.jgrapht.nio.dot.DOTExporter;
 import org.jgrapht.nio.dot.DOTImporter;
 
 public class FileHandler {
@@ -67,14 +74,68 @@ public class FileHandler {
 
         return graph;
     }
-    // TODO create method that reads graph from DOT file
-    // input/out can be changed
-    // public static Graph readGraph(Object file) {
-    // return null;
-    // }
 
-    // TODO Writes graph g into a file
-    public static void writeGraph(Graph g) {
+    /**
+     * Writes a scheduled graph to a dot file. Each task is written with its weight, along
+     * with the start time and processor number assigned to it by the scheduler, and each
+     * edge is written with its communication weight.
+     *
+     * @param graph    a graph whose tasks have already been scheduled
+     * @param filePath the path of the dot file to write
+     */
+    public static void writeGraph(Graph<TaskNode, DefaultWeightedEdge> graph, String filePath) {
+        DOTExporter<TaskNode, DefaultWeightedEdge> exporter = new DOTExporter<>(TaskNode::getId);
+
+        exporter.setGraphIdProvider(() -> graphNameFrom(filePath));
+
+        // Copy the task weight across and add the two attributes describing the schedule.
+        exporter.setVertexAttributeProvider(node -> {
+            Map<String, Attribute> attributes = new LinkedHashMap<>();
+            attributes.put("Weight", DefaultAttribute.createAttribute(node.getWeight()));
+            attributes.put("Start", DefaultAttribute.createAttribute(node.getStartTime()));
+            attributes.put("Processor", DefaultAttribute.createAttribute(node.getProcessorNum()));
+            return attributes;
+        });
+
+        // Edges are copied across unchanged.
+        exporter.setEdgeAttributeProvider(edge -> {
+            Map<String, Attribute> attributes = new LinkedHashMap<>();
+            attributes.put("Weight", DefaultAttribute.createAttribute((int) graph.getEdgeWeight(edge)));
+            return attributes;
+        });
+
+        try (Writer writer = new FileWriter(filePath)) {
+            exporter.exportGraph(graph, writer);
+        } catch (IOException e) {
+            System.out.println("Error: Could not write the output file " + filePath);
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Derives a valid dot graph name from an output file path, so that for example
+     * "graphs/example-output.dot" becomes "example_output". Characters that dot does not
+     * allow in an unquoted identifier are replaced with underscores.
+     *
+     * @param filePath the path of the dot file being written
+     * @return a name that is valid to use as a dot graph identifier
+     */
+    private static String graphNameFrom(String filePath) {
+        // Using File keeps this working with both Windows and Linux path separators.
+        String name = new File(filePath).getName();
+
+        if (name.toLowerCase().endsWith(".dot")) {
+            name = name.substring(0, name.length() - 4);
+        }
+
+        name = name.replaceAll("[^A-Za-z0-9_]", "_");
+
+        // A dot identifier cannot start with a digit, so prefix one that does.
+        if (name.isEmpty() || (!Character.isLetter(name.charAt(0)) && name.charAt(0) != '_')) {
+            name = "_" + name;
+        }
+
+        return name;
     }
 
 }

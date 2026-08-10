@@ -111,8 +111,6 @@ public class Scheduler {
         return bestProcessor;
     }
 
-    // TODO Implement serial scheduler
-
     /**
      * Schedules every task in the graph onto the given number of processors using a greedy
      * list scheduling heuristic. Tasks are considered in topological order and each one is
@@ -172,7 +170,7 @@ public class Scheduler {
     // might be useful?
     // https://www.geeksforgeeks.org/dsa/traveling-salesman-problem-using-branch-and-bound-2/
     // https://www.geeksforgeeks.org/dsa/job-assignment-problem-using-branch-and-bound/
-    
+
     public static void parallelScheduler(Graph g, int nProcessors, int nCores) {
     }
 
