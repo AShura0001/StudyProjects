@@ -1,7 +1,6 @@
 package team6;
 
 import org.jgrapht.Graph;
-import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 public class CommandLineInterface {
@@ -26,43 +25,16 @@ public class CommandLineInterface {
     public void run() {
         parseArgs();
         displayVals();
-        System.out.println("Reading dot file.\n");
+
+        System.out.println("\nReading dot file.");
         Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
-        
-        // ALL TESTING STUFF
-        // Display the graph
-        System.out.println("Nodes:");
-        for (TaskNode node : graph.vertexSet()) {
-            System.out.println(
-                    node.getId() + " [Weight=" + node.getWeight() + "]");
-        }
-        System.out.println("Edges:");
-        for (DefaultWeightedEdge edge : graph.edgeSet()) {
-            System.out.println(
-                    graph.getEdgeSource(edge) + "->" +
-                            graph.getEdgeTarget(edge) + " [Weight=" +
-                            (int) graph.getEdgeWeight(edge) + "]");
-        }
 
-        System.out.println("\nPredecessors of node 4:");
-        for (TaskNode node : graph.vertexSet()) {
-            if (node.getId().equals("4")) {
-                System.out.println(Graphs.predecessorListOf(graph, node));
-            }
-        }
+        System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
+        Scheduler.serialScheduler(graph, processorCount);
+        System.out.println("Schedule length: " + Scheduler.getScheduleLength(graph));
 
-        System.out.println("\nPredecessors and Successors of node 1:");
-        for (TaskNode node : graph.vertexSet()) {
-            if (node.getId().equals("1")) {
-                System.out.println(Graphs.predecessorListOf(graph, node));
-                System.out.println(Graphs.successorListOf(graph, node));
-            }
-        }
-
-        System.out.println("Topological sorting");
-        Scheduler.testTopo(graph);
-
-        return;
+        FileHandler.writeGraph(graph, outputFile);
+        System.out.println("Schedule written to " + outputFile);
     }
 
     /**
@@ -150,13 +122,13 @@ public class CommandLineInterface {
      */
     private void displayUsage() {
         System.out.println(
-                "Usage: java −jar scheduler.jar INPUT.dot P [OPTION]\n" +
+                "Usage: java -jar scheduler.jar INPUT.dot P [OPTION]\n" +
                         "INPUT.dot  a task graph with integer weights in dot format\n" +
                         "P          number of processors to schedule the INPUT graph on\n\n" +
                         "Optional:\n" +
-                        "−p N       use N cores for execution in parallel (default is sequential)\n" +
-                        "−v         visualise the search\n" +
-                        "−o OUPUT   output file is named OUTPUT (default is INPUT−output.dot)");
+                        "-p N       use N cores for execution in parallel (default is sequential)\n" +
+                        "-v         visualise the search\n" +
+                        "-o OUTPUT  output file is named OUTPUT (default is INPUT-output.dot)");
     }
 
 }
