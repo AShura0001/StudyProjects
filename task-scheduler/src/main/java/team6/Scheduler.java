@@ -66,23 +66,21 @@ public class Scheduler {
      * @return the earliest valid start time for the task on that processor
      */
     public static int earliestStartTime(Graph<TaskNode, DefaultWeightedEdge> graph, TaskNode task, int processor, int processorFreeTime) {
-        // Calculating start times
-
+        // Only one task runs on a processor at a time, so we must wait for it to be free.
         int startTime = processorFreeTime;
 
-        for(TaskNode predecessor : Graphs.predecessorListOf(graph, task)) {
-            // Get the edge weight (communication time) from the predecessor to the current task
-            DefaultWeightedEdge edge = graph.getEdge(predecessor, task);
-            int communicationTime = (int) graph.getEdgeWeight(edge);
+        for (TaskNode predecessor : Graphs.predecessorListOf(graph, task)) {
+            // The predecessor must have finished running before its data is available.
+            int dataReadyTime = predecessor.getStartTime() + predecessor.getWeight();
 
-            // Calculate the finish time of the predecessor task
-            int predecessorFinishTime = predecessor.getWeight() + communicationTime;
-
-            // Update the start time if the predecessor finish time is greater
-            if (predecessorFinishTime > startTime) {
-                startTime = predecessorFinishTime;
+            // Communication only costs time when the data has to travel between processors.
+            if (predecessor.getProcessorNum() != processor) {
+                DefaultWeightedEdge edge = graph.getEdge(predecessor, task);
+                dataReadyTime += (int) graph.getEdgeWeight(edge);
             }
-            startTime = Math.max(startTime, predecessorFinishTime);
+
+            // Update the start time if this incoming communication arrives later.
+            startTime = Math.max(startTime, dataReadyTime);
         }
         return startTime;
     }
