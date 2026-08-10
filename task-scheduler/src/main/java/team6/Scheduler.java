@@ -54,6 +54,39 @@ public class Scheduler {
         System.out.println(topoSort(adj));
     }
 
+    /**
+     * Calculates the earliest time that a task could start if it were placed on the
+     * given processor. A task can only start once the processor is free and once every
+     * incoming communication has arrived.
+     *
+     * @param graph             the task graph being scheduled
+     * @param task              the task being placed
+     * @param processor         the processor number (1 to nProcessors) being considered
+     * @param processorFreeTime the time at which that processor finishes its already assigned tasks
+     * @return the earliest valid start time for the task on that processor
+     */
+    public static int earliestStartTime(Graph<TaskNode, DefaultWeightedEdge> graph, TaskNode task, int processor, int processorFreeTime) {
+        // Calculating start times
+
+        int startTime = processorFreeTime;
+
+        for(TaskNode predecessor : Graphs.predecessorListOf(graph, task)) {
+            // Get the edge weight (communication time) from the predecessor to the current task
+            DefaultWeightedEdge edge = graph.getEdge(predecessor, task);
+            int communicationTime = (int) graph.getEdgeWeight(edge);
+
+            // Calculate the finish time of the predecessor task
+            int predecessorFinishTime = predecessor.getWeight() + communicationTime;
+
+            // Update the start time if the predecessor finish time is greater
+            if (predecessorFinishTime > startTime) {
+                startTime = predecessorFinishTime;
+            }
+            startTime = Math.max(startTime, predecessorFinishTime);
+        }
+        return startTime;
+    }
+
     // TODO Implement serial scheduler
 
     // might be useful?
