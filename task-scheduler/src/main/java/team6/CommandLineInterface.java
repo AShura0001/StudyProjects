@@ -20,11 +20,16 @@ public class CommandLineInterface {
     /**
      * Runs the CLI using the values defined in <code>args</code>
      */
+
+    // CALL THIS TO RUN THE PROGRAM
+    // java -jar target/task-scheduler-1.0-SNAPSHOT.jar src\main\resources\taskGraphExamples\Nodes_7_OutTree.dot 2
     public void run() {
         parseArgs();
         displayVals();
         System.out.println("Reading dot file.\n");
         Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
+        
+        // ALL TESTING STUFF
         // Display the graph
         System.out.println("Nodes:");
         for (TaskNode node : graph.vertexSet()) {
@@ -53,6 +58,9 @@ public class CommandLineInterface {
                 System.out.println(Graphs.successorListOf(graph, node));
             }
         }
+
+        System.out.println("Topological sorting");
+        Scheduler.testTopo(graph);
 
         return;
     }
