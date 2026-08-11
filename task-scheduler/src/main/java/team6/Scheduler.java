@@ -120,40 +120,150 @@ public class Scheduler {
         return bestProcessor;
     }
 
+    private static Map<TaskNode, Integer> computeBottomLevels(Graph<TaskNode, DefaultWeightedEdge> graph) {
+        Map<TaskNode, Integer> memo = new HashMap<>();
+        Map<TaskNode, Integer> visiting = new HashMap<>();
+
+        for (TaskNode task : graph.vertexSet()) {
+            computeBottomLevel(graph, task, memo, visiting);
+        }
+
+        return memo;
+    }
+
+    private static int computeBottomLevel(
+            Graph<TaskNode, DefaultWeightedEdge> graph,
+            TaskNode task,
+            Map<TaskNode, Integer> memo,
+            Map<TaskNode, Integer> visiting) {
+        Integer cached = memo.get(task);
+        if (cached != null) {
+            return cached;
+        }
+
+        if (visiting.containsKey(task)) {
+            throw new IllegalArgumentException("Graph contains a cycle.");
+        }
+        visiting.put(task, 1);
+
+        int bestSuccessorPath = 0;
+        for (TaskNode successor : Graphs.successorListOf(graph, task)) {
+            bestSuccessorPath = Math.max(bestSuccessorPath, computeBottomLevel(graph, successor, memo, visiting));
+        }
+
+        int level = task.getWeight() + bestSuccessorPath;
+        visiting.remove(task);
+        memo.put(task, level);
+        return level;
+    }
+
+    private static void greedyScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors) {
+        if (nProcessors < 1) {
+            throw new IllegalArgumentException("Number of processors must be at least 1.");
+        }
+
+        if (graph.vertexSet().isEmpty()) {
+            return;
+        }
+
+        Map<TaskNode, Integer> bottomLevels = computeBottomLevels(graph);
+        Map<TaskNode, Integer> remainingPredecessors = new HashMap<>();
+        List<TaskNode> readyTasks = new ArrayList<>();
+        Set<TaskNode> scheduledTasks = new HashSet<>();
+        int[] processorFreeTimes = new int[nProcessors];
+
+        for (TaskNode task : graph.vertexSet()) {
+            task.setStartTime(0);
+            task.setProcessorNum(0);
+            int predecessorCount = Graphs.predecessorListOf(graph, task).size();
+            remainingPredecessors.put(task, predecessorCount);
+            if (predecessorCount == 0) {
+                readyTasks.add(task);
+            }
+        }
+
+        while (!readyTasks.isEmpty()) {
+            readyTasks.sort((left, right) -> {
+                int compare = Integer.compare(bottomLevels.getOrDefault(right, 0), bottomLevels.getOrDefault(left, 0));
+                if (compare != 0) {
+                    return compare;
+                }
+
+                compare = Integer.compare(right.getWeight(), left.getWeight());
+                if (compare != 0) {
+                    return compare;
+                }
+
+                return left.getId().compareTo(right.getId());
+            });
+
+            TaskNode task = readyTasks.remove(0);
+            int bestProcessor = 1;
+            int bestStartTime = Integer.MAX_VALUE;
+            int bestFinishTime = Integer.MAX_VALUE;
+
+            for (int processor = 1; processor <= nProcessors; processor++) {
+                int startTime = earliestStartTime(graph, task, processor, processorFreeTimes[processor - 1]);
+                int finishTime = startTime + task.getWeight();
+
+                if (finishTime < bestFinishTime || (finishTime == bestFinishTime && startTime < bestStartTime)) {
+                    bestFinishTime = finishTime;
+                    bestStartTime = startTime;
+                    bestProcessor = processor;
+                }
+            }
+
+            task.setProcessorNum(bestProcessor);
+            task.setStartTime(bestStartTime);
+            processorFreeTimes[bestProcessor - 1] = bestFinishTime;
+            scheduledTasks.add(task);
+
+            for (TaskNode successor : Graphs.successorListOf(graph, task)) {
+                if (scheduledTasks.contains(successor)) {
+                    continue;
+                }
+
+                int remaining = remainingPredecessors.get(successor) - 1;
+                remainingPredecessors.put(successor, remaining);
+                if (remaining == 0) {
+                    readyTasks.add(successor);
+                }
+            }
+        }
+
+        if (scheduledTasks.size() != graph.vertexSet().size()) {
+            throw new IllegalArgumentException("Graph contains a cycle.");
+        }
+    }
+
     /**
-     * Schedules every task in the graph onto the given number of processors using a greedy
-     * list scheduling heuristic. Tasks are considered in topological order and each one is
-     * placed on the processor that lets it start earliest. The chosen start time and
-     * processor number are stored on each <code>TaskNode</code>.
-     * <p>
-     * The resulting schedule is always valid, but it is not guaranteed to be optimal.
+     * Schedules every task in the graph onto the given number of processors using a branch-and-bound
+     * search seeded by a greedy list-scheduling heuristic. The search explores processor assignments
+     * for ready tasks and keeps the best feasible schedule found.
      *
      * @param graph       the task graph to schedule
      * @param nProcessors the number of processors to schedule the graph on
      */
     public static void serialScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors) {
-    
-        // helpful stuff:
-        // Graphs.successorListOf(g, node) -> gives succesor list of a certain node
-        // Graphs.predecessorListOf(g, node) -> gives predecessor list of a certain node
-
-        if(nProcessors < 1){
+        if (nProcessors < 1) {
             throw new IllegalArgumentException("Number of processors must be at least 1.");
         }
 
-        // Tracks when each processor will be free to run a new task. Indexed by processor number - 1.
-        int[] processorFreeTimes = new int[nProcessors];
-
-        // Topological order makes sure that each predecessor is scheduled before its successors.
-        for(TaskNode task : topoSort(graph)){
-            int processor = selectProcessor(graph, task, processorFreeTimes);
-            int startTime = earliestStartTime(graph, task, processor, processorFreeTimes[processor - 1]);
-
-            task.setProcessorNum(processor);
-            task.setStartTime(startTime);
-            processorFreeTimes[processor - 1] = startTime + task.getWeight();
-
+        if (graph.vertexSet().isEmpty()) {
+            return;
         }
+
+        ScheduleProblem problem = buildProblem(graph, nProcessors);
+        greedyScheduler(graph, nProcessors);
+        ScheduleSnapshot initialSnapshot = snapshotFromGraph(problem);
+
+        AtomicInteger bestLength = new AtomicInteger(initialSnapshot.makespan);
+        AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);
+
+        SearchState root = createInitialState(problem);
+        depthFirstSearch(problem, root, bestLength, bestSnapshot);
+
+        applySnapshotToGraph(problem, bestSnapshot.get());
     }
 
     /**
