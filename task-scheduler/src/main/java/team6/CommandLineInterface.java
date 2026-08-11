@@ -78,6 +78,13 @@ public class CommandLineInterface {
                             "Ensure the number is provided as an integer.");
             System.exit(1);
         }
+        // Check that the graph is being scheduled on at least one processor
+        if (processorCount < 1) {
+            System.out.println(
+                    "Error: Invalid number of processors specified.\n" +
+                            "Ensure the number is at least 1.");
+            System.exit(1);
+        }
 
         // Set default values before optional arguments
         this.parallelCount = 0;
@@ -96,6 +103,13 @@ public class CommandLineInterface {
                             } catch (NumberFormatException e) {
                                 System.out.println(
                                         "Error: Invalid number specified for number of cores for parallel execution.");
+                                System.exit(1);
+                            }
+                            // Check that the search is being run on at least one core
+                            if (parallelCount < 1) {
+                                System.out.println(
+                                        "Error: Invalid number specified for number of cores for parallel execution.\n" +
+                                                "Ensure the number is at least 1.");
                                 System.exit(1);
                             }
                         } else {
