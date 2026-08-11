@@ -30,7 +30,8 @@ public class CommandLineInterface {
         Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
 
         System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
-        Scheduler.serialScheduler(graph, processorCount);
+        int workerCount = Math.max(1, parallelCount);
+        Scheduler.parallelScheduler(graph, processorCount, workerCount);
         System.out.println("Schedule length: " + Scheduler.getScheduleLength(graph));
 
         FileHandler.writeGraph(graph, outputFile);
