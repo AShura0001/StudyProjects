@@ -34,3 +34,6 @@ hs_err_pid*
 replay_pid*
 
 ignored-files/
+
+# Schedules written by running the scheduler
+*-output.dot

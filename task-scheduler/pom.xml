@@ -34,6 +34,8 @@
     </dependencies>
 
     <build>
+        <!-- The project description requires the program to be run as "java -jar scheduler.jar". -->
+        <finalName>scheduler</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

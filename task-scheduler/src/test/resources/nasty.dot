@@ -1,0 +1,9 @@
+digraph "nasty" {
+	"a-b"	 [Weight=2];
+	"say \"hi\""	 [Weight=3];
+	"a-b" -> "say \"hi\""	 [Weight=1];
+	"3rd task"	 [Weight=4];
+	"a-b" -> "3rd task"	 [Weight=2];
+	42	 [Weight=5];
+	42 -> "3rd task"	 [Weight=1];
+}

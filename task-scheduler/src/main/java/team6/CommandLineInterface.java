@@ -21,13 +21,13 @@ public class CommandLineInterface {
      */
 
     // CALL THIS TO RUN THE PROGRAM
-    // java -jar target/task-scheduler-1.0-SNAPSHOT.jar src\main\resources\taskGraphExamples\Nodes_7_OutTree.dot 2
+    // java -jar target/scheduler.jar src/main/resources/taskGraphExamples/example.dot 2
     public void run() {
         parseArgs();
         displayVals();
 
         System.out.println("\nReading dot file.");
-        Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
+        Graph<TaskNode, DefaultWeightedEdge> graph = readGraphOrExit();
 
         System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
         int workerCount = Math.max(1, parallelCount);
@@ -36,6 +36,22 @@ public class CommandLineInterface {
 
         FileHandler.writeGraph(graph, outputFile);
         System.out.println("Schedule written to " + outputFile);
+    }
+
+    /**
+     * Reads the input graph, reporting the problem and stopping the program if the file
+     * cannot be read.
+     *
+     * @return the graph described by the input file
+     */
+    private Graph<TaskNode, DefaultWeightedEdge> readGraphOrExit() {
+        try {
+            return FileHandler.readGraph(dotFile);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+            System.exit(1);
+            return null; // Not reachable, System.exit does not return.
+        }
     }
 
     /**
@@ -62,6 +78,13 @@ public class CommandLineInterface {
                             "Ensure the number is provided as an integer.");
             System.exit(1);
         }
+        // Check that the graph is being scheduled on at least one processor
+        if (processorCount < 1) {
+            System.out.println(
+                    "Error: Invalid number of processors specified.\n" +
+                            "Ensure the number is at least 1.");
+            System.exit(1);
+        }
 
         // Set default values before optional arguments
         this.parallelCount = 0;
@@ -80,6 +103,13 @@ public class CommandLineInterface {
                             } catch (NumberFormatException e) {
                                 System.out.println(
                                         "Error: Invalid number specified for number of cores for parallel execution.");
+                                System.exit(1);
+                            }
+                            // Check that the search is being run on at least one core
+                            if (parallelCount < 1) {
+                                System.out.println(
+                                        "Error: Invalid number specified for number of cores for parallel execution.\n" +
+                                                "Ensure the number is at least 1.");
                                 System.exit(1);
                             }
                         } else {

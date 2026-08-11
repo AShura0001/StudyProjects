@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,48 +19,6 @@ import org.jgrapht.Graphs;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 public class Scheduler {
-
-    // REFERENCE CODE
-    // https://www.geeksforgeeks.org/dsa/topological-sort-using-dfs/
-
-    private static void findTopoSort(TaskNode node, Set<TaskNode> visited, Graph<TaskNode, DefaultWeightedEdge> adj, Stack<TaskNode> stack) {
-        visited.add(node);
-
-        List<TaskNode> successors = Graphs.successorListOf(adj, node);
-
-        for (TaskNode n: successors) {
-            if (!visited.contains(n)) {
-                findTopoSort(n, visited, adj, stack);
-            }
-        }
-
-        // push the node after visting all of its neighbours
-        stack.push(node);
-    }
-    
-    private static ArrayList<TaskNode> topoSort(Graph<TaskNode, DefaultWeightedEdge> adj) {
-        Stack<TaskNode> stack = new Stack<>();
-        Set<TaskNode> visited = new HashSet<>();
-
-        for (TaskNode n: adj.vertexSet()) {
-            if (!visited.contains(n)) {
-                findTopoSort(n, visited, adj, stack);
-            }
-        }
-
-        ArrayList<TaskNode> sorted = new ArrayList<>();
-
-        // popping elements from stack and pushing into the list
-        while (!stack.isEmpty()) {
-            sorted.add(stack.pop());
-        }
-        return sorted;
-    }
-
-    // TESTING FUNCTION
-    public static void testTopo(Graph<TaskNode, DefaultWeightedEdge> adj) {
-        System.out.println(topoSort(adj));
-    }
 
     /**
      * Calculates the earliest time that a task could start if it were placed on the
@@ -92,32 +49,6 @@ public class Scheduler {
             startTime = Math.max(startTime, dataReadyTime);
         }
         return startTime;
-    }
-
-    /**
-     * Chooses the processor that allows the given task to start as early as possible.
-     * Ties are broken by choosing the lowest processor number.
-     *
-     * @param graph              the task graph being scheduled
-     * @param task               the task being placed
-     * @param processorFreeTimes the time each processor becomes available, indexed by processor number - 1
-     * @return the processor number (1 to nProcessors) the task should be placed on
-     */
-    private static int selectProcessor(Graph<TaskNode, DefaultWeightedEdge> graph, TaskNode task, int[] processorFreeTimes) {
-        
-        int bestProcessor = 1;
-        int bestStartTime = earliestStartTime(graph, task, 1, processorFreeTimes[0]);
-
-        for(int processor = 2; processor <= processorFreeTimes.length; processor++){
-            int StartTime = earliestStartTime(graph, task, processor, processorFreeTimes[processor - 1]);
-
-            if(StartTime < bestStartTime){
-                bestStartTime = StartTime;
-                bestProcessor = processor;
-            }
-        }
-        
-        return bestProcessor;
     }
 
     private static Map<TaskNode, Integer> computeBottomLevels(Graph<TaskNode, DefaultWeightedEdge> graph) {
