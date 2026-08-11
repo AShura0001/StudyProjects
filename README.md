@@ -1,4 +1,4 @@
-# 6 - TEAM NAME HERE
+# 6 - Dream Team (Cooked Team)
 
 Finds the shortest possible schedule for a task graph on a fixed number of processors.
 
@@ -69,10 +69,10 @@ You get the same graph back with `Start` and `Processor` added to each task. Pro
 numbered from 1.
 
 ```
-strict digraph example_output {
-  a [ Weight="2" Start="0" Processor="1" ];
-  b [ Weight="3" Start="2" Processor="1" ];
-  a -> b [ Weight="1" ];
+digraph "example-output" {
+	a	 [Weight=2,Start=0,Processor=1];
+	b	 [Weight=3,Start=2,Processor=1];
+	a -> b	 [Weight=1];
 }
 ```
 
@@ -120,8 +120,8 @@ the known optimal length for that graph. If a change breaks optimality, these fa
 Everything under `src` is ours. We use two external libraries, declared in `pom.xml` and
 unmodified:
 
-- **JGraphT 1.5.3** (`jgrapht-core`, `jgrapht-io`) - graph data structure, and reading and
-  writing dot files. Dual licensed LGPL 2.1 / EPL 2.0.
+- **JGraphT 1.5.3** (`jgrapht-core`, `jgrapht-io`) - graph data structure, and parsing the
+  input dot file. Output is written by us. Dual licensed LGPL 2.1 / EPL 2.0.
 - **JUnit Jupiter 5.10.0** - tests only, not shipped inside the jar. EPL 2.0.
 
 ## Team

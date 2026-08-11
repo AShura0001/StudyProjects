@@ -40,7 +40,7 @@ public class FileHandlerTest {
         assertTrue(contents.contains("\"3rd task\""), "The name 3rd task should have been quoted");
 
         // A plain number is already a valid dot name, so it is left as it is.
-        assertTrue(contents.contains("42 ["), "The name 42 should not have been quoted");
+        assertTrue(contents.contains("\t42\t"), "The name 42 should not have been quoted");
     }
 
     @Test
