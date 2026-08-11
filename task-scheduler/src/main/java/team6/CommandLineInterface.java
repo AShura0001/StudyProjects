@@ -21,7 +21,7 @@ public class CommandLineInterface {
      */
 
     // CALL THIS TO RUN THE PROGRAM
-    // java -jar target/task-scheduler-1.0-SNAPSHOT.jar src\main\resources\taskGraphExamples\Nodes_7_OutTree.dot 2
+    // java -jar target/scheduler.jar src/main/resources/taskGraphExamples/example.dot 2
     public void run() {
         parseArgs();
         displayVals();
