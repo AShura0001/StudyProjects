@@ -84,7 +84,7 @@ public class FileHandler {
      * @param filePath the path of the dot file to write
      */
     public static void writeGraph(Graph<TaskNode, DefaultWeightedEdge> graph, String filePath) {
-        DOTExporter<TaskNode, DefaultWeightedEdge> exporter = new DOTExporter<>(TaskNode::getId);
+        DOTExporter<TaskNode, DefaultWeightedEdge> exporter = new DOTExporter<>(node -> dotId(node.getId()));
 
         exporter.setGraphIdProvider(() -> graphNameFrom(filePath));
 
@@ -110,6 +110,24 @@ public class FileHandler {
             System.out.println("Error: Could not write the output file " + filePath);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Returns a task id in a form that is valid in a dot file. Task names can be any string,
+     * so names that are not plain identifiers or numbers, such as ones containing spaces, are
+     * written as a quoted string instead.
+     *
+     * @param id the id of the task being written
+     * @return the id in a form that is valid to use as a dot identifier
+     */
+    private static String dotId(String id) {
+        // A plain name or a number can be written as it is.
+        if (id.matches("[a-zA-Z_][a-zA-Z_0-9]*") || id.matches("-?(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)")) {
+            return id;
+        }
+
+        // Anything else is quoted, escaping any backslashes and quotes it contains.
+        return "\"" + id.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     /**
