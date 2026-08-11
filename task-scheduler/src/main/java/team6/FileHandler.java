@@ -16,6 +16,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleDirectedWeightedGraph;
 import org.jgrapht.nio.Attribute;
 import org.jgrapht.nio.DefaultAttribute;
+import org.jgrapht.nio.ImportException;
 import org.jgrapht.nio.dot.DOTExporter;
 import org.jgrapht.nio.dot.DOTImporter;
 
@@ -43,10 +44,14 @@ public class FileHandler {
             // For each attribute, this will run and the name and value will change.
             TaskNode node = pair.getFirst();
             String attributeName = pair.getSecond();
-            String attributeValue = attribute.getValue();
+
+            // A malformed file can leave an attribute without a value.
+            if (attribute == null) {
+                return;
+            }
 
             if (attributeName.toLowerCase().equals("weight")) {
-                node.setWeight(Integer.parseInt(attributeValue));
+                node.setWeight(parseWeight(attribute.getValue(), "task " + node.getId()));
             }
         });
 
@@ -54,10 +59,13 @@ public class FileHandler {
         importer.addEdgeAttributeConsumer((pair, attribute) -> {
             DefaultWeightedEdge edge = pair.getFirst();
             String attributeName = pair.getSecond();
-            String attributeValue = attribute.getValue();
+
+            if (attribute == null) {
+                return;
+            }
 
             if (attributeName.toLowerCase().equals("weight")) {
-                graph.setEdgeWeight(edge, Integer.parseInt(attributeValue));
+                graph.setEdgeWeight(edge, parseWeight(attribute.getValue(), "edge " + edge));
             }
         });
 
@@ -65,14 +73,35 @@ public class FileHandler {
         try (Reader reader = new FileReader(filePath)) {
             importer.importGraph(graph, reader);
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new IllegalArgumentException("Could not find the input file " + filePath, e);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new IllegalArgumentException("Could not read the input file " + filePath, e);
+        } catch (ImportException | NullPointerException e) {
+            // A problem with the contents, such as a weight that is not an integer, already
+            // describes itself, so that message is kept rather than the general one below.
+            if (e.getCause() instanceof IllegalArgumentException cause) {
+                throw cause;
+            }
+
+            throw new IllegalArgumentException(filePath + " is not a valid dot graph.", e);
         }
 
         return graph;
+    }
+
+    /**
+     * Reads a weight attribute as an integer.
+     *
+     * @param value the value of the weight attribute
+     * @param owner a description of the task or edge the weight belongs to, used for errors
+     * @return the weight as an integer
+     */
+    private static int parseWeight(String value, String owner) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("The weight of " + owner + " is not an integer: " + value, e);
+        }
     }
 
     /**

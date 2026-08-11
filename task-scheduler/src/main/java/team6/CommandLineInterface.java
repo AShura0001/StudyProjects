@@ -27,7 +27,7 @@ public class CommandLineInterface {
         displayVals();
 
         System.out.println("\nReading dot file.");
-        Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(dotFile);
+        Graph<TaskNode, DefaultWeightedEdge> graph = readGraphOrExit();
 
         System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
         int workerCount = Math.max(1, parallelCount);
@@ -36,6 +36,22 @@ public class CommandLineInterface {
 
         FileHandler.writeGraph(graph, outputFile);
         System.out.println("Schedule written to " + outputFile);
+    }
+
+    /**
+     * Reads the input graph, reporting the problem and stopping the program if the file
+     * cannot be read.
+     *
+     * @return the graph described by the input file
+     */
+    private Graph<TaskNode, DefaultWeightedEdge> readGraphOrExit() {
+        try {
+            return FileHandler.readGraph(dotFile);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+            System.exit(1);
+            return null; // Not reachable, System.exit does not return.
+        }
     }
 
     /**
