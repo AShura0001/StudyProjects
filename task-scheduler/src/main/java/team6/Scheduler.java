@@ -1,10 +1,19 @@
 package team6;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
@@ -164,14 +173,368 @@ public class Scheduler {
         return scheduleLength;
     }
 
+    private static final class ScheduleProblem {
+        final List<TaskNode> tasks;
+        final Map<TaskNode, Integer> taskIndex;
+        final int[] weights;
+        final int[][] predecessors;
+        final int[][] predecessorCosts;
+        final int[][] successors;
+        final int[] bottomLevels;
+        final int totalWeight;
+        final int nProcessors;
 
-    // TODO Implement parrallel scheduler
-    
-    // might be useful?
-    // https://www.geeksforgeeks.org/dsa/traveling-salesman-problem-using-branch-and-bound-2/
-    // https://www.geeksforgeeks.org/dsa/job-assignment-problem-using-branch-and-bound/
+        ScheduleProblem(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors) {
+            this.nProcessors = nProcessors;
+            this.tasks = new ArrayList<>(graph.vertexSet());
+            this.taskIndex = new HashMap<>();
 
-    public static void parallelScheduler(Graph g, int nProcessors, int nCores) {
+            for (int i = 0; i < tasks.size(); i++) {
+                taskIndex.put(tasks.get(i), i);
+            }
+
+            int nTasks = tasks.size();
+            this.weights = new int[nTasks];
+            this.predecessors = new int[nTasks][];
+            this.predecessorCosts = new int[nTasks][];
+            this.successors = new int[nTasks][];
+            int weightSum = 0;
+
+            for (int i = 0; i < nTasks; i++) {
+                TaskNode task = tasks.get(i);
+                weights[i] = task.getWeight();
+                weightSum += task.getWeight();
+
+                List<TaskNode> predecessorNodes = Graphs.predecessorListOf(graph, task);
+                int[] predecessorIndices = new int[predecessorNodes.size()];
+                int[] predecessorWeights = new int[predecessorNodes.size()];
+                for (int j = 0; j < predecessorNodes.size(); j++) {
+                    TaskNode predecessor = predecessorNodes.get(j);
+                    predecessorIndices[j] = taskIndex.get(predecessor);
+                    predecessorWeights[j] = (int) graph.getEdgeWeight(graph.getEdge(predecessor, task));
+                }
+                predecessors[i] = predecessorIndices;
+                predecessorCosts[i] = predecessorWeights;
+
+                List<TaskNode> successorNodes = Graphs.successorListOf(graph, task);
+                int[] successorIndices = new int[successorNodes.size()];
+                for (int j = 0; j < successorNodes.size(); j++) {
+                    successorIndices[j] = taskIndex.get(successorNodes.get(j));
+                }
+                successors[i] = successorIndices;
+            }
+
+            this.bottomLevels = new int[nTasks];
+            Arrays.fill(bottomLevels, -1);
+            for (int i = 0; i < nTasks; i++) {
+                computeBottomLevel(i);
+            }
+
+            this.totalWeight = weightSum;
+        }
+
+        private int computeBottomLevel(int taskIndex) {
+            if (bottomLevels[taskIndex] != -1) {
+                return bottomLevels[taskIndex];
+            }
+
+            int bestSuccessorPath = 0;
+            for (int successor : successors[taskIndex]) {
+                bestSuccessorPath = Math.max(bestSuccessorPath, computeBottomLevel(successor));
+            }
+
+            bottomLevels[taskIndex] = weights[taskIndex] + bestSuccessorPath;
+            return bottomLevels[taskIndex];
+        }
+    }
+
+    private static final class SearchState {
+        final int[] startTimes;
+        final int[] processors;
+        final int[] processorFreeTimes;
+        final boolean[] scheduled;
+        final ArrayList<Integer> readyTasks;
+        int scheduledCount;
+        int currentMakespan;
+        int remainingWeight;
+
+        SearchState(int nTasks, int nProcessors, int totalWeight) {
+            this.startTimes = new int[nTasks];
+            this.processors = new int[nTasks];
+            this.processorFreeTimes = new int[nProcessors];
+            this.scheduled = new boolean[nTasks];
+            this.readyTasks = new ArrayList<>();
+            this.remainingWeight = totalWeight;
+        }
+
+        SearchState(SearchState other) {
+            this.startTimes = other.startTimes.clone();
+            this.processors = other.processors.clone();
+            this.processorFreeTimes = other.processorFreeTimes.clone();
+            this.scheduled = other.scheduled.clone();
+            this.readyTasks = new ArrayList<>(other.readyTasks);
+            this.scheduledCount = other.scheduledCount;
+            this.currentMakespan = other.currentMakespan;
+            this.remainingWeight = other.remainingWeight;
+        }
+    }
+
+    private static final class ScheduleSnapshot {
+        final int[] startTimes;
+        final int[] processors;
+        final int makespan;
+
+        ScheduleSnapshot(int[] startTimes, int[] processors, int makespan) {
+            this.startTimes = startTimes;
+            this.processors = processors;
+            this.makespan = makespan;
+        }
+    }
+
+    private static ScheduleProblem buildProblem(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors) {
+        return new ScheduleProblem(graph, nProcessors);
+    }
+
+    private static SearchState createInitialState(ScheduleProblem problem) {
+        SearchState state = new SearchState(problem.tasks.size(), problem.nProcessors, problem.totalWeight);
+
+        for (int taskIndex = 0; taskIndex < problem.tasks.size(); taskIndex++) {
+            if (problem.predecessors[taskIndex].length == 0) {
+                state.readyTasks.add(taskIndex);
+            }
+        }
+
+        return state;
+    }
+
+    private static int earliestStartTime(ScheduleProblem problem, SearchState state, int taskIndex, int processorIndex) {
+        int startTime = state.processorFreeTimes[processorIndex];
+
+        for (int i = 0; i < problem.predecessors[taskIndex].length; i++) {
+            int predecessorIndex = problem.predecessors[taskIndex][i];
+            int predecessorFinish = state.startTimes[predecessorIndex] + problem.weights[predecessorIndex];
+            if (state.processors[predecessorIndex] != processorIndex + 1) {
+                predecessorFinish += problem.predecessorCosts[taskIndex][i];
+            }
+            startTime = Math.max(startTime, predecessorFinish);
+        }
+
+        return startTime;
+    }
+
+    private static int computeLowerBound(ScheduleProblem problem, SearchState state) {
+        int longestRemainingPath = 0;
+
+        for (int taskIndex = 0; taskIndex < problem.tasks.size(); taskIndex++) {
+            if (!state.scheduled[taskIndex]) {
+                longestRemainingPath = Math.max(longestRemainingPath, problem.bottomLevels[taskIndex]);
+            }
+        }
+
+        int workBound = (state.remainingWeight + problem.nProcessors - 1) / problem.nProcessors;
+        return Math.max(state.currentMakespan, Math.max(longestRemainingPath, workBound));
+    }
+
+    private static ArrayList<Integer> orderedReadyTasks(ScheduleProblem problem, SearchState state) {
+        ArrayList<Integer> ordered = new ArrayList<>(state.readyTasks);
+        ordered.sort((left, right) -> {
+            int compare = Integer.compare(problem.bottomLevels[right], problem.bottomLevels[left]);
+            if (compare != 0) {
+                return compare;
+            }
+
+            compare = Integer.compare(problem.weights[right], problem.weights[left]);
+            if (compare != 0) {
+                return compare;
+            }
+
+            return Integer.compare(left, right);
+        });
+        return ordered;
+    }
+
+    private static boolean allPredecessorsScheduled(ScheduleProblem problem, SearchState state, int taskIndex) {
+        for (int predecessor : problem.predecessors[taskIndex]) {
+            if (!state.scheduled[predecessor]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static SearchState scheduleTask(ScheduleProblem problem, SearchState state, int taskIndex, int processorIndex) {
+        SearchState child = new SearchState(state);
+
+        int startTime = earliestStartTime(problem, child, taskIndex, processorIndex);
+        child.startTimes[taskIndex] = startTime;
+        child.processors[taskIndex] = processorIndex + 1;
+        child.processorFreeTimes[processorIndex] = startTime + problem.weights[taskIndex];
+        child.scheduled[taskIndex] = true;
+        child.scheduledCount++;
+        child.currentMakespan = Math.max(child.currentMakespan, startTime + problem.weights[taskIndex]);
+        child.remainingWeight -= problem.weights[taskIndex];
+
+        child.readyTasks.remove(Integer.valueOf(taskIndex));
+        for (int successor : problem.successors[taskIndex]) {
+            if (!child.scheduled[successor] && allPredecessorsScheduled(problem, child, successor) && !child.readyTasks.contains(successor)) {
+                child.readyTasks.add(successor);
+            }
+        }
+
+        return child;
+    }
+
+    private static void updateBest(SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot) {
+        int candidateLength = state.currentMakespan;
+
+        while (true) {
+            int currentBest = bestLength.get();
+            if (candidateLength >= currentBest) {
+                return;
+            }
+
+            if (bestLength.compareAndSet(currentBest, candidateLength)) {
+                bestSnapshot.set(new ScheduleSnapshot(state.startTimes.clone(), state.processors.clone(), candidateLength));
+                return;
+            }
+        }
+    }
+
+    private static void depthFirstSearch(ScheduleProblem problem, SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot) {
+        if (computeLowerBound(problem, state) >= bestLength.get()) {
+            return;
+        }
+
+        if (state.scheduledCount == problem.tasks.size()) {
+            updateBest(state, bestLength, bestSnapshot);
+            return;
+        }
+
+        ArrayList<Integer> readyTasks = orderedReadyTasks(problem, state);
+        for (int taskIndex : readyTasks) {
+            for (int processorIndex = 0; processorIndex < problem.nProcessors; processorIndex++) {
+                SearchState child = scheduleTask(problem, state, taskIndex, processorIndex);
+
+                if (computeLowerBound(problem, child) < bestLength.get()) {
+                    depthFirstSearch(problem, child, bestLength, bestSnapshot);
+                }
+            }
+        }
+    }
+
+    private static List<SearchState> buildFrontier(ScheduleProblem problem, SearchState root, AtomicInteger bestLength, int targetSize) {
+        ArrayList<SearchState> frontier = new ArrayList<>();
+        frontier.add(root);
+        int depth = 0;
+
+        while (frontier.size() < targetSize && depth < 3) {
+            ArrayList<SearchState> nextLevel = new ArrayList<>();
+
+            for (SearchState state : frontier) {
+                if (state.scheduledCount == problem.tasks.size()) {
+                    nextLevel.add(state);
+                    continue;
+                }
+
+                if (computeLowerBound(problem, state) >= bestLength.get()) {
+                    continue;
+                }
+
+                ArrayList<Integer> readyTasks = orderedReadyTasks(problem, state);
+                for (int taskIndex : readyTasks) {
+                    for (int processorIndex = 0; processorIndex < problem.nProcessors; processorIndex++) {
+                        SearchState child = scheduleTask(problem, state, taskIndex, processorIndex);
+                        if (computeLowerBound(problem, child) < bestLength.get()) {
+                            nextLevel.add(child);
+                        }
+                    }
+                }
+            }
+
+            if (nextLevel.isEmpty()) {
+                break;
+            }
+
+            frontier = nextLevel;
+            depth++;
+        }
+
+        return frontier;
+    }
+
+    private static ScheduleSnapshot snapshotFromGraph(ScheduleProblem problem) {
+        int[] startTimes = new int[problem.tasks.size()];
+        int[] processors = new int[problem.tasks.size()];
+        int makespan = 0;
+
+        for (int i = 0; i < problem.tasks.size(); i++) {
+            TaskNode task = problem.tasks.get(i);
+            startTimes[i] = task.getStartTime();
+            processors[i] = task.getProcessorNum();
+            makespan = Math.max(makespan, task.getStartTime() + task.getWeight());
+        }
+
+        return new ScheduleSnapshot(startTimes, processors, makespan);
+    }
+
+    private static void applySnapshotToGraph(ScheduleProblem problem, ScheduleSnapshot snapshot) {
+        for (int i = 0; i < problem.tasks.size(); i++) {
+            TaskNode task = problem.tasks.get(i);
+            task.setStartTime(snapshot.startTimes[i]);
+            task.setProcessorNum(snapshot.processors[i]);
+        }
+    }
+
+    /**
+     * Finds an optimal schedule using branch-and-bound. The search is seeded with the
+     * greedy schedule as an initial upper bound and then split across multiple workers.
+     */
+    public static void parallelScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors, int nCores) {
+        if (nProcessors < 1) {
+            throw new IllegalArgumentException("Number of processors must be at least 1.");
+        }
+
+        if (graph.vertexSet().isEmpty()) {
+            return;
+        }
+
+        ScheduleProblem problem = buildProblem(graph, nProcessors);
+
+        serialScheduler(graph, nProcessors);
+        ScheduleSnapshot initialSnapshot = snapshotFromGraph(problem);
+
+        AtomicInteger bestLength = new AtomicInteger(initialSnapshot.makespan);
+        AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);
+
+        SearchState root = createInitialState(problem);
+        List<SearchState> frontier = buildFrontier(problem, root, bestLength, Math.max(1, nCores * 4));
+
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, nCores));
+        CountDownLatch latch = new CountDownLatch(frontier.size());
+
+        for (SearchState state : frontier) {
+            executor.execute(() -> {
+                try {
+                    depthFirstSearch(problem, state, bestLength, bestSnapshot);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        executor.shutdown();
+
+        try {
+            latch.await();
+            if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            executor.shutdownNow();
+        }
+
+        applySnapshotToGraph(problem, bestSnapshot.get());
     }
 
 }
