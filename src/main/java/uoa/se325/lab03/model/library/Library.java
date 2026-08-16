@@ -1,5 +1,7 @@
 package uoa.se325.lab03.model.library;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -7,9 +9,15 @@ import java.util.Optional;
 
 public class Library {
 
+    @JsonProperty("name")
     private String name;
+    @JsonProperty("inventory")
     private List<InventoryItem> inventory = new ArrayList<>();
+    @JsonProperty("users")
     private List<User> users = new ArrayList<>();
+
+    public Library() {
+    }
 
     public Library(String name) {
         this.name = name;

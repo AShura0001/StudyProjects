@@ -1,14 +1,23 @@
 package uoa.se325.lab03.model.library;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
 public class InventoryItem {
 
+    @JsonProperty("media")
     private Media media;
 
+    @JsonProperty("count")
     private int count;
 
-    public InventoryItem(Media media, int count) {
+    public InventoryItem() {
+    }
+
+    @JsonCreator
+    public InventoryItem(@JsonProperty("media") Media media, @JsonProperty("count") int count) {
         this.media = media;
         this.count = count;
     }

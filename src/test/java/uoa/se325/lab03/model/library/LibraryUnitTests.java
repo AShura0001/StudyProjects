@@ -2,6 +2,7 @@ package uoa.se325.lab03.model.library;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +41,7 @@ public class LibraryUnitTests {
 
         objectMapper = new ObjectMapper();
 
-        // TODO Register any required extra libraries for the object mapper
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     @BeforeEach

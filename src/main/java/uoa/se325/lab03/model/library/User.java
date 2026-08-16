@@ -1,5 +1,10 @@
 package uoa.se325.lab03.model.library;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,11 +13,21 @@ import java.util.Objects;
 
 public class User {
 
+    @JsonProperty("libraryCardNumber")
     private String libraryCardNumber;
+    @JsonProperty("dateOfBirth")
     private LocalDate dateOfBirth;
+    @JsonProperty("dateJoined")
     private LocalDate dateJoined;
+    @JsonProperty("name")
     private String name;
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "barCode")
+    @JsonIdentityReference(alwaysAsId = true)
+    @JsonProperty("borrowedMedia")
     private List<Media> borrowedMedia = new ArrayList<>();
+
+    public User() {
+    }
 
     public User(String libraryCardNumber, LocalDate dateOfBirth, LocalDate dateJoined, String name) {
         this.libraryCardNumber = libraryCardNumber;
