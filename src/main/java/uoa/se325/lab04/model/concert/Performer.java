@@ -3,6 +3,16 @@ package uoa.se325.lab04.model.concert;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.ManyToMany;
 
 import java.util.*;
 
@@ -12,6 +22,9 @@ import java.util.*;
  * <p>
  * This abstract class contains information common to both Bands and IndividualArtists.
  */
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "performer_type")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "performerType")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = Band.class, name = "Band"),
@@ -19,13 +32,17 @@ import java.util.*;
 })
 public abstract class Performer {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
 
+    @Enumerated(EnumType.STRING)
     private Genre genre;
 
     @JsonIgnore
+    @ManyToMany(mappedBy = "performers")
     private List<Concert> performingIn = new ArrayList<>();
 
     public Performer() {

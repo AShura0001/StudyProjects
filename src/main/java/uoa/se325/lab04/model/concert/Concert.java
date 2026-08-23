@@ -1,5 +1,17 @@
 package uoa.se325.lab04.model.concert;
 
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OrderColumn;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -7,14 +19,27 @@ import java.util.*;
  * Represents a Concert that is taking place. Concerts may take place on multiple dates / times. Concerts may have any
  * number of Performers. Performers may perform in any number of Concerts.
  */
+@Entity
 public class Concert implements Comparable<Concert> {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String title;
 
+    @ElementCollection
+    @CollectionTable(name = "concert_date", joinColumns = @JoinColumn(name = "concert_id"))
+    @OrderColumn(name = "date_index")
     private List<LocalDateTime> dates = new ArrayList<>();
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "concert_performer",
+            joinColumns = @JoinColumn(name = "concert_id"),
+            inverseJoinColumns = @JoinColumn(name = "performer_id")
+    )
+    @OrderColumn(name = "performer_index")
     private List<Performer> performers = new ArrayList<>();
 
     public Concert() {

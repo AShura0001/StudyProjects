@@ -1,5 +1,7 @@
 package uoa.se325.lab04.model.concert;
 
+import jakarta.persistence.Entity;
+
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -7,6 +9,7 @@ import java.util.Objects;
  * Represents an individual artist - a solo / single person capable of performing at concerts. Individual artists can
  * perform by themselves or as members of Bands.
  */
+@Entity
 public class IndividualArtist extends Performer {
 
     private LocalDate dateOfBirth;
