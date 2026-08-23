@@ -69,17 +69,22 @@ For this exercise, answer the following written questions:
 1. Which inheritance strategy did you use to address the polymorphism inherent in the design? Why?
 
 ```text
-Your answer here
+Implemented SINGLE_TABLE stratergy with a DiscriminatorColumn, the reasons was it was fast and efficient for polymorphic queries. The sparsity of columns in this stratergy did not matter because the only two subclasses (Band and IndividualArtists) only had few columns.
 ```
 
 2. Comment on your design decisions regarding the `Concert`-`Performer` relationship. Why did you configure it the way that you did?
 
 ```text
-Your answer here
+We had a many-to-many relationship for Concert and performer, because conceptually a concert can have multiple performers and a performer could perform at multiple concerts.
+
 ```
 
 3. Examining the design, we have used both Jackson and JPA / Hibernate annotations in the same domain classes. What are some **benefits** and **drawbacks** of this design? Would you prefer this design, or an alternative? Why? If an alternative is preferred, how might it look?
 
 ```text
-Your answer here
+Benefits would be that this design has less code as one class is the persistent entity and there is no manual entity, DTO mapping for every field (the domain model and API contract hold their relation because they share the same source).
+
+Drawbacks: persistence and API concerns coupled, a fetch/ordering change can alter the JSON shape (Eager here partly driven by serialization safety, not just the query needs).
+
+Preference: DTOs for anything beyond lab scale as this project already half-does this via NewConcertRequest.
 ```
