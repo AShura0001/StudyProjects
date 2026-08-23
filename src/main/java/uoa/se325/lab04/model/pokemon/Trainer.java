@@ -1,13 +1,27 @@
 package uoa.se325.lab04.model.pokemon;
 
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Entity
 public class Trainer {
 
     private String name;
+
+    @Id
     private int trainerId;
+
+    @ElementCollection
+    @CollectionTable(name = "trainer_pokemon", joinColumns = @JoinColumn(name = "trainer_id"))
+    @OrderColumn(name = "pokemon_index")
     private List<Pokemon> pokemonList = new ArrayList<>();
 
     public Trainer() {

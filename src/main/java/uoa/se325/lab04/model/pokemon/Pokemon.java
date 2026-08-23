@@ -1,5 +1,8 @@
 package uoa.se325.lab04.model.pokemon;
 
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public class Pokemon {
     
     private String speciesName;
