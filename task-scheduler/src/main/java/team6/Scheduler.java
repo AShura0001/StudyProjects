@@ -192,7 +192,7 @@ public class Scheduler {
         AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);
 
         SearchState root = createInitialState(problem);
-        depthFirstSearch(problem, root, bestLength, bestSnapshot);
+        depthFirstSearch(problem, root, computeLowerBound(problem, root), bestLength, bestSnapshot, new HashSet<>());
 
         applySnapshotToGraph(problem, bestSnapshot.get());
     }
@@ -332,6 +332,43 @@ public class Scheduler {
         }
     }
 
+    /**
+     * Identifies a partial schedule by the (processor, start time) assigned to each task so
+     * far. Unscheduled tasks always carry processor 0, so two states with the same startTimes
+     * and processors arrays represent the exact same partial schedule, however different the
+     * order was in which their tasks got placed. Independent ready tasks placed on different
+     * processors reach an identical resulting state regardless of which was scheduled first,
+     * so hashing on this key lets the search recognise and skip a state it has already fully
+     * explored under an earlier, equally-thorough visit.
+     */
+    private static final class StateKey {
+        private final int[] startTimes;
+        private final int[] processors;
+        private final int hash;
+
+        StateKey(SearchState state) {
+            // Defensive copies: the search mutates a shared SearchState's arrays in place
+            // and undoes each change afterward, so a stored reference to the live arrays
+            // would silently change underneath every key already sitting in the closed list.
+            this.startTimes = state.startTimes.clone();
+            this.processors = state.processors.clone();
+            this.hash = 31 * Arrays.hashCode(startTimes) + Arrays.hashCode(processors);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof StateKey that)) {
+                return false;
+            }
+            return Arrays.equals(this.startTimes, that.startTimes) && Arrays.equals(this.processors, that.processors);
+        }
+    }
+
     private static ScheduleProblem buildProblem(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors) {
         return new ScheduleProblem(graph, nProcessors);
     }
@@ -372,8 +409,21 @@ public class Scheduler {
             }
         }
 
+        // A ready task's earliest possible start is already known exactly, so the makespan
+        // cannot be lower than that start plus the longest chain running through the task.
+        // This is tighter than bottomLevel alone, which ignores processor availability and
+        // communication delay entirely.
+        int readyTaskBound = 0;
+        for (int taskIndex : state.readyTasks) {
+            int bestStart = Integer.MAX_VALUE;
+            for (int processorIndex = 0; processorIndex < problem.nProcessors; processorIndex++) {
+                bestStart = Math.min(bestStart, earliestStartTime(problem, state, taskIndex, processorIndex));
+            }
+            readyTaskBound = Math.max(readyTaskBound, bestStart + problem.bottomLevels[taskIndex]);
+        }
+
         int workBound = (state.remainingWeight + problem.nProcessors - 1) / problem.nProcessors;
-        return Math.max(state.currentMakespan, Math.max(longestRemainingPath, workBound));
+        return Math.max(state.currentMakespan, Math.max(longestRemainingPath, Math.max(workBound, readyTaskBound)));
     }
 
     private static ArrayList<Integer> orderedReadyTasks(ScheduleProblem problem, SearchState state) {
@@ -392,6 +442,15 @@ public class Scheduler {
             return Integer.compare(left, right);
         });
         return ordered;
+    }
+
+    /**
+     * @param state          the partial schedule being expanded
+     * @param processorIndex the processor being checked (0 to nProcessors - 1)
+     * @return true if the processor has no task scheduled on it yet
+     */
+    private static boolean isProcessorEmpty(SearchState state, int processorIndex) {
+        return state.processorFreeTimes[processorIndex] == 0;
     }
 
     private static boolean allPredecessorsScheduled(ScheduleProblem problem, SearchState state, int taskIndex) {
@@ -425,6 +484,83 @@ public class Scheduler {
         return child;
     }
 
+    /**
+     * Records exactly what {@link #mutateSchedule} changed, so {@link #undoSchedule} can put
+     * a shared, in-place-mutated SearchState back to precisely how it was before that move.
+     */
+    private static final class Undo {
+        final int taskIndex;
+        final int processorIndex;
+        final int previousProcessorFreeTime;
+        final int previousMakespan;
+        final int[] addedReadyTasks;
+
+        Undo(int taskIndex, int processorIndex, int previousProcessorFreeTime, int previousMakespan, int[] addedReadyTasks) {
+            this.taskIndex = taskIndex;
+            this.processorIndex = processorIndex;
+            this.previousProcessorFreeTime = previousProcessorFreeTime;
+            this.previousMakespan = previousMakespan;
+            this.addedReadyTasks = addedReadyTasks;
+        }
+    }
+
+    /**
+     * Schedules a task directly onto the shared search state, in place, instead of cloning a
+     * new one. Used only by depthFirstSearch, where the search backtracks through the same
+     * state object rather than keeping many states alive at once (unlike buildFrontier, which
+     * still needs {@link #scheduleTask}'s persistent clones). Every mutation made here must be
+     * exactly reversed by the paired {@link #undoSchedule} call once the recursive call below
+     * it returns, or every state explored afterward is corrupted.
+     *
+     * @return an Undo record describing exactly what to reverse
+     */
+    private static Undo mutateSchedule(ScheduleProblem problem, SearchState state, int taskIndex, int processorIndex) {
+        int startTime = earliestStartTime(problem, state, taskIndex, processorIndex);
+        int previousProcessorFreeTime = state.processorFreeTimes[processorIndex];
+        int previousMakespan = state.currentMakespan;
+
+        state.startTimes[taskIndex] = startTime;
+        state.processors[taskIndex] = processorIndex + 1;
+        state.processorFreeTimes[processorIndex] = startTime + problem.weights[taskIndex];
+        state.scheduled[taskIndex] = true;
+        state.scheduledCount++;
+        state.currentMakespan = Math.max(state.currentMakespan, startTime + problem.weights[taskIndex]);
+        state.remainingWeight -= problem.weights[taskIndex];
+
+        state.readyTasks.remove(Integer.valueOf(taskIndex));
+
+        int[] successors = problem.successors[taskIndex];
+        int[] addedBuffer = new int[successors.length];
+        int addedCount = 0;
+        for (int successor : successors) {
+            if (!state.scheduled[successor] && allPredecessorsScheduled(problem, state, successor) && !state.readyTasks.contains(successor)) {
+                state.readyTasks.add(successor);
+                addedBuffer[addedCount++] = successor;
+            }
+        }
+
+        return new Undo(taskIndex, processorIndex, previousProcessorFreeTime, previousMakespan, Arrays.copyOf(addedBuffer, addedCount));
+    }
+
+    /**
+     * Reverses exactly the mutation {@link #mutateSchedule} made, restoring the shared state to
+     * how it was before that task was placed.
+     */
+    private static void undoSchedule(ScheduleProblem problem, SearchState state, Undo undo) {
+        for (int added : undo.addedReadyTasks) {
+            state.readyTasks.remove(Integer.valueOf(added));
+        }
+        state.readyTasks.add(undo.taskIndex);
+
+        state.remainingWeight += problem.weights[undo.taskIndex];
+        state.scheduledCount--;
+        state.currentMakespan = undo.previousMakespan;
+        state.processorFreeTimes[undo.processorIndex] = undo.previousProcessorFreeTime;
+        state.scheduled[undo.taskIndex] = false;
+        state.processors[undo.taskIndex] = 0;
+        state.startTimes[undo.taskIndex] = 0;
+    }
+
     private static void updateBest(SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot) {
         int candidateLength = state.currentMakespan;
 
@@ -441,8 +577,12 @@ public class Scheduler {
         }
     }
 
-    private static void depthFirstSearch(ScheduleProblem problem, SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot) {
-        if (computeLowerBound(problem, state) >= bestLength.get()) {
+    private static void depthFirstSearch(ScheduleProblem problem, SearchState state, int lowerBound, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot, Set<StateKey> visited) {
+        if (lowerBound >= bestLength.get()) {
+            return;
+        }
+
+        if (!visited.add(new StateKey(state))) {
             return;
         }
 
@@ -453,12 +593,24 @@ public class Scheduler {
 
         ArrayList<Integer> readyTasks = orderedReadyTasks(problem, state);
         for (int taskIndex : readyTasks) {
+            boolean triedEmptyProcessor = false;
             for (int processorIndex = 0; processorIndex < problem.nProcessors; processorIndex++) {
-                SearchState child = scheduleTask(problem, state, taskIndex, processorIndex);
-
-                if (computeLowerBound(problem, child) < bestLength.get()) {
-                    depthFirstSearch(problem, child, bestLength, bestSnapshot);
+                boolean isEmpty = isProcessorEmpty(state, processorIndex);
+                if (isEmpty) {
+                    if (triedEmptyProcessor) {
+                        continue;
+                    }
+                    triedEmptyProcessor = true;
                 }
+
+                Undo undo = mutateSchedule(problem, state, taskIndex, processorIndex);
+
+                int childBound = computeLowerBound(problem, state);
+                if (childBound < bestLength.get()) {
+                    depthFirstSearch(problem, state, childBound, bestLength, bestSnapshot, visited);
+                }
+
+                undoSchedule(problem, state, undo);
             }
         }
     }
@@ -483,7 +635,16 @@ public class Scheduler {
 
                 ArrayList<Integer> readyTasks = orderedReadyTasks(problem, state);
                 for (int taskIndex : readyTasks) {
+                    boolean triedEmptyProcessor = false;
                     for (int processorIndex = 0; processorIndex < problem.nProcessors; processorIndex++) {
+                        boolean isEmpty = isProcessorEmpty(state, processorIndex);
+                        if (isEmpty) {
+                            if (triedEmptyProcessor) {
+                                continue;
+                            }
+                            triedEmptyProcessor = true;
+                        }
+
                         SearchState child = scheduleTask(problem, state, taskIndex, processorIndex);
                         if (computeLowerBound(problem, child) < bestLength.get()) {
                             nextLevel.add(child);
@@ -541,7 +702,7 @@ public class Scheduler {
 
         ScheduleProblem problem = buildProblem(graph, nProcessors);
 
-        serialScheduler(graph, nProcessors);
+        greedyScheduler(graph, nProcessors);
         ScheduleSnapshot initialSnapshot = snapshotFromGraph(problem);
 
         AtomicInteger bestLength = new AtomicInteger(initialSnapshot.makespan);
@@ -556,7 +717,7 @@ public class Scheduler {
         for (SearchState state : frontier) {
             executor.execute(() -> {
                 try {
-                    depthFirstSearch(problem, state, bestLength, bestSnapshot);
+                    depthFirstSearch(problem, state, computeLowerBound(problem, state), bestLength, bestSnapshot, new HashSet<>());
                 } finally {
                     latch.countDown();
                 }
