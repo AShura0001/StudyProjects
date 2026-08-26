@@ -141,8 +141,9 @@ unmodified:
 
 | Name | GitHub |
 | --- | --- |
-| TODO | TODO |
-| TODO | TODO |
-| TODO | TODO |
-| TODO | TODO |
-| TODO | TODO |
+| Thisas Gamage | [ThisasG](https://github.com/ThisasG) |
+| Reece Edwards | [RheniumGames](https://github.com/RheniumGames) |
+| Susan Shi | [SuziUzi](https://github.com/SuziUzi) |
+| Ritvik Singh Sajwan | [rsaj289](https://github.com/rsaj289) |
+| Jeffrey Song | [JeefJerky](https://github.com/JeefJerky) |
+| Taranveer Singh | [TvSK0](https://github.com/TvSK0) |
