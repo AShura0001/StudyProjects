@@ -34,7 +34,7 @@ final class GanttChart extends Pane {
     private static final Color COLOR_AXIS_TICK = Color.web("#52525B");
     private static final Color COLOR_BAR_LABEL_INK = Color.web("#18181B");
     private static final Color COLOR_EMPTY_ROW_BAND = Color.web("#F4F4F5");
-    private static final Color COLOR_HIGHLIGHT_RING = Color.web("#C2410C");
+    private static final double HIGHLIGHT_SATURATION_FACTOR = 3.00;
 
     /**
      * A validated categorical hue sequence - adjacent pairs stay separable under colour-vision
@@ -65,7 +65,7 @@ final class GanttChart extends Pane {
 
     /**
      * Stores the given frame and repaints. The frame's highlighted task indices are the ones
-     * currently being evaluated by any worker, drawn as a ring around their bar. Must be
+    * currently being evaluated by any worker, drawn with more saturation fill and border. Must be
      * called on the JavaFX application thread.
      */
     void draw(Timeline.Frame frame) {
@@ -195,20 +195,16 @@ final class GanttChart extends Pane {
 
         ProcessorColor colors = colorFor(processorNumber);
 
-        gc.setFill(colors.fill());
+        Color fill = highlighted
+            ? colors.fill().deriveColor(0, HIGHLIGHT_SATURATION_FACTOR, 1, 1)
+            : colors.fill();
+        Color border = highlighted ? colors.border().darker() : colors.border();
+
+        gc.setFill(fill);
         gc.fillRoundRect(x, y, w, h, radius * 2, radius * 2);
-        gc.setStroke(colors.border());
+        gc.setStroke(border);
         gc.setLineWidth(2);
         gc.strokeRoundRect(x, y, w, h, radius * 2, radius * 2);
-
-        if (highlighted) {
-            // Drawn a couple of pixels further outside than the bar's own 2px coloured border,
-            // so the two never visually merge - the ring must always read as "the search is
-            // reconsidering this task", never as another processor's colour.
-            gc.setStroke(COLOR_HIGHLIGHT_RING);
-            gc.setLineWidth(2);
-            gc.strokeRoundRect(x - 2, y - 2, w + 4, h + 4, radius * 2 + 4, radius * 2 + 4);
-        }
 
         String name = monitor.taskName(taskIndex);
         Text measure = new Text(name);
