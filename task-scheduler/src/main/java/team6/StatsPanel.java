@@ -14,9 +14,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 /**
- * Right-hand statistics panel: six labelled rows read from a {@link SearchMonitor} and
- * refreshed on demand by the caller (an {@link javafx.animation.AnimationTimer} in
- * {@link Visualiser}).
+ * Right-hand statistics panel: six labelled rows rendered from a {@link Timeline.Frame} on
+ * demand by the caller (an {@link javafx.animation.AnimationTimer} in {@link Visualiser}).
  */
 final class StatsPanel extends VBox {
 
@@ -59,7 +58,7 @@ final class StatsPanel extends VBox {
                 row("Depth", depth),
                 row("Workers", workers));
 
-        refresh();
+        render(Timeline.capture(monitor));
     }
 
     private VBox row(String label, Text value) {
@@ -74,20 +73,24 @@ final class StatsPanel extends VBox {
         return box;
     }
 
-    /** Re-reads the monitor and updates the row values. Must be called on the JavaFX application thread. */
-    void refresh() {
+    /**
+     * Updates the row values from the given frame. isFinished, taskCount and workerCount come
+     * from the monitor - they're static/structural, not part of what changes moment to moment.
+     * Must be called on the JavaFX application thread.
+     */
+    void render(Timeline.Frame frame) {
         boolean finished = monitor.isFinished();
         status.setText(finished ? "Complete" : "Searching");
         status.setFill(finished ? COLOR_STATUS_COMPLETE : COLOR_STATUS_SEARCHING);
 
-        elapsed.setText(formatElapsed(monitor.elapsedMillis()));
-        states.setText(formatCount(monitor.statesExplored()));
+        elapsed.setText(formatElapsed(frame.elapsedMillis()));
+        states.setText(formatCount(frame.statesExplored()));
 
-        int bestMakespan = monitor.bestMakespan();
+        int bestMakespan = frame.bestMakespan();
         best.setText(bestMakespan < 0 ? "-" : Integer.toString(bestMakespan));
 
-        depth.setText(monitor.maxDepth() + " / " + monitor.taskCount());
-        workers.setText(monitor.activeWorkers() + " / " + monitor.workerCount());
+        depth.setText(frame.maxDepth() + " / " + monitor.taskCount());
+        workers.setText(frame.activeWorkers() + " / " + monitor.workerCount());
     }
 
     /** Formats milliseconds as m:ss.t, e.g. 4234 -> "0:04.2". */

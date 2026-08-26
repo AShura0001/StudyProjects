@@ -1,6 +1,5 @@
 package team6;
 
-import java.util.Collections;
 import java.util.Set;
 
 import javafx.geometry.VPos;
@@ -37,8 +36,7 @@ final class GanttChart extends Pane {
 
     private final SearchMonitor monitor;
     private final Canvas canvas;
-    private volatile SearchMonitor.Snapshot snapshot;
-    private volatile Set<Integer> highlightedTasks = Collections.emptySet();
+    private volatile Timeline.Frame frame;
 
     GanttChart(SearchMonitor monitor) {
         this.monitor = monitor;
@@ -47,13 +45,12 @@ final class GanttChart extends Pane {
     }
 
     /**
-     * Stores the given snapshot and highlight set and repaints. highlightedTasks are the task
-     * indices currently being evaluated by any worker, drawn as a ring around their bar. Must
-     * be called on the JavaFX application thread.
+     * Stores the given frame and repaints. The frame's highlighted task indices are the ones
+     * currently being evaluated by any worker, drawn as a ring around their bar. Must be
+     * called on the JavaFX application thread.
      */
-    void draw(SearchMonitor.Snapshot snapshot, Set<Integer> highlightedTasks) {
-        this.snapshot = snapshot;
-        this.highlightedTasks = highlightedTasks;
+    void draw(Timeline.Frame frame) {
+        this.frame = frame;
         repaint();
     }
 
@@ -78,8 +75,9 @@ final class GanttChart extends Pane {
             return;
         }
 
-        SearchMonitor.Snapshot current = this.snapshot;
-        Set<Integer> highlighted = this.highlightedTasks;
+        Timeline.Frame frame = this.frame;
+        SearchMonitor.Snapshot current = frame == null ? null : frame.schedule();
+        Set<Integer> highlighted = frame == null ? Set.of() : frame.highlighted();
 
         double titleHeight = 24;
         double plotWidth = width - GUTTER - PADDING;
@@ -103,7 +101,7 @@ final class GanttChart extends Pane {
         gc.setTextBaseline(VPos.TOP);
         String title = current == null
                 ? "Best schedule - searching"
-                : "Best schedule - makespan " + current.makespan();
+                : "Best schedule - makespan " + frame.bestMakespan();
         gc.fillText(title, PADDING, blockTop);
 
         double top = blockTop + titleHeight;

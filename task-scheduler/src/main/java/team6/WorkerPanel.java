@@ -18,8 +18,8 @@ import javafx.scene.text.Text;
 
 /**
  * Right-hand panel showing one box per worker thread: the task it is currently placing,
- * or "idle". Refreshed on demand by the caller (an {@link javafx.animation.AnimationTimer}
- * in {@link Visualiser}).
+ * or "idle". Rendered from a {@link Timeline.Frame} on demand by the caller (an
+ * {@link javafx.animation.AnimationTimer} in {@link Visualiser}).
  */
 final class WorkerPanel extends VBox {
 
@@ -52,7 +52,7 @@ final class WorkerPanel extends VBox {
             getChildren().add(buildBox(w));
         }
 
-        refresh();
+        render(Timeline.capture(monitor));
     }
 
     private VBox buildBox(int worker) {
@@ -79,29 +79,30 @@ final class WorkerPanel extends VBox {
         return box;
     }
 
-    /** Re-reads the monitor and updates every worker box. Must be called on the JavaFX application thread. */
-    void refresh() {
+    /** Updates every worker box from the given frame. Must be called on the JavaFX application thread. */
+    void render(Timeline.Frame frame) {
+        int[] tasks = frame.workerTasks();
+        int[] processors = frame.workerProcessors();
         for (int w = 0; w < dots.length; w++) {
-            boolean active = monitor.currentTask(w) >= 0;
+            boolean active = tasks[w] >= 0;
             dots[w].setFill(active ? COLOR_ACTIVE : COLOR_IDLE);
             bodies[w].setFill(active ? COLOR_BODY : COLOR_IDLE);
-            bodies[w].setText(describeWorker(monitor, w));
+            bodies[w].setText(describeWorker(monitor, tasks[w], processors[w]));
         }
     }
 
     /**
-     * Display text for a worker: its current task and processor, or "idle" if it has none.
-     * Renders "-" instead of throwing if currentTask() ever returns an index outside the
-     * task array, rather than trusting it inside a render loop.
+     * Display text for a worker given its current task index and processor number: the task
+     * name and processor, or "idle" if taskIndex is negative. Renders "-" instead of throwing
+     * if taskIndex is ever outside the task array, rather than trusting it inside a render loop.
      */
-    static String describeWorker(SearchMonitor monitor, int worker) {
-        int taskIndex = monitor.currentTask(worker);
+    static String describeWorker(SearchMonitor monitor, int taskIndex, int processorNumber) {
         if (taskIndex < 0) {
             return "idle";
         }
         if (taskIndex >= monitor.taskCount()) {
             return "-";
         }
-        return monitor.taskName(taskIndex) + " -> P" + monitor.currentProcessor(worker);
+        return monitor.taskName(taskIndex) + " -> P" + processorNumber;
     }
 }

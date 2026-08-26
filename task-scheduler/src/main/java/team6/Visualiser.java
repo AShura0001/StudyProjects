@@ -1,7 +1,6 @@
 package team6;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,8 +25,6 @@ import javafx.stage.Stage;
 public class Visualiser {
 
     private static final long FRAME_INTERVAL_NANOS = 33_000_000; // ~30fps
-    private static final long INITIAL_RECORD_INTERVAL_MILLIS = 100;
-    private static final int RECORD_INTERVAL_DOUBLING_THRESHOLD = 20_000;
 
     /** Released once the visualisation window has been closed by the user. */
     private static final CountDownLatch CLOSED = new CountDownLatch(1);
@@ -84,10 +81,6 @@ public class Visualiser {
             private SearchMonitor.Snapshot lastDrawnSnapshot = null;
             private Set<Integer> lastDrawnHighlight = Collections.emptySet();
 
-            private SearchMonitor.Snapshot lastRecordedSnapshot = null;
-            private long lastRecordedElapsedMillis = Long.MIN_VALUE;
-            private long recordIntervalMillis = INITIAL_RECORD_INTERVAL_MILLIS;
-
             @Override
             public void handle(long now) {
                 if (now - lastRepaint < FRAME_INTERVAL_NANOS) {
@@ -95,38 +88,28 @@ public class Visualiser {
                 }
                 lastRepaint = now;
 
-                SearchMonitor.Snapshot current = monitor.bestSchedule();
-                Set<Integer> highlight = currentlyEvaluatedTasks(monitor);
-                if (current != lastDrawnSnapshot || !highlight.equals(lastDrawnHighlight)) {
-                    ganttChart.draw(current, highlight);
-                    lastDrawnSnapshot = current;
-                    lastDrawnHighlight = highlight;
-                }
-
-                statsPanel.refresh();
-                workerPanel.refresh();
-
-                // Every improvement gets its own frame regardless of the interval below - a
-                // fixed-rate sample alone could land two improvements inside one window and
-                // silently drop one.
-                long elapsedNow = monitor.elapsedMillis();
-                if (current != lastRecordedSnapshot || elapsedNow - lastRecordedElapsedMillis >= recordIntervalMillis) {
-                    timeline.record(monitor);
-                    lastRecordedSnapshot = current;
-                    lastRecordedElapsedMillis = elapsedNow;
-                    if (timeline.size() > RECORD_INTERVAL_DOUBLING_THRESHOLD) {
-                        recordIntervalMillis *= 2;
-                    }
-                }
+                Timeline.Frame frame = Timeline.capture(monitor);
+                render(frame);
+                timeline.offer(frame);
 
                 if (monitor.isFinished() && lastDrawnSnapshot == monitor.bestSchedule()) {
-                    // markFinished() can land between the refresh above and this check, so
-                    // refresh once more here rather than risk stopping on a stale "Searching".
-                    statsPanel.refresh();
-                    workerPanel.refresh();
-                    timeline.record(monitor);
+                    // markFinished() can land between the render above and this check, so
+                    // render once more here rather than risk stopping on a stale "Searching".
+                    Timeline.Frame finalFrame = Timeline.capture(monitor);
+                    render(finalFrame);
+                    timeline.offer(finalFrame);
                     stop();
                 }
+            }
+
+            private void render(Timeline.Frame frame) {
+                if (frame.schedule() != lastDrawnSnapshot || !frame.highlighted().equals(lastDrawnHighlight)) {
+                    ganttChart.draw(frame);
+                    lastDrawnSnapshot = frame.schedule();
+                    lastDrawnHighlight = frame.highlighted();
+                }
+                statsPanel.render(frame);
+                workerPanel.render(frame);
             }
         };
         timer.start();
@@ -138,18 +121,6 @@ public class Visualiser {
             CLOSED.countDown();
         });
         stage.show();
-    }
-
-    /** Task indices any worker is currently placing, for the Gantt chart to highlight. */
-    private static Set<Integer> currentlyEvaluatedTasks(SearchMonitor monitor) {
-        Set<Integer> tasks = new HashSet<>();
-        for (int w = 0; w < monitor.workerCount(); w++) {
-            int taskIndex = monitor.currentTask(w);
-            if (taskIndex >= 0) {
-                tasks.add(taskIndex);
-            }
-        }
-        return tasks;
     }
 
     /**
