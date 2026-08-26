@@ -13,7 +13,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 /**
@@ -58,7 +57,8 @@ final class WorkerPanel extends VBox {
     private VBox buildBox(int worker) {
         Text header = new Text("W" + (worker + 1));
         header.setFill(COLOR_HEADER);
-        header.setFont(Font.font(11));
+        header.setFont(Typography.sectionLabel());
+        header.setStyle("-fx-letter-spacing: 0.5px;");
 
         Circle dot = new Circle(DOT_RADIUS);
         dots[worker] = dot;
@@ -69,7 +69,7 @@ final class WorkerPanel extends VBox {
         headerRow.setAlignment(Pos.CENTER_LEFT);
 
         Text body = new Text();
-        body.setFont(Font.font("Monospaced", 13));
+        body.setFont(Typography.workerBody());
         bodies[worker] = body;
 
         VBox box = new VBox(4, headerRow, body);

@@ -75,6 +75,22 @@ public class GanttChartTest {
         assertTrue(lastTaskRow >= 0 && lastTaskRow < processorCount);
     }
 
+    @Test
+    public void colorForGivesEachOfTheFirstEightProcessorsADistinctColor() {
+        java.util.Set<GanttChart.ProcessorColor> seen = new java.util.HashSet<>();
+        for (int processor = 1; processor <= 8; processor++) {
+            assertTrue(seen.add(GanttChart.colorFor(processor)), "processor " + processor + " repeated a colour");
+        }
+    }
+
+    @Test
+    public void colorForFallsBackToSlotOneRatherThanCyclingPastTheEighthProcessor() {
+        GanttChart.ProcessorColor slotOne = GanttChart.colorFor(1);
+
+        assertEquals(slotOne, GanttChart.colorFor(9));
+        assertEquals(slotOne, GanttChart.colorFor(50));
+    }
+
     private static boolean approxEquals(double a, double b) {
         return Math.abs(a - b) < 1e-9;
     }

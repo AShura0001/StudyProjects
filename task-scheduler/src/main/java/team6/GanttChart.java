@@ -14,7 +14,7 @@ import javafx.scene.text.TextAlignment;
 
 /**
  * Draws the best schedule found so far as a Gantt chart. Holds a single {@link Canvas}
- * child and repaints it whenever a new snapshot arrives or the pane is resized.
+ * child and repaints it whenever a new frame arrives or the pane is resized.
  */
 final class GanttChart extends Pane {
 
@@ -23,16 +23,35 @@ final class GanttChart extends Pane {
     private static final double PADDING = 12;
     private static final double MIN_ROW_HEIGHT = 18;
     private static final double MAX_ROW_HEIGHT = 90;
+    private static final double TITLE_LINE_HEIGHT = 22;
+    private static final double SUBTITLE_LINE_HEIGHT = 16;
+    private static final double TITLE_BLOCK_HEIGHT = TITLE_LINE_HEIGHT + SUBTITLE_LINE_HEIGHT;
 
     private static final Color COLOR_BACKGROUND = Color.web("#FFFFFF");
     private static final Color COLOR_GRIDLINES = Color.web("#E4E4E7");
-    private static final Color COLOR_ROW_LABEL = Color.web("#27272A");
+    private static final Color COLOR_TITLE_INK = Color.web("#18181B");
+    private static final Color COLOR_SUBTITLE_INK = Color.web("#52525B");
     private static final Color COLOR_AXIS_TICK = Color.web("#52525B");
-    private static final Color COLOR_BAR_FILL = Color.web("#356094");
-    private static final Color COLOR_BAR_BORDER = Color.web("#24486F");
-    private static final Color COLOR_BAR_LABEL = Color.web("#FFFFFF");
+    private static final Color COLOR_BAR_LABEL_INK = Color.web("#18181B");
     private static final Color COLOR_EMPTY_ROW_BAND = Color.web("#F4F4F5");
     private static final Color COLOR_HIGHLIGHT_RING = Color.web("#C2410C");
+
+    /**
+     * A validated categorical hue sequence - adjacent pairs stay separable under colour-vision
+     * deficiency - light enough to tint with dark ink text at 13-15:1 contrast. Indexed by
+     * processorNumber - 1; do not reorder or substitute hues, and do not cycle it past index 7
+     * (see {@link #colorFor}).
+     */
+    private static final ProcessorColor[] PROCESSOR_COLORS = {
+        new ProcessorColor(Color.web("#D9E7F8"), Color.web("#2A78D6")), // 1 blue
+        new ProcessorColor(Color.web("#FBE4DA"), Color.web("#EB6834")), // 2 orange
+        new ProcessorColor(Color.web("#D6F1E7"), Color.web("#1BAF7A")), // 3 aqua
+        new ProcessorColor(Color.web("#FCEED1"), Color.web("#EDA100")), // 4 yellow
+        new ProcessorColor(Color.web("#FBE7EF"), Color.web("#E87BA4")), // 5 magenta
+        new ProcessorColor(Color.web("#D1E9D1"), Color.web("#008300")), // 6 green
+        new ProcessorColor(Color.web("#DEDCEF"), Color.web("#4A3AA7")), // 7 violet
+        new ProcessorColor(Color.web("#FADEDE"), Color.web("#E34948")), // 8 red
+    };
 
     private final SearchMonitor monitor;
     private final Canvas canvas;
@@ -79,10 +98,9 @@ final class GanttChart extends Pane {
         SearchMonitor.Snapshot current = frame == null ? null : frame.schedule();
         Set<Integer> highlighted = frame == null ? Set.of() : frame.highlighted();
 
-        double titleHeight = 24;
         double plotWidth = width - GUTTER - PADDING;
         double availableHeight = height - 2 * PADDING;
-        double rawPlotHeight = availableHeight - titleHeight - AXIS_HEIGHT;
+        double rawPlotHeight = availableHeight - TITLE_BLOCK_HEIGHT - AXIS_HEIGHT;
         if (plotWidth <= 0 || rawPlotHeight <= 0) {
             return;
         }
@@ -92,19 +110,22 @@ final class GanttChart extends Pane {
 
         // If the rows (now capped) leave room to spare, centre the title+rows+axis block
         // vertically instead of pinning it to the top of the pane.
-        double contentHeight = titleHeight + rowHeight * processorCount + AXIS_HEIGHT;
+        double contentHeight = TITLE_BLOCK_HEIGHT + rowHeight * processorCount + AXIS_HEIGHT;
         double blockTop = PADDING + Math.max(0, (availableHeight - contentHeight) / 2);
 
-        gc.setFont(Font.font(null, FontWeight.BOLD, 14));
-        gc.setFill(COLOR_ROW_LABEL);
+        gc.setFont(Typography.title());
+        gc.setFill(COLOR_TITLE_INK);
         gc.setTextAlign(TextAlignment.LEFT);
         gc.setTextBaseline(VPos.TOP);
-        String title = current == null
-                ? "Best schedule - searching"
-                : "Best schedule - makespan " + frame.bestMakespan();
-        gc.fillText(title, PADDING, blockTop);
+        gc.fillText("Gantt Chart - Task Schedule", PADDING, blockTop);
 
-        double top = blockTop + titleHeight;
+        gc.setFont(Typography.subtitle());
+        gc.setFill(COLOR_SUBTITLE_INK);
+        String makespanText = current == null ? "searching" : "makespan " + frame.bestMakespan();
+        gc.fillText(makespanText + "  ·  " + monitor.processorCount() + " processors"
+                + "  ·  " + monitor.taskCount() + " tasks", PADDING, blockTop + TITLE_LINE_HEIGHT);
+
+        double top = blockTop + TITLE_BLOCK_HEIGHT;
 
         // Row label bands, drawn first so gridlines and bars sit on top.
         gc.setFill(COLOR_EMPTY_ROW_BAND);
@@ -121,18 +142,19 @@ final class GanttChart extends Pane {
             gc.strokeLine(x, top, x, top + rowHeight * processorCount);
         }
 
-        // Row labels P1..Pn.
-        gc.setFont(Font.font(12));
-        gc.setFill(COLOR_ROW_LABEL);
+        // Row labels P1..Pn, tinted to that row's border colour so the mapping to the bars
+        // below is unmistakable without a separate legend.
+        gc.setFont(Typography.rowLabel());
         gc.setTextAlign(TextAlignment.RIGHT);
         gc.setTextBaseline(VPos.CENTER);
         for (int p = 0; p < processorCount; p++) {
             double y = top + p * rowHeight + rowHeight / 2;
+            gc.setFill(colorFor(p + 1).border());
             gc.fillText("P" + (p + 1), GUTTER - 6, y);
         }
 
         // Axis ticks.
-        gc.setFont(Font.font(11));
+        gc.setFont(Typography.axisTick());
         gc.setFill(COLOR_AXIS_TICK);
         gc.setTextAlign(TextAlignment.CENTER);
         gc.setTextBaseline(VPos.TOP);
@@ -143,8 +165,8 @@ final class GanttChart extends Pane {
         }
 
         if (current == null) {
-            gc.setFont(Font.font(null, FontWeight.NORMAL, 16));
-            gc.setFill(COLOR_ROW_LABEL);
+            gc.setFont(Font.font(Typography.UI_FAMILY, FontWeight.NORMAL, 16));
+            gc.setFill(COLOR_TITLE_INK);
             gc.setTextAlign(TextAlignment.CENTER);
             gc.setTextBaseline(VPos.CENTER);
             gc.fillText("Searching...", GUTTER + plotWidth / 2, top + rowHeight * processorCount / 2);
@@ -171,29 +193,45 @@ final class GanttChart extends Pane {
         double h = rowHeight - 2;
         double radius = Math.min(4, Math.min(h / 2, w / 2));
 
-        gc.setFill(COLOR_BAR_FILL);
+        ProcessorColor colors = colorFor(processorNumber);
+
+        gc.setFill(colors.fill());
         gc.fillRoundRect(x, y, w, h, radius * 2, radius * 2);
-        gc.setStroke(COLOR_BAR_BORDER);
-        gc.setLineWidth(1);
+        gc.setStroke(colors.border());
+        gc.setLineWidth(2);
         gc.strokeRoundRect(x, y, w, h, radius * 2, radius * 2);
 
         if (highlighted) {
+            // Drawn a couple of pixels further outside than the bar's own 2px coloured border,
+            // so the two never visually merge - the ring must always read as "the search is
+            // reconsidering this task", never as another processor's colour.
             gc.setStroke(COLOR_HIGHLIGHT_RING);
             gc.setLineWidth(2);
-            gc.strokeRoundRect(x - 1, y - 1, w + 2, h + 2, radius * 2 + 2, radius * 2 + 2);
+            gc.strokeRoundRect(x - 2, y - 2, w + 4, h + 4, radius * 2 + 4, radius * 2 + 4);
         }
 
         String name = monitor.taskName(taskIndex);
         Text measure = new Text(name);
-        measure.setFont(Font.font(null, FontWeight.BOLD, 11));
+        measure.setFont(Typography.barLabel());
         double textWidth = measure.getLayoutBounds().getWidth();
         if (textWidth + 8 <= w) {
-            gc.setFont(Font.font(null, FontWeight.BOLD, 11));
-            gc.setFill(COLOR_BAR_LABEL);
+            gc.setFont(Typography.barLabel());
+            gc.setFill(COLOR_BAR_LABEL_INK);
             gc.setTextAlign(TextAlignment.CENTER);
             gc.setTextBaseline(VPos.CENTER);
             gc.fillText(name, x + w / 2, y + h / 2);
         }
+    }
+
+    /**
+     * Fill/border pair for a 1-based processor number. Two processors sharing a colour would
+     * be actively misleading - worse than neither having one - so beyond the 8th processor,
+     * every row falls back to the same neutral pairing (slot 1) rather than cycling the
+     * palette; row position (P9, P10, ...) still carries which processor a bar belongs to.
+     */
+    static ProcessorColor colorFor(int processorNumber) {
+        int index = processorNumber - 1;
+        return index >= 0 && index < PROCESSOR_COLORS.length ? PROCESSOR_COLORS[index] : PROCESSOR_COLORS[0];
     }
 
     /**
@@ -234,5 +272,9 @@ final class GanttChart extends Pane {
     /** Pixel width of a bar of the given weight, given the current scale. Never less than 2. */
     static double barWidth(int weight, double xScale) {
         return Math.max(2, weight * xScale);
+    }
+
+    /** A bar fill / border colour pair for one processor row. */
+    record ProcessorColor(Color fill, Color border) {
     }
 }

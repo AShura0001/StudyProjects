@@ -19,7 +19,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import javafx.util.StringConverter;
 
 /**
@@ -71,7 +70,8 @@ final class PlaybackBar extends VBox {
         VBox sliderGroup = new VBox(2, tickCanvas, slider);
         HBox.setHgrow(sliderGroup, Priority.ALWAYS);
 
-        timeLabel.setFont(Font.font("Monospaced", 12));
+        timeLabel.setFont(Typography.workerBody());
+        timeLabel.setTextFill(Color.web("#18181B"));
         timeLabel.setText(StatsPanel.formatElapsed(0) + " / " + StatsPanel.formatElapsed(0));
 
         speedChoice.getItems().addAll(0.5, 1.0, 2.0, 4.0);

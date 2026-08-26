@@ -10,7 +10,6 @@ import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 /**
@@ -67,10 +66,11 @@ final class StatsPanel extends VBox {
     private VBox row(String label, Text value) {
         Text labelText = new Text(label);
         labelText.setFill(COLOR_ROW_LABEL);
-        labelText.setFont(Font.font("Monospaced", 11));
+        labelText.setFont(Typography.sectionLabel());
+        labelText.setStyle("-fx-letter-spacing: 0.5px;");
 
         value.setFill(COLOR_VALUE);
-        value.setFont(Font.font("Monospaced", 18));
+        value.setFont(Typography.statValue());
 
         VBox box = new VBox(2, labelText, value);
         return box;
