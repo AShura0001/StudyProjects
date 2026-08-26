@@ -609,7 +609,7 @@ public class Scheduler {
                     triedEmptyProcessor = true;
                 }
 
-                monitor.recordCurrent(worker, taskIndex, processorIndex);
+                monitor.recordCurrent(worker, taskIndex, processorIndex + 1);
                 Undo undo = mutateSchedule(problem, state, taskIndex, processorIndex);
 
                 int childBound = computeLowerBound(problem, state);

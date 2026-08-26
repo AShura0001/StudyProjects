@@ -149,6 +149,17 @@ public class SearchMonitorTest {
     }
 
     @Test
+    public void currentProcessorIsOneBasedLikeSnapshotProcessors() {
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
+
+        // The highest valid processor number is processorCount itself (2), not processorCount - 1,
+        // since 1..processorCount is the same numbering Snapshot.processors() uses.
+        monitor.recordCurrent(0, 4, 2);
+
+        assertEquals(2, monitor.currentProcessor(0));
+    }
+
+    @Test
     public void elapsedMillisIsNonNegativeAndNonDecreasing() throws InterruptedException {
         SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
 

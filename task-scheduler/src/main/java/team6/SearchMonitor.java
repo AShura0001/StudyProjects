@@ -100,16 +100,20 @@ public final class SearchMonitor {
         }
     }
 
-    /** Records the task/processor pair a worker is currently placing. */
-    public void recordCurrent(int worker, int taskIndex, int processorIndex) {
+    /**
+     * Records the task/processor pair a worker is currently placing. processorNumber is
+     * 1-based (1..processorCount), matching {@link Snapshot#processors()} and
+     * {@link #currentProcessor(int)}.
+     */
+    public void recordCurrent(int worker, int taskIndex, int processorNumber) {
         if (!enabled) {
             return;
         }
         assert taskIndex < taskNames.length;
-        assert processorIndex < nProcessors;
+        assert processorNumber >= 1 && processorNumber <= nProcessors;
         int b = base(worker);
         fields.setPlain(b + OFFSET_CURRENT_TASK, taskIndex);
-        fields.setPlain(b + OFFSET_CURRENT_PROCESSOR, processorIndex);
+        fields.setPlain(b + OFFSET_CURRENT_PROCESSOR, processorNumber);
     }
 
     /**
@@ -239,7 +243,10 @@ public final class SearchMonitor {
         return (int) fields.getOpaque(base(worker) + OFFSET_CURRENT_TASK);
     }
 
-    /** The processor index a worker is currently placing onto, or -1 if idle. */
+    /**
+     * The processor a worker is currently placing onto, or -1 if idle. 1-based (1..processorCount),
+     * matching {@link Snapshot#processors()}.
+     */
     public int currentProcessor(int worker) {
         if (!enabled) {
             return -1;
