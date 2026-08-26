@@ -216,6 +216,17 @@ public class SearchMonitorTest {
         assertEquals(frozen, monitor.elapsedMillis());
     }
 
+    @Test
+    public void markStartedResetsTheElapsedClock() throws InterruptedException {
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
+
+        Thread.sleep(30);
+        monitor.markStarted();
+        long afterReset = monitor.elapsedMillis();
+
+        assertTrue(afterReset < 30);
+    }
+
     private static String[] names(int n) {
         String[] names = new String[n];
         for (int i = 0; i < n; i++) {

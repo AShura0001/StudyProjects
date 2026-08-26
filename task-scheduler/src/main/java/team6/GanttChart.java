@@ -1,5 +1,8 @@
 package team6;
 
+import java.util.Collections;
+import java.util.Set;
+
 import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -20,7 +23,7 @@ final class GanttChart extends Pane {
     private static final double AXIS_HEIGHT = 28;
     private static final double PADDING = 12;
     private static final double MIN_ROW_HEIGHT = 18;
-    private static final double MAX_ROW_HEIGHT = 56;
+    private static final double MAX_ROW_HEIGHT = 90;
 
     private static final Color COLOR_BACKGROUND = Color.web("#FFFFFF");
     private static final Color COLOR_GRIDLINES = Color.web("#E4E4E7");
@@ -29,11 +32,13 @@ final class GanttChart extends Pane {
     private static final Color COLOR_BAR_FILL = Color.web("#356094");
     private static final Color COLOR_BAR_BORDER = Color.web("#24486F");
     private static final Color COLOR_BAR_LABEL = Color.web("#FFFFFF");
-    private static final Color COLOR_EMPTY_ROW_BAND = Color.web("#FAFAFA");
+    private static final Color COLOR_EMPTY_ROW_BAND = Color.web("#F4F4F5");
+    private static final Color COLOR_HIGHLIGHT_RING = Color.web("#C2410C");
 
     private final SearchMonitor monitor;
     private final Canvas canvas;
     private volatile SearchMonitor.Snapshot snapshot;
+    private volatile Set<Integer> highlightedTasks = Collections.emptySet();
 
     GanttChart(SearchMonitor monitor) {
         this.monitor = monitor;
@@ -42,11 +47,13 @@ final class GanttChart extends Pane {
     }
 
     /**
-     * Stores the given snapshot and repaints. Must be called on the JavaFX application
-     * thread.
+     * Stores the given snapshot and highlight set and repaints. highlightedTasks are the task
+     * indices currently being evaluated by any worker, drawn as a ring around their bar. Must
+     * be called on the JavaFX application thread.
      */
-    void draw(SearchMonitor.Snapshot snapshot) {
+    void draw(SearchMonitor.Snapshot snapshot, Set<Integer> highlightedTasks) {
         this.snapshot = snapshot;
+        this.highlightedTasks = highlightedTasks;
         repaint();
     }
 
@@ -72,8 +79,24 @@ final class GanttChart extends Pane {
         }
 
         SearchMonitor.Snapshot current = this.snapshot;
+        Set<Integer> highlighted = this.highlightedTasks;
 
         double titleHeight = 24;
+        double plotWidth = width - GUTTER - PADDING;
+        double availableHeight = height - 2 * PADDING;
+        double rawPlotHeight = availableHeight - titleHeight - AXIS_HEIGHT;
+        if (plotWidth <= 0 || rawPlotHeight <= 0) {
+            return;
+        }
+
+        double rowHeight = rawPlotHeight / processorCount;
+        rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, rowHeight));
+
+        // If the rows (now capped) leave room to spare, centre the title+rows+axis block
+        // vertically instead of pinning it to the top of the pane.
+        double contentHeight = titleHeight + rowHeight * processorCount + AXIS_HEIGHT;
+        double blockTop = PADDING + Math.max(0, (availableHeight - contentHeight) / 2);
+
         gc.setFont(Font.font(null, FontWeight.BOLD, 14));
         gc.setFill(COLOR_ROW_LABEL);
         gc.setTextAlign(TextAlignment.LEFT);
@@ -81,17 +104,9 @@ final class GanttChart extends Pane {
         String title = current == null
                 ? "Best schedule - searching"
                 : "Best schedule - makespan " + current.makespan();
-        gc.fillText(title, PADDING, PADDING);
+        gc.fillText(title, PADDING, blockTop);
 
-        double top = PADDING + titleHeight;
-        double plotHeight = height - top - AXIS_HEIGHT - PADDING;
-        double plotWidth = width - GUTTER - PADDING;
-        if (plotHeight <= 0 || plotWidth <= 0) {
-            return;
-        }
-
-        double rowHeight = plotHeight / processorCount;
-        rowHeight = Math.max(MIN_ROW_HEIGHT, Math.min(MAX_ROW_HEIGHT, rowHeight));
+        double top = blockTop + titleHeight;
 
         // Row label bands, drawn first so gridlines and bars sit on top.
         gc.setFill(COLOR_EMPTY_ROW_BAND);
@@ -141,12 +156,12 @@ final class GanttChart extends Pane {
         int[] startTimes = current.startTimes();
         int[] processors = current.processors();
         for (int i = 0; i < startTimes.length; i++) {
-            drawBar(gc, i, startTimes[i], processors[i], xScale, top, rowHeight);
+            drawBar(gc, i, startTimes[i], processors[i], xScale, top, rowHeight, highlighted.contains(i));
         }
     }
 
     private void drawBar(GraphicsContext gc, int taskIndex, int startTime, int processorNumber,
-            double xScale, double top, double rowHeight) {
+            double xScale, double top, double rowHeight, boolean highlighted) {
         int row = rowIndex(processorNumber);
         if (row < 0 || row >= monitor.processorCount()) {
             return;
@@ -163,6 +178,12 @@ final class GanttChart extends Pane {
         gc.setStroke(COLOR_BAR_BORDER);
         gc.setLineWidth(1);
         gc.strokeRoundRect(x, y, w, h, radius * 2, radius * 2);
+
+        if (highlighted) {
+            gc.setStroke(COLOR_HIGHLIGHT_RING);
+            gc.setLineWidth(2);
+            gc.strokeRoundRect(x - 1, y - 1, w + 2, h + 2, radius * 2 + 2, radius * 2 + 2);
+        }
 
         String name = monitor.taskName(taskIndex);
         Text measure = new Text(name);

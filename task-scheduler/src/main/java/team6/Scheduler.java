@@ -707,6 +707,8 @@ public class Scheduler {
      * as it searches.
      */
     public static void parallelScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors, int nCores, SearchMonitor monitor) {
+        monitor.markStarted();
+
         if (nProcessors < 1) {
             throw new IllegalArgumentException("Number of processors must be at least 1.");
         }

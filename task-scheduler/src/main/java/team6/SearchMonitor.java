@@ -37,7 +37,7 @@ public final class SearchMonitor {
     private final int nProcessors;
     private final AtomicLongArray fields;
     private final AtomicReference<Snapshot> best;
-    private final long startNanos;
+    private volatile long startNanos;
     private final AtomicLong finishNanos;
 
     private SearchMonitor() {
@@ -177,6 +177,14 @@ public final class SearchMonitor {
         long finish = finishNanos.get();
         long end = finish == -1 ? System.nanoTime() : finish;
         return (end - startNanos) / 1_000_000;
+    }
+
+    /** Resets the elapsed-time clock to start now, discarding time spent before the search began. */
+    public void markStarted() {
+        if (!enabled) {
+            return;
+        }
+        startNanos = System.nanoTime();
     }
 
     /** Marks the search as finished, freezing {@link #elapsedMillis()}. Safe to call more than once. */

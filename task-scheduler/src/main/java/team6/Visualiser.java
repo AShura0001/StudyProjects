@@ -1,12 +1,17 @@
 package team6;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
@@ -56,10 +61,15 @@ public class Visualiser {
 
         GanttChart ganttChart = new GanttChart(monitor);
         StatsPanel statsPanel = new StatsPanel(monitor);
+        WorkerPanel workerPanel = new WorkerPanel(monitor);
+
+        VBox rightColumn = new VBox(statsPanel, workerPanel);
+        ScrollPane rightScroll = new ScrollPane(rightColumn);
+        rightScroll.setFitToWidth(true);
 
         BorderPane root = new BorderPane();
         root.setCenter(ganttChart);
-        root.setRight(statsPanel);
+        root.setRight(rightScroll);
 
         Stage stage = new Stage();
         stage.setTitle("Task Scheduler - Visualisation");
@@ -67,7 +77,8 @@ public class Visualiser {
 
         AnimationTimer timer = new AnimationTimer() {
             private long lastRepaint = 0;
-            private SearchMonitor.Snapshot lastDrawn = null;
+            private SearchMonitor.Snapshot lastDrawnSnapshot = null;
+            private Set<Integer> lastDrawnHighlight = Collections.emptySet();
 
             @Override
             public void handle(long now) {
@@ -76,15 +87,22 @@ public class Visualiser {
                 }
                 lastRepaint = now;
 
-                statsPanel.refresh();
-
                 SearchMonitor.Snapshot current = monitor.bestSchedule();
-                if (current != lastDrawn) {
-                    ganttChart.draw(current);
-                    lastDrawn = current;
+                Set<Integer> highlight = currentlyEvaluatedTasks(monitor);
+                if (current != lastDrawnSnapshot || !highlight.equals(lastDrawnHighlight)) {
+                    ganttChart.draw(current, highlight);
+                    lastDrawnSnapshot = current;
+                    lastDrawnHighlight = highlight;
                 }
 
-                if (monitor.isFinished() && lastDrawn == monitor.bestSchedule()) {
+                statsPanel.refresh();
+                workerPanel.refresh();
+
+                if (monitor.isFinished() && lastDrawnSnapshot == monitor.bestSchedule()) {
+                    // markFinished() can land between the refresh above and this check, so
+                    // refresh once more here rather than risk stopping on a stale "Searching".
+                    statsPanel.refresh();
+                    workerPanel.refresh();
                     stop();
                 }
             }
@@ -98,6 +116,18 @@ public class Visualiser {
             CLOSED.countDown();
         });
         stage.show();
+    }
+
+    /** Task indices any worker is currently placing, for the Gantt chart to highlight. */
+    private static Set<Integer> currentlyEvaluatedTasks(SearchMonitor monitor) {
+        Set<Integer> tasks = new HashSet<>();
+        for (int w = 0; w < monitor.workerCount(); w++) {
+            int taskIndex = monitor.currentTask(w);
+            if (taskIndex >= 0) {
+                tasks.add(taskIndex);
+            }
+        }
+        return tasks;
     }
 
     /**
