@@ -39,6 +39,7 @@ public class CommandLineInterface {
         }
 
         Scheduler.parallelScheduler(graph, processorCount, workerCount, monitor);
+        monitor.markFinished();
         System.out.println("Schedule length: " + Scheduler.getScheduleLength(graph));
 
         FileHandler.writeGraph(graph, outputFile);
@@ -46,7 +47,6 @@ public class CommandLineInterface {
 
         // Hold the program open so the window stays usable after the schedule is written.
         if (visualiseSearch) {
-            Visualiser.showFinalSchedule();
             Visualiser.awaitClose();
         }
     }

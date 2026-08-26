@@ -190,6 +190,32 @@ public class SearchMonitorTest {
         assertEquals(5, monitor.taskWeight(0));
     }
 
+    @Test
+    public void elapsedMillisFreezesAfterMarkFinished() throws InterruptedException {
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
+
+        Thread.sleep(10);
+        monitor.markFinished();
+        long frozen = monitor.elapsedMillis();
+        Thread.sleep(10);
+
+        assertEquals(frozen, monitor.elapsedMillis());
+        assertTrue(monitor.isFinished());
+    }
+
+    @Test
+    public void markFinishedTwiceDoesNotChangeTheFrozenValue() throws InterruptedException {
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
+
+        Thread.sleep(10);
+        monitor.markFinished();
+        long frozen = monitor.elapsedMillis();
+        Thread.sleep(10);
+        monitor.markFinished();
+
+        assertEquals(frozen, monitor.elapsedMillis());
+    }
+
     private static String[] names(int n) {
         String[] names = new String[n];
         for (int i = 0; i < n; i++) {

@@ -1,5 +1,6 @@
 package team6;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,6 +38,7 @@ public final class SearchMonitor {
     private final AtomicLongArray fields;
     private final AtomicReference<Snapshot> best;
     private final long startNanos;
+    private final AtomicLong finishNanos;
 
     private SearchMonitor() {
         this.enabled = false;
@@ -47,6 +49,7 @@ public final class SearchMonitor {
         this.fields = null;
         this.best = null;
         this.startNanos = 0;
+        this.finishNanos = null;
     }
 
     private SearchMonitor(int nWorkers, String[] taskNames, int[] taskWeights, int nProcessors) {
@@ -58,6 +61,7 @@ public final class SearchMonitor {
         this.fields = new AtomicLongArray(nWorkers * FIELDS_PER_WORKER);
         this.best = new AtomicReference<>();
         this.startNanos = System.nanoTime();
+        this.finishNanos = new AtomicLong(-1);
         for (int w = 0; w < nWorkers; w++) {
             fields.setPlain(base(w) + OFFSET_CURRENT_TASK, -1);
             fields.setPlain(base(w) + OFFSET_CURRENT_PROCESSOR, -1);
@@ -165,12 +169,27 @@ public final class SearchMonitor {
         return (int) max;
     }
 
-    /** Milliseconds elapsed since {@link #enabled} was called. */
+    /** Milliseconds elapsed since {@link #enabled} was called, frozen once {@link #markFinished} is called. */
     public long elapsedMillis() {
         if (!enabled) {
             return 0;
         }
-        return (System.nanoTime() - startNanos) / 1_000_000;
+        long finish = finishNanos.get();
+        long end = finish == -1 ? System.nanoTime() : finish;
+        return (end - startNanos) / 1_000_000;
+    }
+
+    /** Marks the search as finished, freezing {@link #elapsedMillis()}. Safe to call more than once. */
+    public void markFinished() {
+        if (!enabled) {
+            return;
+        }
+        finishNanos.compareAndSet(-1, System.nanoTime());
+    }
+
+    /** Whether {@link #markFinished} has been called. */
+    public boolean isFinished() {
+        return enabled && finishNanos.get() != -1;
     }
 
     /** Length of the best schedule found so far, or -1 if none has been recorded yet. */

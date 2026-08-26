@@ -3,8 +3,10 @@ package team6;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 /**
@@ -18,15 +20,13 @@ import javafx.stage.Stage;
  */
 public class Visualiser {
 
+    private static final long FRAME_INTERVAL_NANOS = 33_000_000; // ~30fps
+
     /** Released once the visualisation window has been closed by the user. */
     private static final CountDownLatch CLOSED = new CountDownLatch(1);
 
     /** Guards against booting the JavaFX toolkit more than once. */
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
-
-    /** Set once the window is showing, so showFinalSchedule() can find the chart and monitor. */
-    private static volatile GanttChart chart;
-    private static volatile SearchMonitor monitor;
 
     private Visualiser() {
         // Static utility, not meant to be instantiated.
@@ -37,17 +37,13 @@ public class Visualiser {
      *
      * @param monitor the search's progress channel, supplying everything the window needs
      */
-    public static void launch(SearchMonitor searchMonitor) {
+    public static void launch(SearchMonitor monitor) {
         // Platform.startup throws if the toolkit is already running.
         if (!STARTED.compareAndSet(false, true)) {
             return;
         }
-        monitor = searchMonitor;
 
-        Platform.startup(() -> {
-            Platform.setImplicitExit(false);
-            showStage(searchMonitor);
-        });
+        Platform.startup(() -> showStage(monitor));
     }
 
     /**
@@ -56,33 +52,52 @@ public class Visualiser {
      * @param monitor the search's progress channel, supplying everything the window needs
      */
     private static void showStage(SearchMonitor monitor) {
+        Platform.setImplicitExit(false);
+
         GanttChart ganttChart = new GanttChart(monitor);
-        chart = ganttChart;
+        StatsPanel statsPanel = new StatsPanel(monitor);
+
+        BorderPane root = new BorderPane();
+        root.setCenter(ganttChart);
+        root.setRight(statsPanel);
 
         Stage stage = new Stage();
         stage.setTitle("Task Scheduler - Visualisation");
-        stage.setScene(new Scene(ganttChart, 900, 600));
+        stage.setScene(new Scene(root, 1100, 650));
+
+        AnimationTimer timer = new AnimationTimer() {
+            private long lastRepaint = 0;
+            private SearchMonitor.Snapshot lastDrawn = null;
+
+            @Override
+            public void handle(long now) {
+                if (now - lastRepaint < FRAME_INTERVAL_NANOS) {
+                    return;
+                }
+                lastRepaint = now;
+
+                statsPanel.refresh();
+
+                SearchMonitor.Snapshot current = monitor.bestSchedule();
+                if (current != lastDrawn) {
+                    ganttChart.draw(current);
+                    lastDrawn = current;
+                }
+
+                if (monitor.isFinished() && lastDrawn == monitor.bestSchedule()) {
+                    stop();
+                }
+            }
+        };
+        timer.start();
 
         // onHidden covers every way the window can go away, unlike setOnCloseRequest,
         // which fires before the close and can be vetoed by another handler.
-        stage.setOnHidden(event -> CLOSED.countDown());
-        stage.show();
-    }
-
-    /**
-     * Draws the launched monitor's best schedule so far. Safe to call from any thread; the
-     * draw itself is dispatched onto the JavaFX application thread.
-     */
-    public static void showFinalSchedule() {
-        if (!STARTED.get()) {
-            return;
-        }
-        Platform.runLater(() -> {
-            GanttChart ganttChart = chart;
-            if (ganttChart != null) {
-                ganttChart.draw(monitor.bestSchedule());
-            }
+        stage.setOnHidden(event -> {
+            timer.stop();
+            CLOSED.countDown();
         });
+        stage.show();
     }
 
     /**
