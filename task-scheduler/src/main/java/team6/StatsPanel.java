@@ -29,6 +29,7 @@ final class StatsPanel extends VBox {
     private static final Color COLOR_VALUE = Color.web("#18181B");
     private static final Color COLOR_STATUS_SEARCHING = Color.web("#356094");
     private static final Color COLOR_STATUS_COMPLETE = Color.web("#15803D");
+    private static final Color COLOR_STATUS_REPLAY = Color.web("#C2410C");
 
     private final SearchMonitor monitor;
 
@@ -38,6 +39,8 @@ final class StatsPanel extends VBox {
     private final Text best = new Text();
     private final Text depth = new Text();
     private final Text workers = new Text();
+
+    private boolean replayMode = false;
 
     StatsPanel(SearchMonitor monitor) {
         this.monitor = monitor;
@@ -73,15 +76,25 @@ final class StatsPanel extends VBox {
         return box;
     }
 
+    /** While true, Status reads "Replay" instead of "Complete", so a recording is never mistaken for a live search. */
+    void setReplayMode(boolean replayMode) {
+        this.replayMode = replayMode;
+    }
+
     /**
      * Updates the row values from the given frame. isFinished, taskCount and workerCount come
      * from the monitor - they're static/structural, not part of what changes moment to moment.
      * Must be called on the JavaFX application thread.
      */
     void render(Timeline.Frame frame) {
-        boolean finished = monitor.isFinished();
-        status.setText(finished ? "Complete" : "Searching");
-        status.setFill(finished ? COLOR_STATUS_COMPLETE : COLOR_STATUS_SEARCHING);
+        if (replayMode) {
+            status.setText("Replay");
+            status.setFill(COLOR_STATUS_REPLAY);
+        } else {
+            boolean finished = monitor.isFinished();
+            status.setText(finished ? "Complete" : "Searching");
+            status.setFill(finished ? COLOR_STATUS_COMPLETE : COLOR_STATUS_SEARCHING);
+        }
 
         elapsed.setText(formatElapsed(frame.elapsedMillis()));
         states.setText(formatCount(frame.statesExplored()));
