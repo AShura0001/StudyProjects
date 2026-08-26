@@ -31,11 +31,22 @@ public class CommandLineInterface {
 
         System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
         int workerCount = Math.max(1, parallelCount);
+
+        // Naming Visualiser only inside this branch keeps JavaFX unloaded without -v.
+        if (visualiseSearch) {
+            Visualiser.launch(processorCount, workerCount);
+        }
+
         Scheduler.parallelScheduler(graph, processorCount, workerCount);
         System.out.println("Schedule length: " + Scheduler.getScheduleLength(graph));
 
         FileHandler.writeGraph(graph, outputFile);
         System.out.println("Schedule written to " + outputFile);
+
+        // Hold the program open so the window stays usable after the schedule is written.
+        if (visualiseSearch) {
+            Visualiser.awaitClose();
+        }
     }
 
     /**
