@@ -1,0 +1,13 @@
+digraph "chain6" {
+	a	 [Weight=5];
+	b	 [Weight=3];
+	a -> b	 [Weight=7];
+	c	 [Weight=8];
+	b -> c	 [Weight=2];
+	d	 [Weight=4];
+	c -> d	 [Weight=6];
+	e	 [Weight=9];
+	d -> e	 [Weight=1];
+	f	 [Weight=2];
+	e -> f	 [Weight=5];
+}

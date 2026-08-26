@@ -40,7 +40,48 @@ public class SchedulerTest {
                 Arguments.of("src/main/resources/taskGraphExamples/Nodes_8_Random.dot", 4, 1, 581),
                 Arguments.of("src/main/resources/taskGraphExamples/Nodes_9_SeriesParallel.dot", 4, 1, 55),
                 Arguments.of("src/main/resources/taskGraphExamples/Nodes_10_Random.dot", 4, 1, 50),
-                Arguments.of("src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot", 4, 1, 227)
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot", 4, 1, 227),
+
+                // Same graphs and expected optimal lengths as above, but run with more than one
+                // search core. The optimal length must not depend on how many threads found it,
+                // and this is the only place that path (the ExecutorService/thread pool
+                // coordination in parallelScheduler) is actually exercised with real concurrency
+                // rather than a single-worker pool.
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_7_OutTree.dot", 2, 4, 28),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_8_Random.dot", 2, 4, 581),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_9_SeriesParallel.dot", 2, 4, 55),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_10_Random.dot", 2, 4, 50),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot", 2, 4, 350),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_7_OutTree.dot", 4, 4, 22),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_8_Random.dot", 4, 4, 581),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_9_SeriesParallel.dot", 4, 4, 55),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_10_Random.dot", 4, 4, 50),
+                Arguments.of("src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot", 4, 4, 227),
+
+                // Small graphs chosen for the shape of their precedence structure rather than
+                // size, each with its optimal length confirmed independently by a separate,
+                // unpruned brute-force search (not by trusting this algorithm's own output):
+                // a pure chain (single successor at every step), a diamond (converging
+                // predecessors), a fully independent task set (every task ready at once, the
+                // case the empty-processor and closed-list pruning target hardest), and a mixed
+                // shape combining branching, convergence, and two separate roots. Run at both
+                // 1 and multiple cores.
+                Arguments.of("src/test/resources/chain6.dot", 2, 1, 31),
+                Arguments.of("src/test/resources/chain6.dot", 3, 1, 31),
+                Arguments.of("src/test/resources/chain6.dot", 2, 3, 31),
+                Arguments.of("src/test/resources/chain6.dot", 3, 3, 31),
+                Arguments.of("src/test/resources/diamond.dot", 2, 1, 20),
+                Arguments.of("src/test/resources/diamond.dot", 3, 1, 20),
+                Arguments.of("src/test/resources/diamond.dot", 2, 3, 20),
+                Arguments.of("src/test/resources/diamond.dot", 3, 3, 20),
+                Arguments.of("src/test/resources/independent6.dot", 2, 1, 16),
+                Arguments.of("src/test/resources/independent6.dot", 3, 1, 11),
+                Arguments.of("src/test/resources/independent6.dot", 2, 3, 16),
+                Arguments.of("src/test/resources/independent6.dot", 3, 3, 11),
+                Arguments.of("src/test/resources/mixed8.dot", 2, 1, 25),
+                Arguments.of("src/test/resources/mixed8.dot", 3, 1, 25),
+                Arguments.of("src/test/resources/mixed8.dot", 2, 3, 25),
+                Arguments.of("src/test/resources/mixed8.dot", 3, 3, 25)
         );
     }
 
@@ -52,7 +93,11 @@ public class SchedulerTest {
                 "src/main/resources/taskGraphExamples/Nodes_8_Random.dot",
                 "src/main/resources/taskGraphExamples/Nodes_9_SeriesParallel.dot",
                 "src/main/resources/taskGraphExamples/Nodes_10_Random.dot",
-                "src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot"
+                "src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot",
+                "src/test/resources/chain6.dot",
+                "src/test/resources/diamond.dot",
+                "src/test/resources/independent6.dot",
+                "src/test/resources/mixed8.dot"
     })
     public void testParallelScheduleRespectsDependencies(String filepath) {
         Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(filepath);
@@ -70,7 +115,11 @@ public class SchedulerTest {
                 "src/main/resources/taskGraphExamples/Nodes_8_Random.dot",
                 "src/main/resources/taskGraphExamples/Nodes_9_SeriesParallel.dot",
                 "src/main/resources/taskGraphExamples/Nodes_10_Random.dot",
-                "src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot"
+                "src/main/resources/taskGraphExamples/Nodes_11_OutTree.dot",
+                "src/test/resources/chain6.dot",
+                "src/test/resources/diamond.dot",
+                "src/test/resources/independent6.dot",
+                "src/test/resources/mixed8.dot"
     })
     public void testParallelScheduleDoesNotModifyGraphStructureOrWeights(String filepath) {
         Graph<TaskNode, DefaultWeightedEdge> graph = FileHandler.readGraph(filepath);

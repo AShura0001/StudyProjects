@@ -1,0 +1,8 @@
+digraph "independent6" {
+	a	 [Weight=5];
+	b	 [Weight=9];
+	c	 [Weight=3];
+	d	 [Weight=7];
+	e	 [Weight=2];
+	f	 [Weight=6];
+}
