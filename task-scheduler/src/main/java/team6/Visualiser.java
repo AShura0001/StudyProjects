@@ -26,6 +26,8 @@ import javafx.stage.Stage;
 public class Visualiser {
 
     private static final long FRAME_INTERVAL_NANOS = 33_000_000; // ~30fps
+    private static final long INITIAL_RECORD_INTERVAL_MILLIS = 100;
+    private static final int RECORD_INTERVAL_DOUBLING_THRESHOLD = 20_000;
 
     /** Released once the visualisation window has been closed by the user. */
     private static final CountDownLatch CLOSED = new CountDownLatch(1);
@@ -75,10 +77,16 @@ public class Visualiser {
         stage.setTitle("Task Scheduler - Visualisation");
         stage.setScene(new Scene(root, 1100, 650));
 
+        Timeline timeline = new Timeline();
+
         AnimationTimer timer = new AnimationTimer() {
             private long lastRepaint = 0;
             private SearchMonitor.Snapshot lastDrawnSnapshot = null;
             private Set<Integer> lastDrawnHighlight = Collections.emptySet();
+
+            private SearchMonitor.Snapshot lastRecordedSnapshot = null;
+            private long lastRecordedElapsedMillis = Long.MIN_VALUE;
+            private long recordIntervalMillis = INITIAL_RECORD_INTERVAL_MILLIS;
 
             @Override
             public void handle(long now) {
@@ -98,11 +106,25 @@ public class Visualiser {
                 statsPanel.refresh();
                 workerPanel.refresh();
 
+                // Every improvement gets its own frame regardless of the interval below - a
+                // fixed-rate sample alone could land two improvements inside one window and
+                // silently drop one.
+                long elapsedNow = monitor.elapsedMillis();
+                if (current != lastRecordedSnapshot || elapsedNow - lastRecordedElapsedMillis >= recordIntervalMillis) {
+                    timeline.record(monitor);
+                    lastRecordedSnapshot = current;
+                    lastRecordedElapsedMillis = elapsedNow;
+                    if (timeline.size() > RECORD_INTERVAL_DOUBLING_THRESHOLD) {
+                        recordIntervalMillis *= 2;
+                    }
+                }
+
                 if (monitor.isFinished() && lastDrawnSnapshot == monitor.bestSchedule()) {
                     // markFinished() can land between the refresh above and this check, so
                     // refresh once more here rather than risk stopping on a stale "Searching".
                     statsPanel.refresh();
                     workerPanel.refresh();
+                    timeline.record(monitor);
                     stop();
                 }
             }
