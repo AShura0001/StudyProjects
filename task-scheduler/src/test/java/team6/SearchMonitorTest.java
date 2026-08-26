@@ -13,7 +13,7 @@ public class SearchMonitorTest {
 
     @Test
     public void countersAccumulatePerWorkerAndSumAcrossWorkers() {
-        SearchMonitor monitor = SearchMonitor.enabled(3, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(3, names(10), weights(10), 2);
 
         monitor.recordVisit(0, 1);
         monitor.recordVisit(0, 2);
@@ -29,7 +29,7 @@ public class SearchMonitorTest {
     public void concurrentWorkersDoNotCorruptEachOthersSlots() throws InterruptedException {
         int nWorkers = 8;
         int visitsPerWorker = 200_000;
-        SearchMonitor monitor = SearchMonitor.enabled(nWorkers, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(nWorkers, names(10), weights(10), 2);
 
         CountDownLatch ready = new CountDownLatch(nWorkers);
         CountDownLatch go = new CountDownLatch(1);
@@ -62,7 +62,7 @@ public class SearchMonitorTest {
 
     @Test
     public void maxDepthReportsMaximumSeenNotLatest() {
-        SearchMonitor monitor = SearchMonitor.enabled(1, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
 
         monitor.recordVisit(0, 5);
         monitor.recordVisit(0, 9);
@@ -73,7 +73,7 @@ public class SearchMonitorTest {
 
     @Test
     public void bestScheduleReturnsACopyIndependentOfLaterMutation() {
-        SearchMonitor monitor = SearchMonitor.enabled(1, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
         int[] startTimes = {0, 1, 2};
         int[] processors = {0, 1, 0};
 
@@ -90,7 +90,7 @@ public class SearchMonitorTest {
 
     @Test
     public void bestMakespanIsMinusOneUntilRecorded() {
-        SearchMonitor monitor = SearchMonitor.enabled(1, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
 
         assertEquals(-1, monitor.bestMakespan());
         assertNull(monitor.bestSchedule());
@@ -114,11 +114,16 @@ public class SearchMonitorTest {
         assertEquals(0, monitor.activeWorkers());
         assertEquals(-1, monitor.currentTask(0));
         assertEquals(-1, monitor.currentProcessor(0));
+        assertEquals(0, monitor.workerCount());
+        assertEquals(0, monitor.processorCount());
+        assertEquals(0, monitor.taskCount());
+        assertNull(monitor.taskName(0));
+        assertEquals(0, monitor.taskWeight(0));
     }
 
     @Test
     public void activeWorkersTracksStartedAndFinished() {
-        SearchMonitor monitor = SearchMonitor.enabled(3, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(3, names(10), weights(10), 2);
 
         monitor.workerStarted(0);
         monitor.workerStarted(1);
@@ -132,7 +137,7 @@ public class SearchMonitorTest {
 
     @Test
     public void currentTaskAndProcessorAreMinusOneUntilRecorded() {
-        SearchMonitor monitor = SearchMonitor.enabled(2, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(2, names(10), weights(10), 2);
 
         assertEquals(-1, monitor.currentTask(1));
         assertEquals(-1, monitor.currentProcessor(1));
@@ -145,7 +150,7 @@ public class SearchMonitorTest {
 
     @Test
     public void elapsedMillisIsNonNegativeAndNonDecreasing() throws InterruptedException {
-        SearchMonitor monitor = SearchMonitor.enabled(1, 10, 2);
+        SearchMonitor monitor = SearchMonitor.enabled(1, names(10), weights(10), 2);
 
         long first = monitor.elapsedMillis();
         assertTrue(first >= 0);
@@ -153,5 +158,51 @@ public class SearchMonitorTest {
         long second = monitor.elapsedMillis();
 
         assertFalse(second < first);
+    }
+
+    @Test
+    public void countsAndTaskMetadataMatchWhatWasPassedToEnabled() {
+        String[] names = {"a", "b", "c"};
+        int[] weights = {5, 3, 7};
+        SearchMonitor monitor = SearchMonitor.enabled(4, names, weights, 2);
+
+        assertEquals(4, monitor.workerCount());
+        assertEquals(2, monitor.processorCount());
+        assertEquals(3, monitor.taskCount());
+        assertEquals("a", monitor.taskName(0));
+        assertEquals("b", monitor.taskName(1));
+        assertEquals("c", monitor.taskName(2));
+        assertEquals(5, monitor.taskWeight(0));
+        assertEquals(3, monitor.taskWeight(1));
+        assertEquals(7, monitor.taskWeight(2));
+    }
+
+    @Test
+    public void taskMetadataIsDefensivelyCopiedFromTheArraysPassedToEnabled() {
+        String[] names = {"a", "b"};
+        int[] weights = {5, 3};
+        SearchMonitor monitor = SearchMonitor.enabled(1, names, weights, 2);
+
+        names[0] = "mutated";
+        weights[0] = 99;
+
+        assertEquals("a", monitor.taskName(0));
+        assertEquals(5, monitor.taskWeight(0));
+    }
+
+    private static String[] names(int n) {
+        String[] names = new String[n];
+        for (int i = 0; i < n; i++) {
+            names[i] = "t" + i;
+        }
+        return names;
+    }
+
+    private static int[] weights(int n) {
+        int[] weights = new int[n];
+        for (int i = 0; i < n; i++) {
+            weights[i] = i + 1;
+        }
+        return weights;
     }
 }

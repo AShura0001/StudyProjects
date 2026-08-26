@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * cross-thread visibility it does not need: the search never blocks on the UI, and
  * a poll that sees a slightly stale value just repaints it on the next frame.
  */
-public class SearchMonitor {
+public final class SearchMonitor {
 
     // 16 longs = 128 bytes, at least two cache lines, so adjacent workers never share one.
     private static final int FIELDS_PER_WORKER = 16;
@@ -31,7 +31,8 @@ public class SearchMonitor {
 
     private final boolean enabled;
     private final int nWorkers;
-    private final int nTasks;
+    private final String[] taskNames;
+    private final int[] taskWeights;
     private final int nProcessors;
     private final AtomicLongArray fields;
     private final AtomicReference<Snapshot> best;
@@ -40,17 +41,19 @@ public class SearchMonitor {
     private SearchMonitor() {
         this.enabled = false;
         this.nWorkers = 0;
-        this.nTasks = 0;
+        this.taskNames = null;
+        this.taskWeights = null;
         this.nProcessors = 0;
         this.fields = null;
         this.best = null;
         this.startNanos = 0;
     }
 
-    private SearchMonitor(int nWorkers, int nTasks, int nProcessors) {
+    private SearchMonitor(int nWorkers, String[] taskNames, int[] taskWeights, int nProcessors) {
         this.enabled = true;
         this.nWorkers = nWorkers;
-        this.nTasks = nTasks;
+        this.taskNames = taskNames.clone();
+        this.taskWeights = taskWeights.clone();
         this.nProcessors = nProcessors;
         this.fields = new AtomicLongArray(nWorkers * FIELDS_PER_WORKER);
         this.best = new AtomicReference<>();
@@ -66,9 +69,13 @@ public class SearchMonitor {
         return DISABLED;
     }
 
-    /** Returns a monitor sized for the given search, starting its elapsed-time clock now. */
-    public static SearchMonitor enabled(int nWorkers, int nTasks, int nProcessors) {
-        return new SearchMonitor(nWorkers, nTasks, nProcessors);
+    /**
+     * Returns a monitor sized for the given search, starting its elapsed-time clock now.
+     * taskNames and taskWeights are index-aligned with the taskIndex passed to recordCurrent
+     * and Snapshot, so the UI can label and size the Gantt bar for each task.
+     */
+    public static SearchMonitor enabled(int nWorkers, String[] taskNames, int[] taskWeights, int nProcessors) {
+        return new SearchMonitor(nWorkers, taskNames, taskWeights, nProcessors);
     }
 
     private static int base(int worker) {
@@ -94,7 +101,7 @@ public class SearchMonitor {
         if (!enabled) {
             return;
         }
-        assert taskIndex < nTasks;
+        assert taskIndex < taskNames.length;
         assert processorIndex < nProcessors;
         int b = base(worker);
         fields.setPlain(b + OFFSET_CURRENT_TASK, taskIndex);
@@ -211,6 +218,31 @@ public class SearchMonitor {
             return -1;
         }
         return (int) fields.getOpaque(base(worker) + OFFSET_CURRENT_PROCESSOR);
+    }
+
+    /** Number of worker threads this monitor was sized for. */
+    public int workerCount() {
+        return nWorkers;
+    }
+
+    /** Number of processors the schedule is being built for. */
+    public int processorCount() {
+        return nProcessors;
+    }
+
+    /** Number of tasks in the graph being scheduled. */
+    public int taskCount() {
+        return enabled ? taskNames.length : 0;
+    }
+
+    /** The name of the task at the given index. */
+    public String taskName(int index) {
+        return enabled ? taskNames[index] : null;
+    }
+
+    /** The weight (duration) of the task at the given index. */
+    public int taskWeight(int index) {
+        return enabled ? taskWeights[index] : 0;
     }
 
     /** Immutable snapshot of a schedule: its makespan and per-task start times and processors. */

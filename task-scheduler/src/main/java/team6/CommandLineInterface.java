@@ -31,13 +31,14 @@ public class CommandLineInterface {
 
         System.out.println("Scheduling " + graph.vertexSet().size() + " tasks on " + processorCount + " processors.");
         int workerCount = Math.max(1, parallelCount);
+        SearchMonitor monitor = visualiseSearch ? buildMonitor(graph, workerCount) : SearchMonitor.disabled();
 
         // Naming Visualiser only inside this branch keeps JavaFX unloaded without -v.
         if (visualiseSearch) {
             Visualiser.launch(processorCount, workerCount);
         }
 
-        Scheduler.parallelScheduler(graph, processorCount, workerCount);
+        Scheduler.parallelScheduler(graph, processorCount, workerCount, monitor);
         System.out.println("Schedule length: " + Scheduler.getScheduleLength(graph));
 
         FileHandler.writeGraph(graph, outputFile);
@@ -47,6 +48,23 @@ public class CommandLineInterface {
         if (visualiseSearch) {
             Visualiser.awaitClose();
         }
+    }
+
+    /**
+     * Builds a SearchMonitor describing every task in the graph, in the task-index order
+     * Scheduler assigns internally (graph.vertexSet() iteration, read before scheduling
+     * mutates anything, so the order matches).
+     */
+    private SearchMonitor buildMonitor(Graph<TaskNode, DefaultWeightedEdge> graph, int workerCount) {
+        String[] taskNames = new String[graph.vertexSet().size()];
+        int[] taskWeights = new int[taskNames.length];
+        int i = 0;
+        for (TaskNode task : graph.vertexSet()) {
+            taskNames[i] = task.getId();
+            taskWeights[i] = task.getWeight();
+            i++;
+        }
+        return SearchMonitor.enabled(workerCount, taskNames, taskWeights, processorCount);
     }
 
     /**
