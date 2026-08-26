@@ -35,7 +35,7 @@ public class CommandLineInterface {
 
         // Naming Visualiser only inside this branch keeps JavaFX unloaded without -v.
         if (visualiseSearch) {
-            Visualiser.launch(processorCount, workerCount);
+            Visualiser.launch(monitor);
         }
 
         Scheduler.parallelScheduler(graph, processorCount, workerCount, monitor);
@@ -46,6 +46,7 @@ public class CommandLineInterface {
 
         // Hold the program open so the window stays usable after the schedule is written.
         if (visualiseSearch) {
+            Visualiser.showFinalSchedule();
             Visualiser.awaitClose();
         }
     }

@@ -4,10 +4,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
@@ -27,6 +24,10 @@ public class Visualiser {
     /** Guards against booting the JavaFX toolkit more than once. */
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);
 
+    /** Set once the window is showing, so showFinalSchedule() can find the chart and monitor. */
+    private static volatile GanttChart chart;
+    private static volatile SearchMonitor monitor;
+
     private Visualiser() {
         // Static utility, not meant to be instantiated.
     }
@@ -34,46 +35,54 @@ public class Visualiser {
     /**
      * Boots the JavaFX toolkit and shows the visualisation window, without waiting for it.
      *
-     * @param nProcessors number of processors the schedule is being built for
-     * @param nWorkers    number of worker threads running the search
+     * @param monitor the search's progress channel, supplying everything the window needs
      */
-    public static void launch(int nProcessors, int nWorkers) {
+    public static void launch(SearchMonitor searchMonitor) {
         // Platform.startup throws if the toolkit is already running.
         if (!STARTED.compareAndSet(false, true)) {
             return;
         }
+        monitor = searchMonitor;
 
         Platform.startup(() -> {
             Platform.setImplicitExit(false);
-            showStage(nProcessors, nWorkers);
+            showStage(searchMonitor);
         });
     }
 
     /**
      * Builds and shows the visualisation window, on the JavaFX application thread.
      *
-     * @param nProcessors number of processors the schedule is being built for
-     * @param nWorkers    number of worker threads running the search
+     * @param monitor the search's progress channel, supplying everything the window needs
      */
-    private static void showStage(int nProcessors, int nWorkers) {
-        Label placeholder = new Label(
-                "Visualisation placeholder\n\n"
-                        + "Processors: " + nProcessors + "\n"
-                        + "Worker threads: " + nWorkers + "\n\n"
-                        + "Close this window to end the program.");
-        placeholder.setStyle("-fx-font-size: 14px;");
-
-        StackPane root = new StackPane(placeholder);
-        StackPane.setAlignment(placeholder, Pos.CENTER);
+    private static void showStage(SearchMonitor monitor) {
+        GanttChart ganttChart = new GanttChart(monitor);
+        chart = ganttChart;
 
         Stage stage = new Stage();
         stage.setTitle("Task Scheduler - Visualisation");
-        stage.setScene(new Scene(root, 900, 600));
+        stage.setScene(new Scene(ganttChart, 900, 600));
 
         // onHidden covers every way the window can go away, unlike setOnCloseRequest,
         // which fires before the close and can be vetoed by another handler.
         stage.setOnHidden(event -> CLOSED.countDown());
         stage.show();
+    }
+
+    /**
+     * Draws the launched monitor's best schedule so far. Safe to call from any thread; the
+     * draw itself is dispatched onto the JavaFX application thread.
+     */
+    public static void showFinalSchedule() {
+        if (!STARTED.get()) {
+            return;
+        }
+        Platform.runLater(() -> {
+            GanttChart ganttChart = chart;
+            if (ganttChart != null) {
+                ganttChart.draw(monitor.bestSchedule());
+            }
+        });
     }
 
     /**

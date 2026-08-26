@@ -719,6 +719,7 @@ public class Scheduler {
 
         greedyScheduler(graph, nProcessors);
         ScheduleSnapshot initialSnapshot = snapshotFromGraph(problem);
+        monitor.recordBest(initialSnapshot.makespan, initialSnapshot.startTimes, initialSnapshot.processors);
 
         AtomicInteger bestLength = new AtomicInteger(initialSnapshot.makespan);
         AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);

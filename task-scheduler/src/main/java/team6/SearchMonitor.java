@@ -265,6 +265,10 @@ public final class SearchMonitor {
             return startTimes.clone();
         }
 
+        /**
+         * The processor each task is assigned to, index-aligned with {@link #startTimes()}.
+         * 1-based: values run 1..processorCount, not 0..processorCount-1.
+         */
         public int[] processors() {
             return processors.clone();
         }
