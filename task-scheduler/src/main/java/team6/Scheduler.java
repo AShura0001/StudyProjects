@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -192,7 +193,7 @@ public class Scheduler {
         AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);
 
         SearchState root = createInitialState(problem);
-        depthFirstSearch(problem, root, computeLowerBound(problem, root), bestLength, bestSnapshot, new HashSet<>());
+        depthFirstSearch(problem, root, computeLowerBound(problem, root), bestLength, bestSnapshot, new HashSet<>(), SearchMonitor.disabled(), 0);
 
         applySnapshotToGraph(problem, bestSnapshot.get());
     }
@@ -561,7 +562,7 @@ public class Scheduler {
         state.startTimes[undo.taskIndex] = 0;
     }
 
-    private static void updateBest(SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot) {
+    private static void updateBest(SearchState state, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot, SearchMonitor monitor) {
         int candidateLength = state.currentMakespan;
 
         while (true) {
@@ -571,13 +572,18 @@ public class Scheduler {
             }
 
             if (bestLength.compareAndSet(currentBest, candidateLength)) {
-                bestSnapshot.set(new ScheduleSnapshot(state.startTimes.clone(), state.processors.clone(), candidateLength));
+                int[] startTimes = state.startTimes.clone();
+                int[] processors = state.processors.clone();
+                bestSnapshot.set(new ScheduleSnapshot(startTimes, processors, candidateLength));
+                monitor.recordBest(candidateLength, startTimes, processors);
                 return;
             }
         }
     }
 
-    private static void depthFirstSearch(ScheduleProblem problem, SearchState state, int lowerBound, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot, Set<StateKey> visited) {
+    private static void depthFirstSearch(ScheduleProblem problem, SearchState state, int lowerBound, AtomicInteger bestLength, AtomicReference<ScheduleSnapshot> bestSnapshot, Set<StateKey> visited, SearchMonitor monitor, int worker) {
+        monitor.recordVisit(worker, state.scheduledCount);
+
         if (lowerBound >= bestLength.get()) {
             return;
         }
@@ -587,7 +593,7 @@ public class Scheduler {
         }
 
         if (state.scheduledCount == problem.tasks.size()) {
-            updateBest(state, bestLength, bestSnapshot);
+            updateBest(state, bestLength, bestSnapshot, monitor);
             return;
         }
 
@@ -603,11 +609,12 @@ public class Scheduler {
                     triedEmptyProcessor = true;
                 }
 
+                monitor.recordCurrent(worker, taskIndex, processorIndex + 1);
                 Undo undo = mutateSchedule(problem, state, taskIndex, processorIndex);
 
                 int childBound = computeLowerBound(problem, state);
                 if (childBound < bestLength.get()) {
-                    depthFirstSearch(problem, state, childBound, bestLength, bestSnapshot, visited);
+                    depthFirstSearch(problem, state, childBound, bestLength, bestSnapshot, visited, monitor, worker);
                 }
 
                 undoSchedule(problem, state, undo);
@@ -692,6 +699,16 @@ public class Scheduler {
      * greedy schedule as an initial upper bound and then split across multiple workers.
      */
     public static void parallelScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors, int nCores) {
+        parallelScheduler(graph, nProcessors, nCores, SearchMonitor.disabled());
+    }
+
+    /**
+     * Same as {@link #parallelScheduler(Graph, int, int)}, publishing progress through monitor
+     * as it searches.
+     */
+    public static void parallelScheduler(Graph<TaskNode, DefaultWeightedEdge> graph, int nProcessors, int nCores, SearchMonitor monitor) {
+        monitor.markStarted();
+
         if (nProcessors < 1) {
             throw new IllegalArgumentException("Number of processors must be at least 1.");
         }
@@ -704,6 +721,7 @@ public class Scheduler {
 
         greedyScheduler(graph, nProcessors);
         ScheduleSnapshot initialSnapshot = snapshotFromGraph(problem);
+        monitor.recordBest(initialSnapshot.makespan, initialSnapshot.startTimes, initialSnapshot.processors);
 
         AtomicInteger bestLength = new AtomicInteger(initialSnapshot.makespan);
         AtomicReference<ScheduleSnapshot> bestSnapshot = new AtomicReference<>(initialSnapshot);
@@ -711,14 +729,18 @@ public class Scheduler {
         SearchState root = createInitialState(problem);
         List<SearchState> frontier = buildFrontier(problem, root, bestLength, Math.max(1, nCores * 4));
 
-        ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, nCores));
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, nCores), workerThreadFactory());
         CountDownLatch latch = new CountDownLatch(frontier.size());
 
         for (SearchState state : frontier) {
             executor.execute(() -> {
+                // Read once per submitted task, never inside the depthFirstSearch recursion.
+                int worker = WORKER_INDEX.get();
+                monitor.workerStarted(worker);
                 try {
-                    depthFirstSearch(problem, state, computeLowerBound(problem, state), bestLength, bestSnapshot, new HashSet<>());
+                    depthFirstSearch(problem, state, computeLowerBound(problem, state), bestLength, bestSnapshot, new HashSet<>(), monitor, worker);
                 } finally {
+                    monitor.workerFinished(worker);
                     latch.countDown();
                 }
             });
@@ -737,6 +759,20 @@ public class Scheduler {
         }
 
         applySnapshotToGraph(problem, bestSnapshot.get());
+    }
+
+    private static final ThreadLocal<Integer> WORKER_INDEX = new ThreadLocal<>();
+
+    /** Assigns each pool thread a stable index 0..nCores-1, read once per task via WORKER_INDEX. */
+    private static ThreadFactory workerThreadFactory() {
+        AtomicInteger nextIndex = new AtomicInteger();
+        return runnable -> {
+            int index = nextIndex.getAndIncrement();
+            return new Thread(() -> {
+                WORKER_INDEX.set(index);
+                runnable.run();
+            });
+        };
     }
 
 }

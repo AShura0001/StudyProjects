@@ -1,0 +1,33 @@
+# Line-ending normalisation for the team (Windows / macOS / Linux / CI).
+# Anything Git considers text is stored in the repository with LF.
+# This makes diffs stable no matter what core.autocrlf each developer has.
+
+# Baseline: detect text files and normalise them to LF in the repository.
+* text=auto
+
+# Project source and data files: LF in the repo and in the working tree,
+# so the checkout is identical on every platform.
+*.java         text eol=lf
+*.xml          text eol=lf
+*.dot          text eol=lf
+*.md           text eol=lf
+*.properties   text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+*.json         text eol=lf
+*.sh           text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# Windows scripts must keep CRLF or they break when executed.
+*.bat          text eol=crlf
+*.cmd          text eol=crlf
+
+# Binary types: never convert, never diff as text.
+*.jar          binary
+*.png          binary
+*.jpg          binary
+*.jpeg         binary
+*.gif          binary
+*.ico          binary
+*.pdf          binary

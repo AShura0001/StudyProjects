@@ -37,3 +37,15 @@ ignored-files/
 
 # Schedules written by running the scheduler
 *-output.dot
+
+# AI / Agent Tool Config
+CLAUDE.md
+.claude/
+.claude.json
+*.local.json
+.mcp.json
+.cursor/
+.cursorrules
+.aider*
+AGENTS.md
+.github/copilot-instructions.md

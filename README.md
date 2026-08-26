@@ -33,7 +33,9 @@ P          number of processors to schedule the INPUT graph on
 
 Optional:
 -p N       use N cores for execution in parallel (default is sequential)
--v         visualise the search (not implemented yet)
+-v         visualise the search: opens a window showing a Gantt chart of the
+           best schedule found so far, live search statistics, and what each
+           worker thread is currently evaluating
 -o OUTPUT  output file is named OUTPUT (default is INPUT-output.dot)
 ```
 
@@ -87,8 +89,11 @@ partial schedule that already can't beat the best one found so far. Three things
 bound: how long the partial schedule already is, the longest remaining chain of dependent
 tasks, and the leftover work spread evenly across the processors. Whichever is largest wins.
 
-`-p N` splits that search across N threads. They share the current best schedule, so a good
-bound found by one thread immediately prunes work for all the others.
+`-p N` first expands a small frontier of independent partial schedules near the root, then
+hands them out across a pool of up to N worker threads. If the graph is too small or too
+narrow to produce N independent branches near the root, fewer threads end up with work. All
+threads share the current best schedule, so a good bound found by one immediately prunes work
+for the others.
 
 ## Layout
 
@@ -100,10 +105,16 @@ task-scheduler/
     FileHandler.java            reading and writing dot files
     Scheduler.java              the scheduling algorithms
     TaskNode.java               a task, its weight, start time and processor
-    Visualiser.java             visualisation (not implemented yet)
-  src/main/resources/           example task graphs
+    SearchMonitor.java          progress channel the search publishes through for -v
+    Visualiser.java             boots the -v window and keeps it live while the search runs
+    GanttChart.java             draws the best schedule found so far
+    StatsPanel.java             live search statistics (elapsed time, states, best, depth)
+    WorkerPanel.java            what each worker thread is currently evaluating
+  src/main/resources/taskGraphExamples/  example task graphs, including Nodes_18_Demo.dot
   src/test/java/team6/          tests
   src/test/resources/           task graphs used by the tests
+tools/
+  generate_graph.py             generates a random DAG task graph in the .dot format above
 ```
 
 ## Tests
@@ -117,11 +128,13 @@ the known optimal length for that graph. If a change breaks optimality, these fa
 
 ## Libraries
 
-Everything under `src` is ours. We use two external libraries, declared in `pom.xml` and
+Everything under `src` is ours. We use three external libraries, declared in `pom.xml` and
 unmodified:
 
 - **JGraphT 1.5.3** (`jgrapht-core`, `jgrapht-io`) - graph data structure, and parsing the
   input dot file. Output is written by us. Dual licensed LGPL 2.1 / EPL 2.0.
+- **JavaFX 21.0.5** (`javafx-base`, `javafx-graphics`, `javafx-controls`) - the `-v`
+  visualisation window. GPLv2 with the Classpath Exception.
 - **JUnit Jupiter 5.10.0** - tests only, not shipped inside the jar. EPL 2.0.
 
 ## Team
