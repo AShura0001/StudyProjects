@@ -12,6 +12,7 @@ import uoa.se325.lab05.repository.ConcertRepository;
 import uoa.se325.lab05.repository.PerformerRepository;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -56,11 +57,19 @@ public class ConcertController {
      * {@link NewConcertRequest} instance from the HTTP request body.
      *
      * @param request the info about the new concert to create
-     * @return a 201 Created response, with the URI of the newly created Concert.
+     * @return a 201 Created response, with the URI of the newly created Concert, or a 409 Conflict response if the
+     * new concert's date/time range overlaps with an existing concert.
      */
     @PostMapping
     public ResponseEntity<Void> createConcert(@RequestBody NewConcertRequest request) {
         var concert = request.toConcert();
+
+        LocalDateTime endTime = concert.getStartTime().plusMinutes(concert.getDurationInMinutes());
+        var overlapping = concertRepository.findOverlappingConcerts(concert.getStartTime(), endTime);
+        if (!overlapping.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Concert overlaps with an existing concert");
+        }
+
         concertRepository.save(concert);
         return ResponseEntity.created(URI.create("/concerts/" + concert.getId())).build();
     }
