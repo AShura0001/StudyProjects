@@ -61,6 +61,7 @@ public class ConcertController {
      * new concert's date/time range overlaps with an existing concert.
      */
     @PostMapping
+    @Transactional
     public ResponseEntity<Void> createConcert(@RequestBody NewConcertRequest request) {
         var concert = request.toConcert();
 
