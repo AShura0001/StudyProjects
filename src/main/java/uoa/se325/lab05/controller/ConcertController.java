@@ -103,4 +103,19 @@ public class ConcertController {
         // if annotations are set up correctly.
         concertRepository.save(concert);
     }
+
+    /**
+     * Sets the special ticket price of the Concert with the given id.
+     *
+     * @param concertId the id for target concert
+     * @param specialTicketPrice
+     * @return a 204 if successful, or a 404 Not Found response if the Concert with the given id DNE
+     */
+    @PutMapping("/{id}/special-ticket-price")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setConcertSpecialTicketPrice(@PathVariable("id") long concertId, @RequestBody Integer specialTicketPrice) {
+        var concert = getConcert(concertId);
+        concert.setSpecialTicketPrice(specialTicketPrice);
+        concertRepository.save(concert);
+    }
 }
