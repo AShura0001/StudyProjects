@@ -4,9 +4,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import uoa.se325.lab05.dto.ConcertSpecialNotification;
 import uoa.se325.lab05.dto.NewConcertRequest;
 import uoa.se325.lab05.model.Concert;
 import uoa.se325.lab05.repository.ConcertRepository;
@@ -22,11 +24,14 @@ public class ConcertController {
 
     private final ConcertRepository concertRepository;
     private final PerformerRepository performerRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    public ConcertController(ConcertRepository concertRepository, PerformerRepository performerRepository) {
+    public ConcertController(ConcertRepository concertRepository, PerformerRepository performerRepository,
+                              SimpMessagingTemplate messagingTemplate) {
         this.concertRepository = concertRepository;
         this.performerRepository = performerRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -117,5 +122,8 @@ public class ConcertController {
         var concert = getConcert(concertId);
         concert.setSpecialTicketPrice(specialTicketPrice);
         concertRepository.save(concert);
+
+        var notification = new ConcertSpecialNotification(concert.getId(), concert.getTitle(), specialTicketPrice);
+        messagingTemplate.convertAndSend("/topic/specials", notification);
     }
 }
