@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import uoa.se325.lab05.dto.NewConcertRequest;
@@ -61,7 +62,7 @@ public class ConcertController {
      * new concert's date/time range overlaps with an existing concert.
      */
     @PostMapping
-    @Transactional
+    @org.springframework.transaction.annotation.Transactional(isolation = Isolation.SERIALIZABLE)
     public ResponseEntity<Void> createConcert(@RequestBody NewConcertRequest request) {
         var concert = request.toConcert();
 
