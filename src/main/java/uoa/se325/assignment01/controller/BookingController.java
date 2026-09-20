@@ -3,11 +3,15 @@ package uoa.se325.assignment01.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uoa.se325.assignment01.auth.AuthenticatedUser;
+import uoa.se325.assignment01.dto.BookingDTO;
 import uoa.se325.assignment01.dto.BookingRequest;
 import uoa.se325.assignment01.model.Booking;
 import uoa.se325.assignment01.model.Flight;
@@ -16,6 +20,7 @@ import uoa.se325.assignment01.repository.BookingRepository;
 import uoa.se325.assignment01.repository.FlightRepository;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -50,5 +55,29 @@ public class BookingController {
         Booking booking = bookingRepository.save(new Booking(user, flight, request.requestedSeats()));
 
         return ResponseEntity.created(URI.create("/api/bookings/" + booking.getId())).build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BookingDTO>> getBookings(@AuthenticatedUser User user) {
+        List<BookingDTO> bookings = bookingRepository.findByUserOrderByFlight_DepartureTimeLocalAsc(user).stream()
+                .map(BookingDTO::from)
+                .toList();
+
+        return ResponseEntity.ok(bookings);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookingDTO> getBooking(@PathVariable Long id, @AuthenticatedUser User user) {
+        return bookingRepository.findByIdAndUser(id, user)
+                .map(BookingDTO::from)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> cancelBooking(@PathVariable Long id, @AuthenticatedUser User user) {
+        bookingRepository.deleteByIdAndUser(id, user);
+        return ResponseEntity.noContent().build();
     }
 }
