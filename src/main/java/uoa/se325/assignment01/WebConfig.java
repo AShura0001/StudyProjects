@@ -4,17 +4,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import uoa.se325.assignment01.auth.AuthenticatedUserArgumentResolver;
 
 import java.util.List;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // TODO Autowire a handler method resolver
+    private final AuthenticatedUserArgumentResolver authenticatedUserArgumentResolver;
+
+    public WebConfig(AuthenticatedUserArgumentResolver authenticatedUserArgumentResolver) {
+        this.authenticatedUserArgumentResolver = authenticatedUserArgumentResolver;
+    }
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        // TODO Add your resolver here
+        resolvers.add(authenticatedUserArgumentResolver);
     }
 
     /**
