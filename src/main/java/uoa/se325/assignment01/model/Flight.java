@@ -12,11 +12,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.MapKeyEnumerated;
+import jakarta.persistence.OneToMany;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,6 +64,16 @@ public class Flight {
     @MapKeyEnumerated(EnumType.STRING)
     @Column(name = "price")
     private Map<CabinClass, Integer> seatPricings = new HashMap<>();
+
+    /**
+     * Bookings already made for this flight. Not exposed in JSON - it's here to complete the
+     * domain model as described in the assignment spec, but lookups of a flight's booked seats
+     * go through {@code BookingRepository} directly rather than navigating this collection, so
+     * it's left lazily-fetched.
+     */
+    @OneToMany(mappedBy = "flight")
+    @JsonIgnore
+    private List<Booking> bookings = new ArrayList<>();
 
     public Flight() {
     }
@@ -151,5 +164,13 @@ public class Flight {
 
     public void setSeatPricings(Map<CabinClass, Integer> seatPricings) {
         this.seatPricings = seatPricings;
+    }
+
+    public List<Booking> getBookings() {
+        return bookings;
+    }
+
+    public void setBookings(List<Booking> bookings) {
+        this.bookings = bookings;
     }
 }
