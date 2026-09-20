@@ -3,6 +3,7 @@ package uoa.se325.assignment01.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,7 +26,9 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    // Lazy - never needed after the initial ownership check, which filters by user in the query
+    // itself rather than loading the full User.
+    @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private User user;
 
