@@ -2,11 +2,14 @@ package uoa.se325.assignment01.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uoa.se325.assignment01.dto.BookingInfoDTO;
 import uoa.se325.assignment01.model.Flight;
 import uoa.se325.assignment01.repository.AirportRepository;
+import uoa.se325.assignment01.repository.BookingRepository;
 import uoa.se325.assignment01.repository.FlightRepository;
 import uoa.se325.assignment01.utils.TimeZoneUtils;
 
@@ -21,10 +24,31 @@ public class FlightController {
 
     private final FlightRepository flightRepository;
     private final AirportRepository airportRepository;
+    private final BookingRepository bookingRepository;
 
-    public FlightController(FlightRepository flightRepository, AirportRepository airportRepository) {
+    public FlightController(FlightRepository flightRepository, AirportRepository airportRepository,
+                             BookingRepository bookingRepository) {
         this.flightRepository = flightRepository;
         this.airportRepository = airportRepository;
+        this.bookingRepository = bookingRepository;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Flight> getById(@PathVariable Long id) {
+        return flightRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/booking-info")
+    public ResponseEntity<BookingInfoDTO> getBookingInfo(@PathVariable Long id) {
+        return flightRepository.findById(id)
+                .map(flight -> new BookingInfoDTO(
+                        flight.getAircraftType(),
+                        bookingRepository.findBookedSeatsByFlight(flight),
+                        flight.getSeatPricings()))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping

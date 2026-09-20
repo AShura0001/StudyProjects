@@ -23,4 +23,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN b.bookedSeats s WHERE b.flight = :flight AND s IN :seats")
     boolean existsConflictingBooking(@Param("flight") Flight flight, @Param("seats") List<String> seats);
+
+    @Query("SELECT s FROM Booking b JOIN b.bookedSeats s WHERE b.flight = :flight")
+    List<String> findBookedSeatsByFlight(@Param("flight") Flight flight);
 }
