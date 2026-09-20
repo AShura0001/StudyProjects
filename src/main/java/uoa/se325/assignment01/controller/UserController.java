@@ -14,6 +14,8 @@ import uoa.se325.assignment01.dto.UserCredentials;
 import uoa.se325.assignment01.model.User;
 import uoa.se325.assignment01.repository.UserRepository;
 
+import java.net.URI;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -46,5 +48,17 @@ public class UserController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         response.addCookie(SecurityUtils.createEmptyAuthCookie());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping
+    public ResponseEntity<Void> createUser(@RequestBody UserCredentials credentials) {
+        if (userRepository.findByUsername(credentials.username()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        User user = new User(credentials.username(), SecurityUtils.getSHA256Hash(credentials.password()));
+        user = userRepository.save(user);
+
+        return ResponseEntity.created(URI.create("/api/users/" + user.getId())).build();
     }
 }
