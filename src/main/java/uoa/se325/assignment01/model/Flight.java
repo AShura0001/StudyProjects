@@ -59,10 +59,12 @@ public class Flight {
     @Enumerated(EnumType.STRING)
     private FlightStatus flightStatus;
 
+    // Not exposed directly in JSON - booking-info repackages this under "pricingInfo" instead.
     @ElementCollection
     @MapKeyColumn(name = "cabin_class")
     @MapKeyEnumerated(EnumType.STRING)
     @Column(name = "price")
+    @JsonIgnore
     private Map<CabinClass, Integer> seatPricings = new HashMap<>();
 
     /**

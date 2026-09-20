@@ -1,5 +1,6 @@
 package uoa.se325.assignment01.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,7 +23,10 @@ public class AircraftType {
 
     private String name;
 
+    // Not exposed in JSON - the API only ever shows an aircraft type's id/name. Zones are used
+    // server-side to work out a seat's cabin class.
     @ElementCollection
+    @JsonIgnore
     private List<SeatingZone> seatingZones = new ArrayList<>();
 
     public AircraftType() {
