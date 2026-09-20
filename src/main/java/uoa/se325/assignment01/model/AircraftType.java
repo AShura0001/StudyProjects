@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Describes a kind of aircraft on which a {@link Flight} can be taken, including its
@@ -58,5 +59,27 @@ public class AircraftType {
 
     public void setSeatingZones(List<SeatingZone> seatingZones) {
         this.seatingZones = seatingZones;
+    }
+
+    // Splits a seat code like "12A" into row 12 + letter "A", and finds which zone (if any) it
+    // falls in. Empty if the code is malformed or doesn't belong to any zone on this aircraft.
+    public Optional<CabinClass> getCabinClassForSeat(String seatCode) {
+        if (seatCode == null || seatCode.length() < 2) {
+            return Optional.empty();
+        }
+
+        String letter = seatCode.substring(seatCode.length() - 1);
+        int row;
+        try {
+            row = Integer.parseInt(seatCode.substring(0, seatCode.length() - 1));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+
+        return seatingZones.stream()
+                .filter(zone -> row >= zone.getStartingRowNumber() && row < zone.getStartingRowNumber() + zone.getNumRows())
+                .filter(zone -> zone.getSeatCodeData().contains(letter))
+                .map(SeatingZone::getCabinClass)
+                .findFirst();
     }
 }
