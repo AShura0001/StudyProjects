@@ -12,10 +12,11 @@ The project specification is available [on Canvas](https://canvas.auckland.ac.nz
 
 Update this readme file to contain the names of each team member and your GitHub login.
 
-* *Replace this text: Team Member Name 1 - GitHub Login*
-* *Replace this text: Team Member Name 2 - GitHub Login*
-* *Replace this text: Team Member Name 3 - GitHub Login*
-* *Replace this text: Team Member Name 4 - GitHub Login*
+* *Alastair - changecharacter*
+* *Ivan - ivanyuch*
+* *Ritvik - rsaj289*
+* *Stephen - stephenwu100*
+* *Thisas - ThisasG*
 
 You must also update this file to contain either the instructions for running your code or a link to the instructions.
 
@@ -24,3 +25,37 @@ You must also update this file to contain either the instructions for running yo
 This repository initially contains the code for the mainframe interface and the unit tests. The following code is supplied:
 * [mainframe](src/main/java/mainframe/client/): the interfaces for sending requests to and receiving responses from the mainframe. You will need to use the [Connection](src/main/java/mainframe/client/Connection.java) interface in your code. We have provided an implementation that connects to a web server in [HttpConnection](src/main/java/mainframe/client/HttpConnection.java).
 * [tests](src/test/java/mainframe/client/): the unit tests. Most of these connect to the web server, but there is an [example unit test](src/test/java/mainframe/client/SimulateListCustomers.java) for connecting to a stub.
+
+
+## Mainframe credentials
+Username: Group_2
+
+Password: bug
+
+## Example Mainframe access
+    public static void main(String[] args) throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Connection httpConnection = new HttpConnection("https://animating-eraser-arrogance.ngrok-free.dev/");
+        Status status = httpConnection.Login("admin", "admin");
+        Search searchCustomers = new Search(1, null, 1);
+        searchCustomers.send(httpConnection);
+        Search.Item[] ItemList = searchCustomers.getItems();
+        for (Search.Item i: ItemList){
+            System.out.println(i);
+        }
+
+        Retrieve retrieveCustomer = new Retrieve("01-0001-0000020");
+        retrieveCustomer.send(httpConnection);
+
+        for (Field field : retrieveCustomer.getClass().getDeclaredFields()){
+            String fieldName = field.getName();
+
+            // Construct the getter method name (e.g., "getName" or "getAge")
+            String getterName = "get" + Character.toUpperCase(fieldName.charAt(1)) + fieldName.substring(2);
+
+            // Retrieve and invoke the method
+            Method getter = retrieveCustomer.getClass().getMethod(getterName);
+            Object value = getter.invoke(retrieveCustomer);
+
+            System.out.println(fieldName + ": " + value);
+        }
+    }
