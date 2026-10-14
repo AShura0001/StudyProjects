@@ -1,5 +1,6 @@
 package lavs.business.model;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -8,43 +9,46 @@ import java.util.UUID;
  * confirmed by the mainframe.
  *
  * <p>The record itself is kept as plain text in the payload, so this class does
- * not depend on any JSON library. The local ID, type and payload never change;
- * only the status does.
+ * not depend on any JSON library. The local ID, type, payload and creation time
+ * never change; only the status does.
  */
 public class Draft {
 
     private final String localId;
     private final DraftType type;
     private final String payload;
+    private final Instant createdAt;
     private DraftStatus status;
 
     /**
-     * Creates a brand new draft with a fresh unique ID and a status of
-     * {@link DraftStatus#PENDING}.
+     * Creates a brand new draft with a fresh unique ID, a status of
+     * {@link DraftStatus#PENDING} and the current time as its creation time.
      *
      * @param type the kind of record this draft holds
      * @param payload the record as plain text
      * @throws NullPointerException if any argument is null
      */
     public Draft(DraftType type, String payload) {
-        this(UUID.randomUUID().toString(), type, payload, DraftStatus.PENDING);
+        this(UUID.randomUUID().toString(), type, payload, DraftStatus.PENDING, Instant.now());
     }
 
     /**
      * Rebuilds a draft that already exists, for example when it is loaded from
-     * disk. The ID and status are kept exactly as they were.
+     * disk. The ID, status and creation time are kept exactly as they were.
      *
      * @param localId the unique ID the draft was created with
      * @param type the kind of record this draft holds
      * @param payload the record as plain text
      * @param status where the draft is in its life
+     * @param createdAt the moment the draft was first created
      * @throws NullPointerException if any argument is null
      */
-    public Draft(String localId, DraftType type, String payload, DraftStatus status) {
+    public Draft(String localId, DraftType type, String payload, DraftStatus status, Instant createdAt) {
         this.localId = Objects.requireNonNull(localId, "localId must not be null");
         this.type = Objects.requireNonNull(type, "type must not be null");
         this.payload = Objects.requireNonNull(payload, "payload must not be null");
         this.status = Objects.requireNonNull(status, "status must not be null");
+        this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
     }
 
     /**
@@ -72,6 +76,15 @@ public class Draft {
      */
     public String getPayload() {
         return payload;
+    }
+
+    /**
+     * Gets the moment this draft was first created.
+     *
+     * @return the creation time
+     */
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     /**
