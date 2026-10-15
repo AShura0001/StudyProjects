@@ -13,9 +13,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.DateTimeException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 /**
  * Stores each draft as its own JSON file inside one folder.
@@ -26,6 +31,7 @@ import java.util.Optional;
  */
 public class JsonDraftRepository implements DraftRepository {
 
+    private static final Logger LOGGER = Logger.getLogger(JsonDraftRepository.class.getName());
     private static final String FILE_EXTENSION = ".json";
     private static final String TEMP_EXTENSION = ".json.tmp";
 
@@ -78,24 +84,61 @@ public class JsonDraftRepository implements DraftRepository {
         if (!Files.exists(file)) {
             return Optional.empty();
         }
-        try {
-            DraftFile read = mapper.readValue(file.toFile(), DraftFile.class);
-            return Optional.of(toDraft(read));
-        } catch (IOException | IllegalArgumentException | DateTimeException e) {
-            throw new DraftStorageException("Could not read draft " + localId, e);
-        }
+        return Optional.of(read(file));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A file that cannot be read is skipped and a warning is logged, so one
+     * damaged file does not hold up every other draft. The damaged file is left
+     * on disk untouched. Temporary files left by an interrupted save are ignored.
+     * Drafts with the same creation time are ordered by ID so the order is stable.
+     */
     @Override
     public List<Draft> findPending() {
-        throw new UnsupportedOperationException("not done yet");
+        if (!Files.isDirectory(folder)) {
+            return List.of();
+        }
+        List<Draft> pending = new ArrayList<>();
+        try (Stream<Path> files = Files.list(folder)) {
+            for (Path file : (Iterable<Path>) files::iterator) {
+                if (!file.getFileName().toString().endsWith(FILE_EXTENSION)) {
+                    continue;
+                }
+                try {
+                    Draft draft = read(file);
+                    if (draft.getStatus() == DraftStatus.PENDING) {
+                        pending.add(draft);
+                    }
+                } catch (DraftStorageException e) {
+                    LOGGER.log(Level.WARNING, "Skipping unreadable draft file " + file.getFileName(), e);
+                }
+            }
+        } catch (IOException e) {
+            throw new DraftStorageException("Could not list drafts in " + folder, e);
+        }
+        pending.sort(Comparator.comparing(Draft::getCreatedAt).thenComparing(Draft::getLocalId));
+        return pending;
     }
 
     /** {@inheritDoc} */
     @Override
     public void delete(String localId) {
-        throw new UnsupportedOperationException("not done yet");
+        Objects.requireNonNull(localId, "localId must not be null");
+        try {
+            Files.deleteIfExists(folder.resolve(localId + FILE_EXTENSION));
+        } catch (IOException e) {
+            throw new DraftStorageException("Could not delete draft " + localId, e);
+        }
+    }
+
+    private Draft read(Path file) {
+        try {
+            return toDraft(mapper.readValue(file.toFile(), DraftFile.class));
+        } catch (IOException | IllegalArgumentException | DateTimeException e) {
+            throw new DraftStorageException("Could not read draft file " + file.getFileName(), e);
+        }
     }
 
     private DraftFile toFile(Draft draft) {

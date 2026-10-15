@@ -39,8 +39,11 @@ public interface DraftRepository {
      * Finds every draft whose status is {@code PENDING}, oldest first, so the
      * same order is used after every restart.
      *
+     * <p>A stored draft that cannot be read is left out of the result and
+     * reported in the log, so one damaged draft does not block the others.
+     *
      * @return the pending drafts, or an empty list if there are none
-     * @throws DraftStorageException if the stored drafts could not be read
+     * @throws DraftStorageException if the list of stored drafts could not be read
      */
     List<Draft> findPending();
 
