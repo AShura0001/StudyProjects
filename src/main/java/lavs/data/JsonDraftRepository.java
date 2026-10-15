@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -62,10 +63,27 @@ public class JsonDraftRepository implements DraftRepository {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A missing file is not an error and gives an empty result. A file that
+     * exists but cannot be understood is reported with a
+     * {@link DraftStorageException}, so a damaged draft is never mistaken for a
+     * missing one.
+     */
     @Override
     public Optional<Draft> findById(String localId) {
-        throw new UnsupportedOperationException("not done yet");
+        Objects.requireNonNull(localId, "localId must not be null");
+        Path file = folder.resolve(localId + FILE_EXTENSION);
+        if (!Files.exists(file)) {
+            return Optional.empty();
+        }
+        try {
+            DraftFile read = mapper.readValue(file.toFile(), DraftFile.class);
+            return Optional.of(toDraft(read));
+        } catch (IOException | IllegalArgumentException | DateTimeException e) {
+            throw new DraftStorageException("Could not read draft " + localId, e);
+        }
     }
 
     /** {@inheritDoc} */
@@ -90,6 +108,10 @@ public class JsonDraftRepository implements DraftRepository {
     }
 
     private Draft toDraft(DraftFile file) {
+        if (file.localId() == null || file.type() == null || file.payload() == null
+                || file.status() == null || file.createdAt() == null) {
+            throw new IllegalArgumentException("draft file is missing a field");
+        }
         return new Draft(
                 file.localId(),
                 DraftType.valueOf(file.type()),
