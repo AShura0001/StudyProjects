@@ -91,7 +91,7 @@ public class CustomerSearchController {
             if (matches.isEmpty()) {
                 showNotFound();
             } else {
-                showNotice(matches.size() + " match(es). The results screen is the next frame to be built.");
+                Navigator.<SearchResultsController>show("searchresults", c -> c.show(term, matches));
             }
         });
         task.setOnFailed(e -> {
@@ -130,6 +130,12 @@ public class CustomerSearchController {
     private void showNotice(String text) {
         noticeLabel.setText(text);
         setShown(noticeLabel, true);
+    }
+
+    /** Used by the results screen when a follow-up search finds nobody. */
+    public void showNotFoundFor(String term) {
+        searchField.setText(term);
+        showNotFound();
     }
 
     private void showIdle() {

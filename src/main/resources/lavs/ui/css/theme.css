@@ -352,3 +352,100 @@
 .page-fill {
     -fx-background-color: -lavs-bg;
 }
+
+/* ---------- Results card and table ---------- */
+
+.results-card {
+    -fx-background-color: #1b1c1e;
+    -fx-background-radius: 14px;
+}
+
+.results-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 15px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.results-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8b8b93;
+}
+
+.table-box {
+    -fx-background-color: #1b1c1e;
+    -fx-border-color: #2c2d31;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+}
+
+.table-header-row {
+    -fx-background-color: #2e2f33;
+    -fx-background-radius: 8px 8px 0 0;
+}
+
+.table-header-cell {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #b8b8c0;
+}
+
+.table-row {
+    -fx-border-color: #2c2d31 transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.table-cell {
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.table-cell-muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8b8b93;
+}
+
+.link-details {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e5e5ea;
+    -fx-underline: false;
+    -fx-alignment: TOP_LEFT;
+    -fx-padding: 0;
+    -fx-min-height: 21px;
+    -fx-pref-height: 21px;
+    -fx-max-height: 21px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #e5e5ea transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.link-details:visited { -fx-text-fill: #e5e5ea; }
+.link-details:hover   { -fx-text-fill: #ffffff; }
+.link-details:focused { -fx-border-color: #6ea8ff; -fx-border-width: 1px; }
+
+.btn-pager {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8b8b93;
+    -fx-font-size: 12px;
+    -fx-graphic-text-gap: 8px;
+    -fx-padding: 4px 6px;
+    -fx-cursor: hand;
+}
+
+.btn-pager:hover    { -fx-text-fill: #ffffff; }
+.btn-pager:disabled { -fx-opacity: 0.4; }
+.btn-pager:focused  {
+    -fx-border-color: #6ea8ff;
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px;
+}
+
+.pager-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #8b8b93;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.5;
+    -fx-scale-y: 0.5;
+}
