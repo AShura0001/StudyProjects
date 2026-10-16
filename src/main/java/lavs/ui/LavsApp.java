@@ -31,7 +31,7 @@ public class LavsApp extends Application {
     }
 
     private static void loadBundledFonts() {
-        for (String file : new String[] {"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf"}) {
+        for (String file : new String[] {"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf", "Nunito-Bold.ttf"}) {
             String path = "/lavs/ui/fonts/" + file;
             try (var in = LavsApp.class.getResourceAsStream(path)) {
                 if (in == null || Font.loadFont(in, 12) == null) {

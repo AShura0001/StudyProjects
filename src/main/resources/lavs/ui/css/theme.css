@@ -20,6 +20,11 @@
     src: url("../fonts/NATS-Regular.ttf");
 }
 
+@font-face {
+    -fx-font-family: "Nunito Bold";
+    src: url("../fonts/Nunito-Bold.ttf");
+}
+
 .root {
     -lavs-bg:            #0e0e10;
     -lavs-surface:       #17171a;
@@ -36,6 +41,7 @@
     -lavs-subtitle:      #9a9aa4;
     -lavs-danger:        #e5484d;
     -lavs-alert:         #e5484d;
+    -lavs-link:          #6ea8ff;
     -lavs-focus:         #6ea8ff;
 
     -fx-font-family: "NATS";
@@ -220,4 +226,129 @@
     -fx-padding: 0 28px;
     -fx-font-size: 17px;
     -fx-font-weight: bold;
+}
+
+/*
+ * Light page palette used by the search and directory screens in the Figma
+ * frames. The dark panels on top of it (results card, profile cards) set
+ * their own surfaces.
+ */
+.light-root {
+    -lavs-bg:          #eeeff0;
+    -lavs-surface:     #1c1c1e;
+    -lavs-text:        #1c1c1e;
+    -lavs-text-muted:  #6b7280;
+    -lavs-alert:       #ff0000;
+    -lavs-link:        #0b3dff;
+    -lavs-focus:       #0b3dff;
+    -fx-background-color: -lavs-bg;
+}
+
+/* ---------- Search pill ---------- */
+
+.search-field {
+    -fx-background-color: #1c1c1e;
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+    -fx-text-fill: #d6d6da;
+    -fx-prompt-text-fill: #c4c4ca;
+    -fx-padding: 0 58px;
+    -fx-min-height: 50px;
+    -fx-pref-height: 50px;
+    -fx-max-height: 50px;
+    -fx-font-size: 22px;
+}
+
+.btn-search {
+    -fx-background-color: #d9d9d9;
+    -fx-background-radius: 999px;
+    -fx-min-width: 46px;
+    -fx-min-height: 46px;
+    -fx-max-width: 46px;
+    -fx-max-height: 46px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.btn-search:hover   { -fx-background-color: #ffffff; }
+.btn-search:pressed { -fx-background-color: #c4c5ca; }
+.btn-search:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+
+.search-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #1c1c1e;
+    -fx-stroke-width: 1.4px;
+    -fx-scale-x: 1.5;
+    -fx-scale-y: 1.5;
+    -fx-stroke-line-cap: round;
+}
+
+/* ---------- Corner chips (Back, Logout) ---------- */
+
+.btn-chip {
+    -fx-background-color: #2b2b2e;
+    -fx-background-radius: 5px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 9px;
+    -fx-padding: 0 7px;
+    -fx-graphic-text-gap: 5px;
+    -fx-cursor: hand;
+}
+
+.btn-chip:hover   { -fx-background-color: #404045; }
+.btn-chip:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 5px;
+    -fx-border-width: 2px;
+}
+
+.btn-chip-danger { -fx-background-color: #8d1b1b; }
+.btn-chip-danger:hover { -fx-background-color: #ac2323; }
+
+.chip-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #ffffff;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.45;
+    -fx-scale-y: 0.45;
+}
+
+/* ---------- Inline messages and links ---------- */
+
+.message-alert {
+    -fx-text-fill: -lavs-alert;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+}
+
+.link-text {
+    -fx-text-fill: -lavs-link;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+}
+
+.link-inline {
+    -fx-text-fill: -lavs-link;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+    -fx-underline: true;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.link-inline:visited { -fx-text-fill: -lavs-link; }
+.link-inline:focused { -fx-border-color: -lavs-focus; -fx-border-width: 1px; }
+
+/* Every region of a light page paints the page colour explicitly. */
+.page-fill {
+    -fx-background-color: -lavs-bg;
 }

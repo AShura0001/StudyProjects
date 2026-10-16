@@ -16,6 +16,7 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 
+import lavs.ui.Navigator;
 import lavs.ui.stub.StubAuthService;
 
 /**
@@ -89,8 +90,7 @@ public class LoginController {
             setBusy(false);
             StubAuthService.Result result = task.getValue();
             if (result.success()) {
-                // Navigation arrives with the Customer Search screen.
-                showMessage("Signed in. Customer Search is not built yet.", false);
+                Navigator.show("customersearch");
             } else {
                 showMessage(result.message(), true);
                 passwordField.clear();
