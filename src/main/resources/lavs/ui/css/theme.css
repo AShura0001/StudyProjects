@@ -15,6 +15,11 @@
     src: url("../fonts/RedHatMono.ttf");
 }
 
+@font-face {
+    -fx-font-family: "NATS";
+    src: url("../fonts/NATS-Regular.ttf");
+}
+
 .root {
     -lavs-bg:            #0e0e10;
     -lavs-surface:       #17171a;
@@ -26,12 +31,14 @@
     -lavs-accent-hover:  #4682f0;
     -lavs-accent-press:  #2459c4;
     -lavs-on-accent:     #ffffff;
+    -lavs-on-accent-text: #ffffff;
     -lavs-brand:         #b3122b;
     -lavs-subtitle:      #9a9aa4;
     -lavs-danger:        #e5484d;
+    -lavs-alert:         #e5484d;
     -lavs-focus:         #6ea8ff;
 
-    -fx-font-family: "Segoe UI", "Inter", sans-serif;
+    -fx-font-family: "NATS";
     -fx-background-color: -lavs-bg;
 }
 
@@ -48,10 +55,12 @@
     -lavs-text-muted:  #6b7280;
     -lavs-brand:       #ebb400;
     -lavs-subtitle:    #ffe09d;
+    -lavs-alert:       #ff0000;
     -lavs-accent:       #a5c3ff;
     -lavs-accent-hover: #bad2ff;
     -lavs-accent-press: #8fb2f5;
     -lavs-on-accent:    #ffffff;
+    -lavs-on-accent-text: #1e1e1e;
     -lavs-focus:       #a5c3ff;
     -fx-background-color: -lavs-bg;
 }
@@ -81,8 +90,11 @@
     -fx-border-width: 1px;
     -fx-text-fill: -lavs-text;
     -fx-prompt-text-fill: -lavs-text-muted;
-    -fx-padding: 14px 22px;
-    -fx-font-size: 14px;
+    -fx-padding: 0 22px;
+    -fx-min-height: 49px;
+    -fx-pref-height: 49px;
+    -fx-max-height: 49px;
+    -fx-font-size: 16px;
 }
 
 /*
@@ -105,7 +117,7 @@
 .btn-primary {
     -fx-background-color: -lavs-accent;
     -fx-background-radius: 999px;
-    -fx-text-fill: white;
+    -fx-text-fill: -lavs-on-accent-text;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-padding: 9px 26px;
@@ -160,7 +172,7 @@
 
 .message-error {
     -fx-text-fill: -lavs-danger;
-    -fx-font-size: 11px;
+    -fx-font-size: 13px;
 }
 
 .message-muted {
@@ -194,4 +206,18 @@
     -fx-stroke-width: 2.6px;
     -fx-stroke-line-cap: round;
     -fx-stroke-line-join: round;
+}
+
+/* Logged out banner: bold caps in pure red, from the Figma frame. */
+.message-logout {
+    -fx-text-fill: -lavs-alert;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* Compact pill used for secondary actions such as "login again". */
+.btn-small {
+    -fx-padding: 0 28px;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
 }
