@@ -94,7 +94,7 @@
                                    prefHeight="49" minHeight="49" maxHeight="49"/>
                         </StackPane>
 
-                        <VBox styleClass="notes-box" prefHeight="129" minHeight="129" VBox.vgrow="ALWAYS">
+                        <VBox styleClass="notes-box" prefHeight="126" minHeight="126" maxHeight="126">
                             <Label text="NOTES" styleClass="notes-title" maxWidth="Infinity"/>
                             <TextArea fx:id="notesArea" styleClass="notes-area" editable="false"
                                       wrapText="true" VBox.vgrow="ALWAYS" focusTraversable="false"/>

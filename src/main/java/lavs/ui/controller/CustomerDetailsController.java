@@ -25,6 +25,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
+import lavs.ui.component.NotesPaper;
 import lavs.ui.stub.StubCustomerService;
 
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ public class CustomerDetailsController {
 
     @FXML
     private void initialize() {
+        NotesPaper.attach(notesArea);
         setShown(noticeLabel, false);
         setShown(progress, false);
         applyMode(false);

@@ -489,6 +489,7 @@
 }
 
 .notes-box {
+    -lavs-line: #3d4044;
     -fx-background-color: #2f3235;
     -fx-border-color: #4a4d51;
     -fx-border-width: 1px;
@@ -516,7 +517,25 @@
 }
 
 .notes-area {
-    -fx-padding: 0 4px;
+    -fx-padding: 0 6px;
+}
+
+.notes-area .content {
+    -fx-padding: 0;
+}
+
+/*
+ * Ruled lines for previews such as Scene Builder, where no code runs. At runtime
+ * NotesPaper marks the area "live" and draws lines measured from the real font
+ * instead, which also follow the text as it scrolls.
+ */
+.notes-area {
+    -fx-background-color: linear-gradient(from 0px 0px to 0px 16px, repeat,
+        transparent 0%, transparent 93.75%, -lavs-line 93.75%, -lavs-line 100%);
+}
+
+.notes-area.live {
+    -fx-background-color: transparent;
 }
 
 .field-label {
@@ -697,6 +716,7 @@
 }
 
 .editing .notes-box {
+    -lavs-line: #8f8f8f;
     -fx-background-color: #d9d9d9;
     -fx-border-color: #b5b5b5;
 }
