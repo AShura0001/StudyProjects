@@ -13,6 +13,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <JUnit.version>5.10.1</JUnit.version>
+        <Mockito.version>5.20.0</Mockito.version>
     </properties>
 
     <dependencyManagement>
@@ -31,6 +32,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${Mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
