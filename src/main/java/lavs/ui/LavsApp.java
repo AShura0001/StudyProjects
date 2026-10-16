@@ -25,13 +25,13 @@ public class LavsApp extends Application {
         stage.setTitle("LAVS — Countrywide Banking Corporation");
         stage.setWidth(900);
         stage.setHeight(600);
-        stage.setMinWidth(760);
-        stage.setMinHeight(520);
+        stage.setMinWidth(900);
+        stage.setMinHeight(600);
         stage.show();
     }
 
     private static void loadBundledFonts() {
-        for (String file : new String[] {"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf", "Nunito-Bold.ttf"}) {
+        for (String file : new String[] {"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf", "Nunito-Bold.ttf", "Nunito-Regular.ttf"}) {
             String path = "/lavs/ui/fonts/" + file;
             try (var in = LavsApp.class.getResourceAsStream(path)) {
                 if (in == null || Font.loadFont(in, 12) == null) {

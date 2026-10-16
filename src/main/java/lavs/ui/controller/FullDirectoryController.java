@@ -47,7 +47,11 @@ public class FullDirectoryController {
                 Platform.runLater(root::requestFocus);
             }
         });
-        loadPage(0);
+    }
+
+    /** Shows the given zero-based page; called by whichever screen opens the directory. */
+    public void open(int pageIndex) {
+        loadPage(pageIndex);
     }
 
     /** Each accelerator is a second route to a control that is already on screen. */
@@ -79,7 +83,7 @@ public class FullDirectoryController {
             tableBox.getChildren().setAll(CustomerRows.header());
             for (StubCustomerService.Match m : task.getValue()) {
                 tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
-                        () -> showNotice("The customer details screen has not been built yet.")));
+                        () -> openDetails(m.customerNumber())));
             }
             loading = false;
             countLabel.setText(total + " customers registered");
@@ -94,6 +98,12 @@ public class FullDirectoryController {
         Thread worker = new Thread(task, "directory-page");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    private void openDetails(String customerNumber) {
+        int returnPage = page;
+        Navigator.<CustomerDetailsController>show("customerdetails", c -> c.open(customerNumber,
+                () -> Navigator.<FullDirectoryController>show("fulldirectory", d -> d.open(returnPage))));
     }
 
     private int pageCount() {

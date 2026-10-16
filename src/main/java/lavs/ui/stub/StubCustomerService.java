@@ -60,6 +60,47 @@ public class StubCustomerService {
         return DIRECTORY.subList(from, to);
     }
 
+    public record Employer(String name, String id) {
+    }
+
+    public record Loan(String name, String date, String loanNumber) {
+    }
+
+    public record Details(String customerNumber, String firstName, String lastName, String phone,
+                          String email, String addressLine1, String addressLine2, String notes,
+                          List<Employer> employers, List<Loan> loans) {
+    }
+
+    /** Returns sample details for any customer number found in the directory, or null. */
+    public Details details(String customerNumber) {
+        if (!pause()) {
+            return null;
+        }
+        Match match = DIRECTORY.stream()
+                .filter(m -> m.customerNumber().equals(customerNumber))
+                .findFirst()
+                .orElse(null);
+        if (match == null) {
+            return null;
+        }
+        String[] parts = match.name().split(" ", 2);
+        String first = parts[0];
+        String last = parts.length > 1 ? parts[1] : "";
+        String handle = (first + "." + last).toLowerCase(Locale.ROOT).replaceAll("[^a-z.]", "");
+        return new Details(match.customerNumber(), first, last, "+64 21 555 0142",
+                handle + "@example.com", "14 Karaka Street", "Newmarket, Auckland 1023",
+                "Prefers contact by email. Mortgage review due in March.",
+                List.of(new Employer("Sarah Jenkins", "CMP-1001"),
+                        new Employer("Michael Torres", "CMP-1002"),
+                        new Employer("Priya Sharma", "CMP-1003"),
+                        new Employer("David Kim", "CMP-1004"),
+                        new Employer("Emily Chen", "CMP-1005")),
+                List.of(new Loan("Home Mortgage", "2023-01-15", "LN-5001"),
+                        new Loan("Auto Loan", "2024-03-22", "LN-5002"),
+                        new Loan("Personal Loan", "2024-08-10", "LN-5003"),
+                        new Loan("Student Loan", "2022-09-01", "LN-5004")));
+    }
+
     private boolean pause() {
         try {
             Thread.sleep(simulatedLatencyMillis);

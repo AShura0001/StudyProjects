@@ -62,10 +62,22 @@ public class SearchResultsController {
 
     /** Called by the previous screen before this one is displayed. */
     public void show(String term, List<StubCustomerService.Match> results) {
+        show(term, results, 0);
+    }
+
+    public void show(String term, List<StubCustomerService.Match> results, int pageIndex) {
         searchField.setText(term);
         matches = results;
-        page = 0;
+        page = pageIndex;
         render();
+    }
+
+    private void openDetails(String customerNumber) {
+        String term = searchField.getText();
+        List<StubCustomerService.Match> shown = matches;
+        int returnPage = page;
+        Navigator.<CustomerDetailsController>show("customerdetails", c -> c.open(customerNumber,
+                () -> Navigator.<SearchResultsController>show("searchresults", r -> r.show(term, shown, returnPage))));
     }
 
     /** Each accelerator is a second route to a control that is already on screen. */
@@ -90,7 +102,7 @@ public class SearchResultsController {
         int to = Math.min(from + PAGE_SIZE, total);
         for (StubCustomerService.Match m : matches.subList(from, to)) {
             tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
-                    () -> showNotice("The customer details screen has not been built yet.")));
+                    () -> openDetails(m.customerNumber())));
         }
 
         previousButton.setDisable(page == 0);

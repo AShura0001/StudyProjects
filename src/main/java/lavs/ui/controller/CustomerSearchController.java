@@ -119,7 +119,7 @@ public class CustomerSearchController {
 
     @FXML
     private void onFullDirectory() {
-        Navigator.show("fulldirectory");
+        Navigator.<FullDirectoryController>show("fulldirectory", d -> d.open(0));
     }
 
     @FXML
