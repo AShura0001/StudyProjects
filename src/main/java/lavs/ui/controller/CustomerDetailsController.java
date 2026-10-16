@@ -151,10 +151,21 @@ public class CustomerDetailsController {
             VBox item = listItem(loan.name(), loan.date() + "  •  " + loan.loanNumber());
             Hyperlink link = new Hyperlink("Click here for further details");
             link.getStyleClass().add("list-item-link");
-            link.setOnAction(e -> showNotice("The loan details screen has not been built yet."));
+            link.setOnAction(e -> openLoan(loan));
             item.getChildren().add(link);
             loansBox.getChildren().add(item);
         }
+    }
+
+    private void openLoan(StubCustomerService.Loan loan) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Navigator.<LoanDetailsController>show("loandetails", l -> l.open(loan.loanNumber(),
+                () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                        c -> c.open(customerNumber, backFromCustomer))));
     }
 
     private VBox listItem(String title, String subtitle) {

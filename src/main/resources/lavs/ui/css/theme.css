@@ -791,3 +791,169 @@
     -fx-border-radius: 999px;
     -fx-border-width: 2px;
 }
+
+/* ---------- Loan details ---------- */
+
+.section-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.section-rule {
+    -fx-background-color: #2e3033;
+}
+
+.kv-label {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #9a9ca3;
+    -fx-min-height: 17px;
+}
+
+.kv-field {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 10px;
+    -fx-text-fill: #f2f2f4;
+    -fx-background-color: transparent;
+    -fx-background-radius: 2px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-min-height: 17px;
+    -fx-pref-height: 17px;
+    -fx-max-height: 17px;
+    -fx-focus-traversable: false;
+}
+
+.editing .kv-field {
+    -fx-background-color: #e9e9e9;
+    -fx-text-fill: #1b1c1e;
+    -fx-padding: 0 6px;
+    -fx-focus-traversable: true;
+}
+
+.editing .kv-field:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 2px;
+}
+
+.kv-field.field-error,
+.editing .kv-field.field-error {
+    -fx-border-color: #ff4d4d;
+    -fx-border-width: 2px;
+    -fx-border-radius: 2px;
+}
+
+.info-card,
+.status-card {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 14px;
+}
+
+.status-card { -fx-padding: 6px 12px; }
+
+.status-dot {
+    -fx-background-color: #19c6a0;
+    -fx-background-radius: 999px;
+}
+
+.status-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.status-subtitle {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 8.5px;
+    -fx-text-fill: #9a9ca3;
+}
+
+.loan-progress {
+    -fx-accent: #f2b800;
+    -fx-control-inner-background: #2e3033;
+}
+
+.loan-progress .track {
+    -fx-background-color: #2e3033;
+    -fx-background-radius: 2px;
+    -fx-background-insets: 0;
+}
+
+.loan-progress .bar {
+    -fx-background-color: #f2b800;
+    -fx-background-radius: 2px;
+    -fx-background-insets: 0;
+    -fx-padding: 2px;
+}
+
+.schedule-header-row {
+    -fx-background-color: #2b2d30;
+    -fx-background-radius: 4px;
+    -fx-padding: 0 8px;
+}
+
+.schedule-row {
+    -fx-padding: 0 8px;
+    -fx-border-color: transparent transparent #25272a transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.sched-head {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #b8b8c0;
+}
+
+.sched-strong {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.sched-muted {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #8b8d94;
+}
+
+.sched-paid     { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #c7c8ce; }
+.sched-due      { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #f2b800; }
+.sched-upcoming { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #6b6d72; }
+
+.cb-row {
+    -fx-border-color: transparent transparent #4a4d51 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.cb-name {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.cb-id {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #8b8d94;
+}
+
+.btn-add-wide {
+    -fx-background-color: #e9e9e9;
+    -fx-background-radius: 2px;
+    -fx-text-fill: #1b1c1e;
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-padding: 3px 12px;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+
+.btn-add-wide:hover { -fx-background-color: #ffffff; }
+.btn-add-wide:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+}
