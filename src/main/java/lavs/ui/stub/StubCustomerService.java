@@ -101,6 +101,31 @@ public class StubCustomerService {
                         new Loan("Student Loan", "2022-09-01", "LN-5004")));
     }
 
+    /**
+     * Stand-in for the business layer's field rules. Returns field name to
+     * message; an empty map means the save was accepted.
+     */
+    public java.util.Map<String, String> save(Details details) {
+        pause();
+        java.util.Map<String, String> errors = new java.util.LinkedHashMap<>();
+        if (details.firstName().isBlank()) {
+            errors.put("firstName", "First name is required.");
+        }
+        if (details.lastName().isBlank()) {
+            errors.put("lastName", "Last name is required.");
+        }
+        if (details.phone().isBlank()) {
+            errors.put("phone", "Phone number is required.");
+        }
+        if (!details.email().contains("@")) {
+            errors.put("email", "Enter a valid email address.");
+        }
+        if (details.addressLine1().isBlank()) {
+            errors.put("addressLine1", "Address line 1 is required.");
+        }
+        return errors;
+    }
+
     private boolean pause() {
         try {
             Thread.sleep(simulatedLatencyMillis);

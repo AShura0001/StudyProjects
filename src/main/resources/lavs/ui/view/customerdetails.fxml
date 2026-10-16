@@ -77,6 +77,17 @@
                                     <SVGPath styleClass="avatar" scaleX="3.75" scaleY="3.75"
                                              content="M12 3 A4.5 4.5 0 1 1 12 12 A4.5 4.5 0 1 1 12 3 Z M3 21 C3 15.5 7 13.5 12 13.5 C17 13.5 21 15.5 21 21 Z"/>
                                 </StackPane>
+                                <Button fx:id="photoEditButton" styleClass="btn-edit-chip" text="Edit"
+                                        visible="false" managed="false" onAction="#onPhotoEdit"
+                                        StackPane.alignment="BOTTOM_RIGHT">
+                                    <StackPane.margin>
+                                        <Insets right="8" bottom="8"/>
+                                    </StackPane.margin>
+                                    <graphic>
+                                        <SVGPath styleClass="edit-chip-icon"
+                                                 content="M4 20 L8 19 L19 8 L16 5 L5 16 Z M14 7 L17 10"/>
+                                    </graphic>
+                                </Button>
                             </StackPane>
                             <Label fx:id="customerIdLabel" text="CUS-20490" styleClass="id-tag"
                                    prefWidth="111" minWidth="111" maxWidth="111"
@@ -174,7 +185,7 @@
                         <HBox spacing="22" alignment="TOP_RIGHT" StackPane.alignment="TOP_RIGHT"
                               maxWidth="-Infinity" maxHeight="-Infinity">
                             <VBox alignment="TOP_CENTER" spacing="3">
-                                <Button styleClass="mode-circle, mode-selected" focusTraversable="false">
+                                <Button fx:id="viewModeButton" styleClass="mode-circle, mode-selected" onAction="#onViewMode">
                                     <graphic>
                                         <StackPane>
                                             <SVGPath styleClass="mode-icon"
@@ -188,7 +199,7 @@
                                 <Label text="view mode" styleClass="mode-caption"/>
                             </VBox>
                             <VBox alignment="TOP_CENTER" spacing="3">
-                                <Button styleClass="mode-circle" onAction="#onEditMode">
+                                <Button fx:id="editModeButton" styleClass="mode-circle" onAction="#onEditMode">
                                     <graphic>
                                         <SVGPath styleClass="mode-icon"
                                                  content="M4 20 L8 19 L19 8 L16 5 L5 16 Z M14 7 L17 10"/>
@@ -197,6 +208,19 @@
                                 </Button>
                                 <Label text="edit mode" styleClass="mode-caption"/>
                             </VBox>
+                        </HBox>
+
+                        <HBox fx:id="editActions" spacing="6" alignment="BOTTOM_RIGHT"
+                              StackPane.alignment="BOTTOM_RIGHT" visible="false" managed="false"
+                              maxWidth="-Infinity" maxHeight="-Infinity">
+                            <Button fx:id="cancelButton" text="cancel" styleClass="btn-action, btn-action-cancel"
+                                    onAction="#onCancel">
+                                <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>
+                            </Button>
+                            <Button fx:id="saveButton" text="save" styleClass="btn-action, btn-action-save"
+                                    onAction="#onSave">
+                                <tooltip><Tooltip text="Save (Ctrl+S)"/></tooltip>
+                            </Button>
                         </HBox>
                     </StackPane>
                 </HBox>
