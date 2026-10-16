@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+
+<!--
+    Login screen, laid out to match the Figma frame: wordmark and subtitle
+    stacked tight, then two equal-width pills. The submit circle hangs off the
+    right of the password pill via translateX, so it does not push the pills
+    off-centre.
+
+    The view only declares layout and binds to the controller. All rules
+    belong to the business layer; this screen renders what it is handed.
+-->
+<StackPane fx:id="root" styleClass="login-root"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="lavs.ui.controller.LoginController"
+           prefWidth="900" prefHeight="600"
+           stylesheets="@../css/theme.css">
+
+    <VBox fx:id="card" alignment="CENTER" spacing="0" maxWidth="-Infinity" maxHeight="-Infinity">
+
+        <Label text="Countrywide Banking Corporation" styleClass="brand-wordmark"
+               wrapText="false" textAlignment="CENTER"/>
+
+        <Label text="Mortage Managers Login" styleClass="brand-subtitle"
+               textAlignment="CENTER">
+            <VBox.margin>
+                <Insets top="-4" bottom="22"/>
+            </VBox.margin>
+        </Label>
+
+        <VBox alignment="CENTER" spacing="14" maxWidth="280" prefWidth="280">
+
+            <TextField fx:id="employeeIdField" styleClass="field"
+                       promptText="Enter your Employee ID"
+                       alignment="CENTER" prefWidth="280" maxWidth="280"/>
+
+            <StackPane prefWidth="280" maxWidth="280">
+                <PasswordField fx:id="passwordField" styleClass="field"
+                               promptText="Enter your Password"
+                               alignment="CENTER" prefWidth="280" maxWidth="280"/>
+                <StackPane StackPane.alignment="CENTER_RIGHT" translateX="66"
+                           maxWidth="-Infinity" maxHeight="-Infinity">
+                    <Button fx:id="submitButton" styleClass="btn-circle" onAction="#onSubmit">
+                        <graphic>
+                            <SVGPath styleClass="arrow-icon"
+                                     content="M3 12 H19 M12 5 L19 12 L12 19"/>
+                        </graphic>
+                    </Button>
+                    <ProgressIndicator fx:id="progress" visible="false"
+                                       managed="false" prefWidth="30" prefHeight="30"/>
+                </StackPane>
+            </StackPane>
+
+            <Label fx:id="messageLabel" styleClass="message-error"
+                   wrapText="true" minHeight="28" maxWidth="Infinity"
+                   textAlignment="CENTER"/>
+
+        </VBox>
+
+    </VBox>
+
+</StackPane>
