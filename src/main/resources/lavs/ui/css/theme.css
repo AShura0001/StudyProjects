@@ -1,0 +1,197 @@
+/*
+ * LAVS theme tokens.
+ *
+ * Every colour in the application is defined here and referenced by name
+ * elsewhere, so re-theming (including a light/dark flip) means editing this
+ * block only -- never the individual FXML files.
+ */
+@font-face {
+    -fx-font-family: "Jacquard 12";
+    src: url("../fonts/Jacquard12-Regular.ttf");
+}
+
+@font-face {
+    -fx-font-family: "Red Hat Mono";
+    src: url("../fonts/RedHatMono.ttf");
+}
+
+.root {
+    -lavs-bg:            #0e0e10;
+    -lavs-surface:       #17171a;
+    -lavs-surface-alt:   #1f1f24;
+    -lavs-border:        #2d2d34;
+    -lavs-text:          #f2f2f4;
+    -lavs-text-muted:    #9a9aa4;
+    -lavs-accent:        #2f6fed;
+    -lavs-accent-hover:  #4682f0;
+    -lavs-accent-press:  #2459c4;
+    -lavs-on-accent:     #ffffff;
+    -lavs-brand:         #b3122b;
+    -lavs-subtitle:      #9a9aa4;
+    -lavs-danger:        #e5484d;
+    -lavs-focus:         #6ea8ff;
+
+    -fx-font-family: "Segoe UI", "Inter", sans-serif;
+    -fx-background-color: -lavs-bg;
+}
+
+/*
+ * Login / Logged out scene palette, from the Figma frame.
+ * Overridden on this subtree only; looked-up colours cascade to every child.
+ */
+.login-root {
+    -lavs-bg:          #1e1e1e;
+    -lavs-surface:     #1e1e1e;
+    -lavs-surface-alt: #ffffff;
+    -lavs-border:      transparent;
+    -lavs-text:        #3a3a3f;
+    -lavs-text-muted:  #6b7280;
+    -lavs-brand:       #ebb400;
+    -lavs-subtitle:    #ffe09d;
+    -lavs-accent:       #a5c3ff;
+    -lavs-accent-hover: #bad2ff;
+    -lavs-accent-press: #8fb2f5;
+    -lavs-on-accent:    #ffffff;
+    -lavs-focus:       #a5c3ff;
+    -fx-background-color: -lavs-bg;
+}
+
+/* ---------- Brand wordmark ---------- */
+
+/* Fonts are bundled in /lavs/ui/fonts and registered at startup by LavsApp. */
+.brand-wordmark {
+    -fx-font-family: "Jacquard 12";
+    -fx-font-size: 43px;
+    -fx-text-fill: -lavs-brand;
+}
+
+.brand-subtitle {
+    -fx-font-family: "Red Hat Mono";
+    -fx-font-size: 13px;
+    -fx-text-fill: -lavs-subtitle;
+}
+
+/* ---------- Text fields ---------- */
+
+.field {
+    -fx-background-color: -lavs-surface-alt;
+    -fx-background-radius: 999px;
+    -fx-border-color: -lavs-border;
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -lavs-text;
+    -fx-prompt-text-fill: -lavs-text-muted;
+    -fx-padding: 14px 22px;
+    -fx-font-size: 14px;
+}
+
+/*
+ * Focus ring is deliberately 2px and high-contrast: the brief's users are
+ * coming off a keyboard-driven terminal, so "where am I" must never be
+ * ambiguous during tab traversal.
+ */
+.field:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-width: 2px;
+}
+
+.field.field-error {
+    -fx-border-color: -lavs-danger;
+    -fx-border-width: 2px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-primary {
+    -fx-background-color: -lavs-accent;
+    -fx-background-radius: 999px;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 9px 26px;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover  { -fx-background-color: -lavs-accent-hover; }
+.btn-primary:pressed { -fx-background-color: -lavs-accent-press; }
+.btn-primary:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+.btn-primary:disabled { -fx-opacity: 0.45; }
+
+/* Circular submit button from the mock-up. */
+.btn-circle {
+    -fx-background-color: -lavs-accent;
+    -fx-background-radius: 999px;
+    -fx-min-width: 50px;
+    -fx-min-height: 50px;
+    -fx-max-width: 50px;
+    -fx-max-height: 50px;
+    -fx-text-fill: -lavs-on-accent;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.btn-circle:hover   { -fx-background-color: -lavs-accent-hover; }
+.btn-circle:pressed { -fx-background-color: -lavs-accent-press; }
+.btn-circle:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+.btn-circle:disabled { -fx-opacity: 0.45; }
+
+.btn-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 11px;
+    -fx-underline: true;
+    -fx-padding: 2px 4px;
+    -fx-cursor: hand;
+}
+
+.btn-link:hover { -fx-text-fill: -lavs-text; }
+
+/* ---------- Status / validation messages ---------- */
+
+.message-error {
+    -fx-text-fill: -lavs-danger;
+    -fx-font-size: 11px;
+}
+
+.message-muted {
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 11px;
+}
+
+/* ---------- Progress ---------- */
+
+.progress-indicator {
+    -fx-progress-color: -lavs-accent;
+}
+
+/* ---------- Shortcut hint chip ---------- */
+
+.hint-chip {
+    -fx-background-color: -lavs-surface-alt;
+    -fx-background-radius: 5px;
+    -fx-border-color: -lavs-border;
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 10px;
+    -fx-padding: 2px 7px;
+}
+
+/* Stroked arrow drawn as a vector so its weight scales cleanly. */
+.arrow-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -lavs-on-accent;
+    -fx-stroke-width: 2.6px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
