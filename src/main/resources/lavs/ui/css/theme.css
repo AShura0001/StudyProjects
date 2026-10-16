@@ -449,3 +449,10 @@
     -fx-scale-x: 0.5;
     -fx-scale-y: 0.5;
 }
+
+/* "Next Page" is the forward action and shows in the link blue until it is disabled. */
+.btn-pager-next { -fx-text-fill: #6ea8ff; }
+.btn-pager-next:hover { -fx-text-fill: #9cc2ff; }
+.btn-pager-next .pager-icon { -fx-stroke: #6ea8ff; }
+.btn-pager-next:disabled { -fx-text-fill: #8b8b93; }
+.btn-pager-next:disabled .pager-icon { -fx-stroke: #8b8b93; }

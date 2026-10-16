@@ -124,7 +124,7 @@
                         <tooltip><Tooltip text="Previous page (Page Up)"/></tooltip>
                     </Button>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Button fx:id="nextButton" text="Next Page" styleClass="btn-pager"
+                    <Button fx:id="nextButton" text="Next Page" styleClass="btn-pager, btn-pager-next"
                             contentDisplay="RIGHT" onAction="#onNext">
                         <graphic>
                             <SVGPath styleClass="pager-icon" content="M4 12 H19 M13 6 L19 12 L13 18"/>

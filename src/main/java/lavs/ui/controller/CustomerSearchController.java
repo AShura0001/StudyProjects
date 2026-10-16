@@ -119,7 +119,7 @@ public class CustomerSearchController {
 
     @FXML
     private void onFullDirectory() {
-        showNotice("The full directory screen has not been built yet.");
+        Navigator.show("fulldirectory");
     }
 
     @FXML

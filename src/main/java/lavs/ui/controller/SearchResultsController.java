@@ -3,13 +3,10 @@ package lavs.ui.controller;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
@@ -18,11 +15,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 import lavs.ui.Navigator;
+import lavs.ui.component.CustomerRows;
 import lavs.ui.stub.StubCustomerService;
 
 import java.util.List;
@@ -89,50 +85,16 @@ public class SearchResultsController {
         int total = matches.size();
         countLabel.setText(total + (total == 1 ? " person" : " people") + " found with similar names");
 
-        tableBox.getChildren().setAll(buildRow("Name", "Customer ID", true));
+        tableBox.getChildren().setAll(CustomerRows.header());
         int from = page * PAGE_SIZE;
         int to = Math.min(from + PAGE_SIZE, total);
         for (StubCustomerService.Match m : matches.subList(from, to)) {
-            tableBox.getChildren().add(buildRow(m.name(), m.customerNumber(), false));
+            tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
+                    () -> showNotice("The customer details screen has not been built yet.")));
         }
 
         previousButton.setDisable(page == 0);
         nextButton.setDisable(to >= total);
-    }
-
-    private GridPane buildRow(String name, String id, boolean header) {
-        GridPane row = new GridPane();
-        row.getStyleClass().add(header ? "table-header-row" : "table-row");
-        row.setPadding(new Insets(0, 14, 0, 14));
-        row.setMinHeight(header ? 30 : 38);
-        row.setPrefHeight(header ? 30 : 38);
-        row.setAlignment(Pos.CENTER_LEFT);
-
-        for (double w : new double[] {42, 24, 34}) {
-            ColumnConstraints cc = new ColumnConstraints();
-            cc.setPercentWidth(w);
-            row.getColumnConstraints().add(cc);
-        }
-
-        Label nameLabel = new Label(name);
-        Label idLabel = new Label(id);
-        nameLabel.getStyleClass().add(header ? "table-header-cell" : "table-cell");
-        idLabel.getStyleClass().add(header ? "table-header-cell" : "table-cell-muted");
-        row.add(nameLabel, 0, 0);
-        row.add(idLabel, 1, 0);
-
-        if (header) {
-            Label action = new Label("Action");
-            action.getStyleClass().add("table-header-cell");
-            row.add(action, 2, 0);
-        } else {
-            Hyperlink details = new Hyperlink("Click here for more details");
-            details.getStyleClass().add("link-details");
-            details.setTranslateY(-3);
-            details.setOnAction(e -> showNotice("The customer details screen has not been built yet."));
-            row.add(details, 2, 0);
-        }
-        return row;
     }
 
     @FXML
