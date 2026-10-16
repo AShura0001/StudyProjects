@@ -3,7 +3,7 @@ package lavs.business.model;
 import java.util.Objects;
 
 /**
- * One constant value within a {@link ReferenceCategory}, such as "Home" for address types.
+ * One constant value within a {@link ReferenceCategory}, such as "Residential" for CustomerAddressType.
  *
  * @param name the value shown to the user
  * @param order where the value sits when the category's values are listed

@@ -6,7 +6,7 @@ import java.util.Objects;
  * A group of constant values on the mainframe, such as address types or rate types.
  *
  * @param id the mainframe's ID for the category, used to fetch its values
- * @param name the category's name, for example "Address Type"
+ * @param name the category's name, for example "CustomerAddressType"
  */
 public record ReferenceCategory(long id, String name) {
 
