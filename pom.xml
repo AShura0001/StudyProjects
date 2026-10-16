@@ -14,6 +14,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <JUnit.version>5.10.1</JUnit.version>
         <Mockito.version>5.20.0</Mockito.version>
+        <JaCoCo.version>0.8.15</JaCoCo.version>
     </properties>
 
     <dependencyManagement>
@@ -51,5 +52,55 @@
             <version>1.1.1</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- coverage: mvn verify fails if the business layer drops below 95% line coverage -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${JaCoCo.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>lavs/business/**</include>
+                            </includes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.95</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
