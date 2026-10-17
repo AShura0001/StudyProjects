@@ -1,5 +1,6 @@
 package lavs.data;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,6 +20,9 @@ import java.util.Map;
  * @param serverNumber the number the mainframe assigned, or null if it has none
  * @param errors the reason for each refused field; may be missing in files saved
  *               before errors were stored, which is read as no errors
+ * @param dependsOn the local IDs of the drafts this one depends on; may be missing
+ *                  in files saved before dependencies were stored, which is read
+ *                  as no dependencies
  */
 public record DraftFile(
         String localId,
@@ -27,5 +31,6 @@ public record DraftFile(
         String status,
         String createdAt,
         String serverNumber,
-        Map<String, String> errors) {
+        Map<String, String> errors,
+        List<String> dependsOn) {
 }

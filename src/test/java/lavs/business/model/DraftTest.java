@@ -3,6 +3,8 @@ package lavs.business.model;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -293,5 +295,82 @@ class DraftTest {
         Draft draft = new Draft(DraftType.LOAN, "text");
 
         assertThrows(NullPointerException.class, () -> draft.revise(null));
+    }
+
+    @Test
+    void newDraft_withoutParents_dependsOnNothing() {
+        Draft draft = new Draft(DraftType.CUSTOMER, "text");
+
+        assertTrue(draft.getDependsOn().isEmpty());
+    }
+
+    @Test
+    void newDraft_withParents_keepsThemInTheOrderGiven() {
+        Draft draft = new Draft(DraftType.COBORROWER, "text", List.of("loan-id", "customer-id"));
+
+        assertEquals(List.of("loan-id", "customer-id"), draft.getDependsOn());
+    }
+
+    @Test
+    void newDraft_whenTheOriginalListChangesLater_isNotAffected() {
+        List<String> parents = new ArrayList<>(List.of("loan-id"));
+        Draft draft = new Draft(DraftType.COBORROWER, "text", parents);
+
+        parents.add("customer-id");
+
+        assertEquals(List.of("loan-id"), draft.getDependsOn());
+    }
+
+    @Test
+    void getDependsOn_whenCallerTriesToChangeIt_isRejected() {
+        Draft draft = new Draft(DraftType.LOAN, "text", List.of("customer-id"));
+
+        assertThrows(UnsupportedOperationException.class, () -> draft.getDependsOn().add("other"));
+    }
+
+    @Test
+    void newDraft_withNullParentList_isRejected() {
+        assertThrows(NullPointerException.class, () -> new Draft(DraftType.LOAN, "text", null));
+    }
+
+    @Test
+    void newDraft_withANullParent_isRejected() {
+        assertThrows(NullPointerException.class,
+                () -> new Draft(DraftType.LOAN, "text", Arrays.asList("customer-id", null)));
+    }
+
+    @Test
+    void newDraft_withABlankParent_isRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new Draft(DraftType.LOAN, "text", List.of(" ")));
+    }
+
+    @Test
+    void newDraft_withTheSameParentTwice_isRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Draft(DraftType.COBORROWER, "text", List.of("loan-id", "loan-id")));
+    }
+
+    @Test
+    void rebuiltDraft_thatDependsOnItself_isRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.PENDING, TIME, null, Map.of(),
+                        List.of("abc")));
+    }
+
+    @Test
+    void rebuiltDraft_withParents_keepsThem() {
+        Draft draft = new Draft("abc", DraftType.LOAN, "text", DraftStatus.PENDING, TIME, null, Map.of(),
+                List.of("customer-id"));
+
+        assertEquals(List.of("customer-id"), draft.getDependsOn());
+    }
+
+    @Test
+    void revise_keepsWhatTheDraftDependsOn() {
+        Draft draft = new Draft(DraftType.LOAN, "text", List.of("customer-id"));
+
+        draft.revise("new text");
+
+        assertEquals(List.of("customer-id"), draft.getDependsOn());
     }
 }

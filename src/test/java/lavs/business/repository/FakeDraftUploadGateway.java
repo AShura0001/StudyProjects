@@ -15,7 +15,7 @@ import java.util.Objects;
  *
  * <p>It can be told to work normally, to be unreachable, or to refuse a particular
  * draft. It keeps a diary of every attempt, in order, so a test can check what
- * was sent, in which order and with which parent number.
+ * was sent, in which order and with which parent numbers.
  *
  * <p>Numbers are simple and count up for each draft type: {@code CUS-1},
  * {@code CUS-2}, {@code LOAN-1}, {@code COB-1}. Like the real mainframe, it
@@ -36,11 +36,11 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
      *
      * @param draftId the local ID of the draft that was sent
      * @param type the type of the draft that was sent
-     * @param parentNumber the parent number that came with the draft, or null
+     * @param parentNumbers the parent numbers that came with the draft
      * @param outcome how the attempt ended
      * @param assignedNumber the number given to the new record, or null if the attempt failed
      */
-    public record Attempt(String draftId, DraftType type, String parentNumber,
+    public record Attempt(String draftId, DraftType type, List<String> parentNumbers,
                           Outcome outcome, String assignedNumber) {
     }
 
@@ -69,20 +69,30 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
         rejections.put(Objects.requireNonNull(draftId), Map.copyOf(fieldErrors));
     }
 
+    /**
+     * Stops refusing a draft, for example because the staff member corrected it.
+     *
+     * @param draftId the local ID of the draft to accept from now on
+     */
+    public synchronized void stopRejecting(String draftId) {
+        rejections.remove(draftId);
+    }
+
     @Override
-    public synchronized String upload(Draft draft, String parentNumber) {
+    public synchronized String upload(Draft draft, List<String> parentNumbers) {
         Objects.requireNonNull(draft, "draft must not be null");
+        Objects.requireNonNull(parentNumbers, "parentNumbers must not be null");
         if (!online) {
-            record(draft, parentNumber, Outcome.UNREACHABLE, null);
+            record(draft, parentNumbers, Outcome.UNREACHABLE, null);
             throw new MainframeUnavailableException("the fake mainframe is offline");
         }
         Map<String, String> errors = rejections.get(draft.getLocalId());
         if (errors != null) {
-            record(draft, parentNumber, Outcome.REJECTED, null);
+            record(draft, parentNumbers, Outcome.REJECTED, null);
             throw new RecordRejectedException("the fake mainframe refused " + draft.getLocalId(), errors);
         }
         String number = nextNumber(draft.getType());
-        record(draft, parentNumber, Outcome.ACCEPTED, number);
+        record(draft, parentNumbers, Outcome.ACCEPTED, number);
         return number;
     }
 
@@ -107,8 +117,9 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
                 .toList();
     }
 
-    private void record(Draft draft, String parentNumber, Outcome outcome, String assignedNumber) {
-        attempts.add(new Attempt(draft.getLocalId(), draft.getType(), parentNumber, outcome, assignedNumber));
+    private void record(Draft draft, List<String> parentNumbers, Outcome outcome, String assignedNumber) {
+        attempts.add(new Attempt(draft.getLocalId(), draft.getType(), List.copyOf(parentNumbers),
+                outcome, assignedNumber));
     }
 
     private String nextNumber(DraftType type) {

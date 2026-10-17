@@ -63,7 +63,19 @@ class JsonDraftRepositoryTest {
 
         DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
         assertEquals(new DraftFile("abc", "CUSTOMER", "customer text", "PENDING", "2026-10-01T09:30:00Z",
-                null, Map.of()), written);
+                null, Map.of(), List.of()), written);
+    }
+
+    @Test
+    void save_withDraftThatDependsOnOthers_writesTheirIdsInOrder() throws IOException {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Draft draft = new Draft("abc", DraftType.COBORROWER, "text", DraftStatus.PENDING,
+                Instant.parse("2026-10-01T09:30:00Z"), null, Map.of(), List.of("loan-id", "customer-id"));
+
+        repository.save(draft);
+
+        DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
+        assertEquals(List.of("loan-id", "customer-id"), written.dependsOn());
     }
 
     @Test
@@ -167,6 +179,18 @@ class JsonDraftRepositoryTest {
 
         assertEquals(DraftStatus.PENDING, found.getStatus());
         assertTrue(found.getErrors().isEmpty());
+        assertTrue(found.getDependsOn().isEmpty());
+    }
+
+    @Test
+    void findById_afterSavingDraftWithParents_returnsThemInOrder() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        repository.save(new Draft("abc", DraftType.COBORROWER, "text", DraftStatus.PENDING,
+                Instant.parse("2026-10-01T09:30:00Z"), null, Map.of(), List.of("loan-id", "customer-id")));
+
+        Draft found = repository.findById("abc").orElseThrow();
+
+        assertEquals(List.of("loan-id", "customer-id"), found.getDependsOn());
     }
 
     @Test

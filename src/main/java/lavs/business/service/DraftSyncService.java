@@ -1,14 +1,19 @@
 package lavs.business.service;
 
 import lavs.business.model.Draft;
+import lavs.business.model.DraftStatus;
 import lavs.business.model.DraftType;
 import lavs.business.repository.DraftRepository;
 import lavs.business.repository.DraftUploadGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.RecordRejectedException;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Keeps staff work safe and sends it to the mainframe when it can.
@@ -18,9 +23,12 @@ import java.util.Objects;
  * staff member their work: a draft that could not be sent simply stays pending
  * and is tried again on the next pass.
  *
- * <p>This version does its work on the calling thread and sends every draft on
- * its own. Sending a draft after the record it belongs to, and running in the
- * background, come later.
+ * <p>A draft that belongs to other drafts, such as a loan that belongs to a
+ * customer, is only sent once those drafts have been accepted. It is then sent
+ * with the real numbers the mainframe gave them.
+ *
+ * <p>This version does its work on the calling thread. Running in the background
+ * comes later.
  */
 public class DraftSyncService {
 
@@ -37,10 +45,13 @@ public class DraftSyncService {
      *
      * @param synced how many drafts the mainframe accepted
      * @param rejected how many drafts the mainframe refused
+     * @param blocked how many drafts could not be sent because a draft they depend
+     *                on was refused, is missing or was never accepted; they stay
+     *                pending. Only counted when the pass finished normally.
      * @param connectionLost true if the pass stopped early because the mainframe
      *                       could not be reached, so some drafts were not tried
      */
-    public record SyncResult(int synced, int rejected, boolean connectionLost) {
+    public record SyncResult(int synced, int rejected, int blocked, boolean connectionLost) {
     }
 
     private final DraftRepository repository;
@@ -60,8 +71,9 @@ public class DraftSyncService {
     }
 
     /**
-     * Saves a new record as a pending draft. Nothing is sent to the mainframe, so
-     * this works even when there is no connection.
+     * Saves a new record that does not depend on any other as a pending draft.
+     * Nothing is sent to the mainframe, so this works even when there is no
+     * connection.
      *
      * @param type the kind of record
      * @param payload the record as plain text
@@ -70,44 +82,95 @@ public class DraftSyncService {
      * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
      */
     public Draft saveDraft(DraftType type, String payload) {
-        Draft draft = new Draft(type, payload);
+        return saveDraft(type, payload, List.of());
+    }
+
+    /**
+     * Saves a new record that depends on other drafts as a pending draft. It will
+     * only be sent after those drafts have been accepted by the mainframe.
+     *
+     * @param type the kind of record
+     * @param payload the record as plain text
+     * @param dependsOn the local IDs of the drafts the record belongs to, in the
+     *                  order the mainframe adapter expects their numbers
+     * @return the draft that was saved
+     * @throws NullPointerException if any argument, or any ID in the list, is null
+     * @throws IllegalArgumentException if an ID is blank or repeated, or no draft
+     *                                  with one of the IDs has been saved
+     * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
+     */
+    public Draft saveDraft(DraftType type, String payload, List<String> dependsOn) {
+        Draft draft = new Draft(type, payload, dependsOn);
+        for (String parentId : draft.getDependsOn()) {
+            if (repository.findById(parentId).isEmpty()) {
+                throw new IllegalArgumentException("there is no saved draft with ID " + parentId);
+            }
+        }
         repository.save(draft);
         return draft;
     }
 
     /**
-     * Tries to send every pending draft, oldest first, and saves what the
-     * mainframe answered for each one.
+     * Tries to send every pending draft whose dependencies are accepted, and saves
+     * what the mainframe answered for each one. Drafts are taken oldest first, but a
+     * draft always waits for the drafts it depends on, even if it is older.
      *
      * <ul>
-     *   <li>Accepted: the draft becomes synced and keeps the number it was given.</li>
-     *   <li>Refused: the draft becomes rejected and keeps the reasons, and the pass
-     *       carries on with the next draft.</li>
+     *   <li>Accepted: the draft becomes synced and keeps the number it was given.
+     *       Drafts that were waiting for it can now be sent in the same pass.</li>
+     *   <li>Refused: the draft becomes rejected and keeps the reasons. Drafts that
+     *       depend on it are left pending, and the pass carries on with the rest.</li>
      *   <li>Not reachable: the pass stops at once and leaves this draft and all the
      *       later ones pending, since nothing is known about whether it arrived.</li>
      * </ul>
      *
-     * @return how many drafts were accepted and refused, and whether the pass stopped early
+     * @return how many drafts were accepted, refused and left blocked, and whether
+     *         the pass stopped early
      * @throws lavs.business.repository.DraftStorageException if a draft could not be read or saved
      */
     public SyncResult syncPending() {
+        List<Draft> waiting = new ArrayList<>(repository.findPending());
         int synced = 0;
         int rejected = 0;
-        for (Draft draft : repository.findPending()) {
-            try {
-                String number = gateway.upload(draft, null);
-                draft.markSynced(number);
-                repository.save(draft);
-                synced++;
-            } catch (RecordRejectedException e) {
-                draft.markRejected(reasonsFor(e));
-                repository.save(draft);
-                rejected++;
-            } catch (MainframeUnavailableException e) {
-                return new SyncResult(synced, rejected, true);
+        boolean progress = true;
+        while (progress) {
+            progress = false;
+            Iterator<Draft> candidates = waiting.iterator();
+            while (candidates.hasNext()) {
+                Draft draft = candidates.next();
+                Optional<List<String>> parentNumbers = parentNumbersOf(draft);
+                if (parentNumbers.isEmpty()) {
+                    continue;
+                }
+                candidates.remove();
+                progress = true;
+                try {
+                    String number = gateway.upload(draft, parentNumbers.get());
+                    draft.markSynced(number);
+                    repository.save(draft);
+                    synced++;
+                } catch (RecordRejectedException e) {
+                    draft.markRejected(reasonsFor(e));
+                    repository.save(draft);
+                    rejected++;
+                } catch (MainframeUnavailableException e) {
+                    return new SyncResult(synced, rejected, 0, true);
+                }
             }
         }
-        return new SyncResult(synced, rejected, false);
+        return new SyncResult(synced, rejected, waiting.size(), false);
+    }
+
+    private Optional<List<String>> parentNumbersOf(Draft draft) {
+        List<String> numbers = new ArrayList<>();
+        for (String parentId : draft.getDependsOn()) {
+            Optional<Draft> parent = repository.findById(parentId);
+            if (parent.isEmpty() || parent.get().getStatus() != DraftStatus.SYNCED) {
+                return Optional.empty();
+            }
+            numbers.add(parent.get().getServerNumber().orElseThrow());
+        }
+        return Optional.of(numbers);
     }
 
     private static Map<String, String> reasonsFor(RecordRejectedException e) {

@@ -150,7 +150,8 @@ public class JsonDraftRepository implements DraftRepository {
                 draft.getStatus().name(),
                 draft.getCreatedAt().toString(),
                 draft.getServerNumber().orElse(null),
-                draft.getErrors());
+                draft.getErrors(),
+                draft.getDependsOn());
     }
 
     private Draft toDraft(DraftFile file) {
@@ -165,6 +166,7 @@ public class JsonDraftRepository implements DraftRepository {
                 DraftStatus.valueOf(file.status()),
                 Instant.parse(file.createdAt()),
                 file.serverNumber(),
-                file.errors() == null ? Map.of() : file.errors());
+                file.errors() == null ? Map.of() : file.errors(),
+                file.dependsOn() == null ? List.of() : file.dependsOn());
     }
 }
