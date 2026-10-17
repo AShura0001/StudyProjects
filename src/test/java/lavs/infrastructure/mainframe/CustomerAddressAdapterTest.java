@@ -112,7 +112,7 @@ class CustomerAddressAdapterTest {
         connection.response = successResponse(new HashMap<>());
 
         CustomerAddressAdapter adapter = new CustomerAddressAdapter(connection);
-        adapter.deleteCustomerAddress("CUS-9", 50L);
+        adapter.deleteCustomerAddress("CUS-9", 50l);
 
         assertEquals("customer.deleteAddress", connection.lastRequest.getRequestType());
         assertEquals("CUS-9", connection.lastRequest.getValue("customer"));

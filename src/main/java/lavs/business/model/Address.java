@@ -5,7 +5,7 @@ public class Address {
     private String country;
     private String customerName;
     private String customerNumber;
-    private Long id;
+    private long id;
     private Boolean isMailing;
     private Boolean isPrimary;
     private String line1;
@@ -15,6 +15,25 @@ public class Address {
     private String postCode;
     private String suburb;
     private String type;
+
+    public Address(String city, String country, String customerName, String customerNumber, Long id, boolean isMailing, boolean isPrimary, String line1, String line2, String number, String otherType, String postCode, String suburb, String type) {
+        this.city = city;
+        this.country = country;
+        this.customerName = customerName;
+        this.customerNumber = customerNumber;
+        this.id = id;
+        this.isMailing = isMailing;
+        this.isPrimary = isPrimary;
+        this.line1 = line1;
+        this.line2 = line2;
+        this.number = number;
+        this.otherType = otherType;
+        this.postCode = postCode;
+        this.suburb = suburb;
+        this.type = type;
+    }
+
+    public Address() {}
 
     public String getCity() {
         return city;
@@ -48,7 +67,7 @@ public class Address {
         this.customerNumber = customerNumber;
     }
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
