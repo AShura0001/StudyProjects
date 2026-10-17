@@ -1,0 +1,979 @@
+/*
+ * LAVS theme tokens.
+ *
+ * Every colour in the application is defined here and referenced by name
+ * elsewhere, so re-theming (including a light/dark flip) means editing this
+ * block only -- never the individual FXML files.
+ */
+@font-face {
+    -fx-font-family: "Jacquard 12";
+    src: url("../fonts/Jacquard12-Regular.ttf");
+}
+
+@font-face {
+    -fx-font-family: "Red Hat Mono";
+    src: url("../fonts/RedHatMono.ttf");
+}
+
+@font-face {
+    -fx-font-family: "NATS";
+    src: url("../fonts/NATS-Regular.ttf");
+}
+
+@font-face {
+    -fx-font-family: "Nunito Bold";
+    src: url("../fonts/Nunito-Bold.ttf");
+}
+
+@font-face {
+    -fx-font-family: "Nunito Regular";
+    src: url("../fonts/Nunito-Regular.ttf");
+}
+
+.root {
+    -lavs-bg:            #0e0e10;
+    -lavs-surface:       #17171a;
+    -lavs-surface-alt:   #1f1f24;
+    -lavs-border:        #2d2d34;
+    -lavs-text:          #f2f2f4;
+    -lavs-text-muted:    #9a9aa4;
+    -lavs-accent:        #2f6fed;
+    -lavs-accent-hover:  #4682f0;
+    -lavs-accent-press:  #2459c4;
+    -lavs-on-accent:     #ffffff;
+    -lavs-on-accent-text: #ffffff;
+    -lavs-brand:         #b3122b;
+    -lavs-subtitle:      #9a9aa4;
+    -lavs-danger:        #e5484d;
+    -lavs-alert:         #e5484d;
+    -lavs-link:          #6ea8ff;
+    -lavs-focus:         #6ea8ff;
+
+    -fx-font-family: "NATS";
+    -fx-background-color: -lavs-bg;
+}
+
+/*
+ * Login / Logged out scene palette, from the Figma frame.
+ * Overridden on this subtree only; looked-up colours cascade to every child.
+ */
+.login-root {
+    -lavs-bg:          #1e1e1e;
+    -lavs-surface:     #1e1e1e;
+    -lavs-surface-alt: #ffffff;
+    -lavs-border:      transparent;
+    -lavs-text:        #3a3a3f;
+    -lavs-text-muted:  #6b7280;
+    -lavs-brand:       #ebb400;
+    -lavs-subtitle:    #ffe09d;
+    -lavs-alert:       #ff0000;
+    -lavs-accent:       #a5c3ff;
+    -lavs-accent-hover: #bad2ff;
+    -lavs-accent-press: #8fb2f5;
+    -lavs-on-accent:    #ffffff;
+    -lavs-on-accent-text: #1e1e1e;
+    -lavs-focus:       #a5c3ff;
+    -fx-background-color: -lavs-bg;
+}
+
+/* ---------- Brand wordmark ---------- */
+
+/* Fonts are bundled in /lavs/ui/fonts and registered at startup by LavsApp. */
+.brand-wordmark {
+    -fx-font-family: "Jacquard 12";
+    -fx-font-size: 43px;
+    -fx-text-fill: -lavs-brand;
+}
+
+.brand-subtitle {
+    -fx-font-family: "Red Hat Mono";
+    -fx-font-size: 13px;
+    -fx-text-fill: -lavs-subtitle;
+}
+
+/* ---------- Text fields ---------- */
+
+.field {
+    -fx-background-color: -lavs-surface-alt;
+    -fx-background-radius: 999px;
+    -fx-border-color: -lavs-border;
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -lavs-text;
+    -fx-prompt-text-fill: -lavs-text-muted;
+    -fx-padding: 0 22px;
+    -fx-min-height: 49px;
+    -fx-pref-height: 49px;
+    -fx-max-height: 49px;
+    -fx-font-size: 16px;
+}
+
+/*
+ * Focus ring is deliberately 2px and high-contrast: the brief's users are
+ * coming off a keyboard-driven terminal, so "where am I" must never be
+ * ambiguous during tab traversal.
+ */
+.field:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-width: 2px;
+}
+
+.field.field-error {
+    -fx-border-color: -lavs-danger;
+    -fx-border-width: 2px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-primary {
+    -fx-background-color: -lavs-accent;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -lavs-on-accent-text;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 9px 26px;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover  { -fx-background-color: -lavs-accent-hover; }
+.btn-primary:pressed { -fx-background-color: -lavs-accent-press; }
+.btn-primary:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+.btn-primary:disabled { -fx-opacity: 0.45; }
+
+/* Circular submit button from the mock-up. */
+.btn-circle {
+    -fx-background-color: -lavs-accent;
+    -fx-background-radius: 999px;
+    -fx-min-width: 50px;
+    -fx-min-height: 50px;
+    -fx-max-width: 50px;
+    -fx-max-height: 50px;
+    -fx-text-fill: -lavs-on-accent;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.btn-circle:hover   { -fx-background-color: -lavs-accent-hover; }
+.btn-circle:pressed { -fx-background-color: -lavs-accent-press; }
+.btn-circle:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+.btn-circle:disabled { -fx-opacity: 0.45; }
+
+.btn-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 11px;
+    -fx-underline: true;
+    -fx-padding: 2px 4px;
+    -fx-cursor: hand;
+}
+
+.btn-link:hover { -fx-text-fill: -lavs-text; }
+
+/* ---------- Status / validation messages ---------- */
+
+.message-error {
+    -fx-text-fill: -lavs-danger;
+    -fx-font-size: 13px;
+}
+
+.message-muted {
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 11px;
+}
+
+/* ---------- Progress ---------- */
+
+.progress-indicator {
+    -fx-progress-color: -lavs-accent;
+}
+
+/* ---------- Shortcut hint chip ---------- */
+
+.hint-chip {
+    -fx-background-color: -lavs-surface-alt;
+    -fx-background-radius: 5px;
+    -fx-border-color: -lavs-border;
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -lavs-text-muted;
+    -fx-font-size: 10px;
+    -fx-padding: 2px 7px;
+}
+
+/* Stroked arrow drawn as a vector so its weight scales cleanly. */
+.arrow-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -lavs-on-accent;
+    -fx-stroke-width: 2.6px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+/* Logged out banner: bold caps in pure red, from the Figma frame. */
+.message-logout {
+    -fx-text-fill: -lavs-alert;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* Compact pill used for secondary actions such as "login again". */
+.btn-small {
+    -fx-padding: 0 28px;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+}
+
+/*
+ * Light page palette used by the search and directory screens in the Figma
+ * frames. The dark panels on top of it (results card, profile cards) set
+ * their own surfaces.
+ */
+.light-root {
+    -lavs-bg:          #eeeff0;
+    -lavs-surface:     #1c1c1e;
+    -lavs-text:        #1c1c1e;
+    -lavs-text-muted:  #6b7280;
+    -lavs-alert:       #ff0000;
+    -lavs-link:        #0b3dff;
+    -lavs-focus:       #0b3dff;
+    -fx-background-color: -lavs-bg;
+}
+
+/* ---------- Search pill ---------- */
+
+.search-field {
+    -fx-background-color: #1c1c1e;
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+    -fx-text-fill: #d6d6da;
+    -fx-prompt-text-fill: #c4c4ca;
+    -fx-padding: 0 58px;
+    -fx-min-height: 50px;
+    -fx-pref-height: 50px;
+    -fx-max-height: 50px;
+    -fx-font-size: 22px;
+}
+
+.btn-search {
+    -fx-background-color: #d9d9d9;
+    -fx-background-radius: 999px;
+    -fx-min-width: 46px;
+    -fx-min-height: 46px;
+    -fx-max-width: 46px;
+    -fx-max-height: 46px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.btn-search:hover   { -fx-background-color: #ffffff; }
+.btn-search:pressed { -fx-background-color: #c4c5ca; }
+.btn-search:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+
+.search-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #1c1c1e;
+    -fx-stroke-width: 1.4px;
+    -fx-scale-x: 1.5;
+    -fx-scale-y: 1.5;
+    -fx-stroke-line-cap: round;
+}
+
+/* ---------- Corner chips (Back, Logout) ---------- */
+
+.btn-chip {
+    -fx-background-color: #2b2b2e;
+    -fx-background-radius: 5px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 9px;
+    -fx-padding: 0 7px;
+    -fx-graphic-text-gap: 5px;
+    -fx-cursor: hand;
+}
+
+.btn-chip:hover   { -fx-background-color: #404045; }
+.btn-chip:focused {
+    -fx-border-color: -lavs-focus;
+    -fx-border-radius: 5px;
+    -fx-border-width: 2px;
+}
+
+.btn-chip-danger { -fx-background-color: #8d1b1b; }
+.btn-chip-danger:hover { -fx-background-color: #ac2323; }
+
+.chip-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #ffffff;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.45;
+    -fx-scale-y: 0.45;
+}
+
+/* ---------- Inline messages and links ---------- */
+
+.message-alert {
+    -fx-text-fill: -lavs-alert;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+}
+
+.link-text {
+    -fx-text-fill: -lavs-link;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+}
+
+.link-inline {
+    -fx-text-fill: -lavs-link;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+    -fx-underline: true;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.link-inline:visited { -fx-text-fill: -lavs-link; }
+.link-inline:focused { -fx-border-color: -lavs-focus; -fx-border-width: 1px; }
+
+/* Every region of a light page paints the page colour explicitly. */
+.page-fill {
+    -fx-background-color: -lavs-bg;
+}
+
+/* ---------- Results card and table ---------- */
+
+.results-card {
+    -fx-background-color: #1b1c1e;
+    -fx-background-radius: 14px;
+}
+
+.results-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 15px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.results-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8b8b93;
+}
+
+.table-box {
+    -fx-background-color: #1b1c1e;
+    -fx-border-color: #2c2d31;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-background-radius: 8px;
+}
+
+.table-header-row {
+    -fx-background-color: #2e2f33;
+    -fx-background-radius: 8px 8px 0 0;
+}
+
+.table-header-cell {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #b8b8c0;
+}
+
+.table-row {
+    -fx-border-color: #2c2d31 transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.table-cell {
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.table-cell-muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8b8b93;
+}
+
+.link-details {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e5e5ea;
+    -fx-underline: false;
+    -fx-alignment: TOP_LEFT;
+    -fx-padding: 0;
+    -fx-min-height: 21px;
+    -fx-pref-height: 21px;
+    -fx-max-height: 21px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #e5e5ea transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.link-details:visited { -fx-text-fill: #e5e5ea; }
+.link-details:hover   { -fx-text-fill: #ffffff; }
+.link-details:focused { -fx-border-color: #6ea8ff; -fx-border-width: 1px; }
+
+.btn-pager {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8b8b93;
+    -fx-font-size: 12px;
+    -fx-graphic-text-gap: 8px;
+    -fx-padding: 4px 6px;
+    -fx-cursor: hand;
+}
+
+.btn-pager:hover    { -fx-text-fill: #ffffff; }
+.btn-pager:disabled { -fx-opacity: 0.4; }
+.btn-pager:focused  {
+    -fx-border-color: #6ea8ff;
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px;
+}
+
+.pager-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #8b8b93;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.5;
+    -fx-scale-y: 0.5;
+}
+
+/* "Next Page" is the forward action and shows in the link blue until it is disabled. */
+.btn-pager-next { -fx-text-fill: #6ea8ff; }
+.btn-pager-next:hover { -fx-text-fill: #9cc2ff; }
+.btn-pager-next .pager-icon { -fx-stroke: #6ea8ff; }
+.btn-pager-next:disabled { -fx-text-fill: #8b8b93; }
+.btn-pager-next:disabled .pager-icon { -fx-stroke: #8b8b93; }
+
+/* ---------- Customer details ---------- */
+
+.profile-card {
+    -fx-background-color: #1b1c1e;
+    -fx-background-radius: 22px;
+}
+
+.photo-card {
+    -fx-background-color: #34373a;
+    -fx-background-radius: 10px;
+}
+
+.avatar {
+    -fx-fill: #8c8f93;
+}
+
+.id-tag {
+    -fx-background-color: #303336;
+    -fx-border-color: #1b1c1e;
+    -fx-border-width: 1px;
+    -fx-alignment: center;
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.notes-box {
+    -lavs-line: #3d4044;
+    -fx-background-color: #2f3235;
+    -fx-border-color: #4a4d51;
+    -fx-border-width: 1px;
+}
+
+.notes-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+    -fx-underline: true;
+    -fx-alignment: center;
+    -fx-padding: 4px 0 0 0;
+}
+
+.notes-area,
+.notes-area .scroll-pane,
+.notes-area .viewport,
+.notes-area .content {
+    -fx-background-color: transparent;
+    -fx-control-inner-background: transparent;
+    -fx-background-insets: 0;
+    -fx-text-fill: #d6d6da;
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 11px;
+}
+
+.notes-area {
+    -fx-padding: 0 6px;
+}
+
+.notes-area .content {
+    -fx-padding: 0;
+}
+
+/*
+ * Ruled lines for previews such as Scene Builder, where no code runs. At runtime
+ * NotesPaper marks the area "live" and draws lines measured from the real font
+ * instead, which also follow the text as it scrolls.
+ */
+.notes-area {
+    -fx-background-color: linear-gradient(from 0px 0px to 0px 16px, repeat,
+        transparent 0%, transparent 93.75%, -lavs-line 93.75%, -lavs-line 100%);
+}
+
+.notes-area.live {
+    -fx-background-color: transparent;
+}
+
+.field-label {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.data-field {
+    -fx-background-color: #3a3d40;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #f2f2f4;
+    -fx-font-size: 12px;
+    -fx-padding: 0 8px;
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.info-panel {
+    -fx-background-color: #3a3d40;
+    -fx-background-radius: 10px;
+}
+
+.panel-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+    -fx-alignment: center;
+    -fx-padding: 5px 0 3px 0;
+}
+
+.panel-scroll,
+.panel-scroll .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.panel-scroll > .viewport { -fx-background-color: transparent; }
+
+.panel-scroll .scroll-bar:vertical {
+    -fx-background-color: #55585c;
+    -fx-background-radius: 7px;
+    -fx-pref-width: 14px;
+    -fx-padding: 0;
+}
+
+.panel-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.panel-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #a5c3ff;
+    -fx-background-radius: 7px;
+    -fx-background-insets: 1px;
+}
+
+.panel-scroll .scroll-bar .increment-button,
+.panel-scroll .scroll-bar .decrement-button,
+.panel-scroll .scroll-bar .increment-arrow,
+.panel-scroll .scroll-bar .decrement-arrow {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-background-color: transparent;
+}
+
+.panel-scroll .corner { -fx-background-color: transparent; }
+
+.list-item {
+    -fx-padding: 4px 8px 4px 10px;
+    -fx-border-color: transparent transparent #4a4d51 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.list-item-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.list-item-sub {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9px;
+    -fx-text-fill: #8b8b93;
+}
+
+.list-item-link {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 8px;
+    -fx-text-fill: #cfd0d6;
+    -fx-underline: true;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.list-item-link:visited { -fx-text-fill: #cfd0d6; }
+.list-item-link:hover   { -fx-text-fill: #ffffff; }
+
+.link-add {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-text-fill: #6ea8ff;
+    -fx-underline: false;
+    -fx-padding: 0 0 0 2px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.link-add:visited { -fx-text-fill: #6ea8ff; }
+.link-add:hover   { -fx-text-fill: #9cc2ff; }
+
+/* View / edit mode toggle */
+
+.mode-circle {
+    -fx-background-color: #4a4d51;
+    -fx-background-radius: 999px;
+    -fx-min-width: 39px;
+    -fx-min-height: 39px;
+    -fx-max-width: 39px;
+    -fx-max-height: 39px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.mode-circle:hover { -fx-background-color: #5d6065; }
+
+.mode-selected,
+.mode-selected:hover {
+    -fx-background-color: #a5c3ff;
+    -fx-cursor: default;
+}
+
+.mode-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #1b1c1e;
+    -fx-stroke-width: 1.8px;
+    -fx-stroke-line-join: round;
+    -fx-stroke-line-cap: round;
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+}
+
+.mode-icon-solid {
+    -fx-fill: #1b1c1e;
+    -fx-stroke: #1b1c1e;
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+}
+
+.mode-caption {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 9px;
+    -fx-text-fill: #f2f2f4;
+}
+
+/* ---------- Customer details: edit mode ---------- */
+
+.editing .data-field {
+    -fx-background-color: #d9d9d9;
+    -fx-text-fill: #1b1c1e;
+}
+
+.editing .data-field:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 3px;
+}
+
+.editing .data-field.field-error,
+.data-field.field-error {
+    -fx-border-color: #ff4d4d;
+    -fx-border-width: 2px;
+    -fx-border-radius: 3px;
+}
+
+.editing .notes-box {
+    -lavs-line: #8f8f8f;
+    -fx-background-color: #d9d9d9;
+    -fx-border-color: #b5b5b5;
+}
+
+.editing .notes-title { -fx-text-fill: #1b1c1e; }
+
+.editing .notes-area,
+.editing .notes-area .content {
+    -fx-text-fill: #1b1c1e;
+}
+
+.btn-edit-chip {
+    -fx-background-color: #e6e6e6;
+    -fx-background-radius: 2px;
+    -fx-text-fill: #1b1c1e;
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 9px;
+    -fx-padding: 2px 10px;
+    -fx-graphic-text-gap: 4px;
+    -fx-cursor: hand;
+}
+
+.btn-edit-chip:hover { -fx-background-color: #ffffff; }
+.btn-edit-chip:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+}
+
+.edit-chip-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #1b1c1e;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-join: round;
+    -fx-stroke-line-cap: round;
+    -fx-scale-x: 0.45;
+    -fx-scale-y: 0.45;
+}
+
+.btn-remove {
+    -fx-background-color: transparent;
+    -fx-padding: 2px;
+    -fx-cursor: hand;
+}
+
+.btn-remove:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+}
+
+.remove-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #ff2b2b;
+    -fx-stroke-width: 2.4px;
+    -fx-stroke-line-cap: round;
+    -fx-scale-x: 0.6;
+    -fx-scale-y: 0.6;
+}
+
+.list-row {
+    -fx-padding: 0 8px 0 0;
+    -fx-border-color: transparent transparent #4a4d51 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.list-row .list-item { -fx-border-width: 0; }
+
+.btn-action {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-background-radius: 999px;
+    -fx-padding: 3px 11px;
+    -fx-cursor: hand;
+}
+
+.btn-action-cancel {
+    -fx-background-color: #ff0000;
+    -fx-text-fill: #ffffff;
+}
+
+.btn-action-cancel:hover { -fx-background-color: #ff3b3b; }
+
+.btn-action-save {
+    -fx-background-color: #e6e6e6;
+    -fx-text-fill: #1b1c1e;
+}
+
+.btn-action-save:hover { -fx-background-color: #ffffff; }
+
+.btn-action:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+}
+
+/* ---------- Loan details ---------- */
+
+.section-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.section-rule {
+    -fx-background-color: #2e3033;
+}
+
+.kv-label {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #9a9ca3;
+    -fx-min-height: 17px;
+}
+
+.kv-field {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 10px;
+    -fx-text-fill: #f2f2f4;
+    -fx-background-color: transparent;
+    -fx-background-radius: 2px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-min-height: 17px;
+    -fx-pref-height: 17px;
+    -fx-max-height: 17px;
+    -fx-focus-traversable: false;
+}
+
+.editing .kv-field {
+    -fx-background-color: #e9e9e9;
+    -fx-text-fill: #1b1c1e;
+    -fx-padding: 0 6px;
+    -fx-focus-traversable: true;
+}
+
+.editing .kv-field:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 2px;
+}
+
+.kv-field.field-error,
+.editing .kv-field.field-error {
+    -fx-border-color: #ff4d4d;
+    -fx-border-width: 2px;
+    -fx-border-radius: 2px;
+}
+
+.info-card,
+.status-card {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 14px;
+}
+
+.status-card { -fx-padding: 6px 12px; }
+
+.status-dot {
+    -fx-background-color: #19c6a0;
+    -fx-background-radius: 999px;
+}
+
+.status-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.status-subtitle {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 8.5px;
+    -fx-text-fill: #9a9ca3;
+}
+
+.loan-progress {
+    -fx-accent: #f2b800;
+    -fx-control-inner-background: #2e3033;
+}
+
+.loan-progress .track {
+    -fx-background-color: #2e3033;
+    -fx-background-radius: 2px;
+    -fx-background-insets: 0;
+}
+
+.loan-progress .bar {
+    -fx-background-color: #f2b800;
+    -fx-background-radius: 2px;
+    -fx-background-insets: 0;
+    -fx-padding: 2px;
+}
+
+.schedule-header-row {
+    -fx-background-color: #2b2d30;
+    -fx-background-radius: 4px;
+    -fx-padding: 0 8px;
+}
+
+.schedule-row {
+    -fx-padding: 0 8px;
+    -fx-border-color: transparent transparent #25272a transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.sched-head {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #b8b8c0;
+}
+
+.sched-strong {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.sched-muted {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #8b8d94;
+}
+
+.sched-paid     { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #c7c8ce; }
+.sched-due      { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #f2b800; }
+.sched-upcoming { -fx-font-family: "Nunito Regular"; -fx-font-size: 9.5px; -fx-text-fill: #6b6d72; }
+
+.cb-row {
+    -fx-border-color: transparent transparent #4a4d51 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.cb-name {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.cb-id {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #8b8d94;
+}
+
+.btn-add-wide {
+    -fx-background-color: #e9e9e9;
+    -fx-background-radius: 2px;
+    -fx-text-fill: #1b1c1e;
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-padding: 3px 12px;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+
+.btn-add-wide:hover { -fx-background-color: #ffffff; }
+.btn-add-wide:focused {
+    -fx-border-color: #a5c3ff;
+    -fx-border-width: 2px;
+}
