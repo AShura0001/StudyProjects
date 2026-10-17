@@ -13,4 +13,7 @@ public interface CustomerGateway {
 
     public Optional<Address> updateCustomerAddress(Address address) throws IOException, InvocationTargetException, NoSuchMethodException, IllegalAccessException;
 
+    public boolean deleteCustomerAddress(String customerNumber, long id) throws IOException;
+
+    public Optional<Address> findAddressByCustomerNumberAndId( Long id,String customerNumber) throws IOException, InvocationTargetException, NoSuchMethodException, IllegalAccessException;
 }

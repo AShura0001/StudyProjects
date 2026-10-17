@@ -7,6 +7,7 @@ import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.messages.customer.AddAddress;
+import mainframe.client.messages.customer.DeleteAddress;
 import mainframe.client.messages.customer.Retrieve;
 
 import java.io.IOException;
@@ -46,11 +47,11 @@ public class CustomerAdapter implements CustomerGateway {
     /**
      *
      * @param address An instance of the address you want to update, it should contain the customer number in the class
-     * @return  The address that was updated if successful wrapped in an Optional,
+     * @return The address that was updated if successful wrapped in an Optional,
      * @throws IOException
      */
     public Optional<Address> updateCustomerAddress(Address address) throws IOException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
-        if(address.get_customerNumber() == null){
+        if (address.get_customerNumber() == null) {
             throw new InvalidAddressMissingCustomerNumber("Missing Customer Number");
         }
 
@@ -80,6 +81,36 @@ public class CustomerAdapter implements CustomerGateway {
             return mapMessageToAddress(retrieveAddress);
         }
 
+        return Optional.empty();
+    }
+
+    /**
+     *
+     * @param customerNumber Customer number associated with the address
+     * @param AddressId      Address ID
+     * @return
+     */
+    public boolean deleteCustomerAddress(String customerNumber, long AddressId) throws IOException {
+        DeleteAddress deleteAddress = new DeleteAddress(customerNumber, AddressId);
+        Status status = deleteAddress.send(connection);
+        return status.getWasSuccessful();
+    }
+
+
+    /**
+     *
+     * @param customerNumber
+     * @param id
+     * @return The address of the corresponding input params if any.
+     * @throws IOException
+     */
+    @Override
+    public Optional<Address> findAddressByCustomerNumberAndId(Long id, String customerNumber) throws IOException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        mainframe.client.messages.customerAddress.Retrieve retrieve = new mainframe.client.messages.customerAddress.Retrieve(id, customerNumber);
+        Status status = retrieve.send(connection);
+        if (status.getWasSuccessful()) {
+            return mapMessageToAddress(retrieve);
+        }
         return Optional.empty();
     }
 

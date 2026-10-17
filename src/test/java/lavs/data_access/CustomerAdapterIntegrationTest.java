@@ -177,11 +177,18 @@ class CustomerAdapterIntegrationTest {
             assertTrue(updated.is_isMailing());
             assertTrue(updated.is_isPrimary());
 
+            assertTrue(adapter.deleteCustomerAddress(updated.get_customerNumber(), updated.get_id()));
+
+            result = adapter.findAddressByCustomerNumberAndId(updated.get_id(), updated.get_customerNumber());
+            assertFalse(result.isPresent());
+
+
         } finally {
             connection.Logout();
             connection.close();
         }
     }
+
 
     private static Address createAddress(
             String customerNumber,
