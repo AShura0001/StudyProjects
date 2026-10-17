@@ -34,5 +34,5 @@ public interface CustomerEmailGateway {
      * @param id Email id
      * @throws IOException
      */
-    void deleteCustomerEmail(String customerNumber, long id) throws IOException;
+    boolean deleteCustomerEmail(String customerNumber, long id) throws IOException;
 }

@@ -53,9 +53,9 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
     }
 
     @Override
-    public void deleteCustomerAddress(String customerNumber, long id) throws IOException {
+    public boolean deleteCustomerAddress(String customerNumber, long id) throws IOException {
         DeleteAddress deleteAddress = new DeleteAddress(customerNumber, id);
-        deleteAddress.send(connection);
+        return deleteAddress.send(connection).getWasSuccessful();
     }
 
     public Optional<Address> mapMessageToAddress(Message message) {

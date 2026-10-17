@@ -32,5 +32,5 @@ public interface CustomerAddressGateway {
      * @param id Address id
      * @throws IOException
      */
-    void deleteCustomerAddress(String customerNumber, long id) throws IOException;
+    boolean deleteCustomerAddress(String customerNumber, long id) throws IOException;
 }

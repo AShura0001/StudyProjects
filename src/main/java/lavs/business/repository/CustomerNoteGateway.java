@@ -30,5 +30,5 @@ public interface CustomerNoteGateway {
      * @param customerNumber
      * @throws IOException
      */
-    void deleteNoteByCustomerNumberAndId(long id, String customerNumber) throws IOException;
+    boolean deleteNoteByCustomerNumberAndId(long id, String customerNumber) throws IOException;
 }

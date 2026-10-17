@@ -50,9 +50,9 @@ public class CustomerEmailAdapter implements CustomerEmailGateway {
     }
 
     @Override
-    public void deleteCustomerEmail(String customerNumber, long id) throws IOException {
+    public boolean deleteCustomerEmail(String customerNumber, long id) throws IOException {
         DeleteEmail deleteEmail = new DeleteEmail(customerNumber, id);
-        Status status = deleteEmail.send(connection);
+        return deleteEmail.send(connection).getWasSuccessful();
 
     }
 

@@ -48,9 +48,9 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
     }
 
     @Override
-    public void deleteNoteByCustomerNumberAndId(long id, String customerNumber) throws IOException {
+    public boolean deleteNoteByCustomerNumberAndId(long id, String customerNumber) throws IOException {
         DeleteNote deleteNote = new DeleteNote(customerNumber, id);
-        Status status = deleteNote.send(connection);
+        return deleteNote.send(connection).getWasSuccessful();
     }
 
     public Optional<Note> mapMessageNote(Message message) {

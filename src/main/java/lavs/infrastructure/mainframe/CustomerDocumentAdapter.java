@@ -25,9 +25,9 @@ public class CustomerDocumentAdapter implements CustomerDocumentGateway {
 
 
     @Override
-    public void deleteCustomerDocument( long id,String customerNumber) throws IOException {
+    public boolean deleteCustomerDocument( long id,String customerNumber) throws IOException {
         DeleteDocument deleteDocument = new DeleteDocument(id, customerNumber);
-        deleteDocument.send(connection);
+        return deleteDocument.send(connection).getWasSuccessful();
     }
 
     public Optional<Document> mapMessageToDocument(Message message){

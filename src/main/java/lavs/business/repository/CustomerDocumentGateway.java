@@ -23,5 +23,5 @@ public interface CustomerDocumentGateway {
      * @param id Document id
      * @throws IOException
      */
-    void deleteCustomerDocument(long id, String customerNumber) throws IOException;
+    boolean deleteCustomerDocument(long id, String customerNumber) throws IOException;
 }
