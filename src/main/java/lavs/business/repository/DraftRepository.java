@@ -11,6 +11,9 @@ import java.util.Optional;
  * <p>The business layer only knows about this interface, so the real storage
  * (JSON files) can be swapped for a fake one in tests.
  *
+ * <p>Implementations must be safe to use from several threads at once: the screen
+ * saves new drafts while the background sync reads and updates others.
+ *
  * <p>Every method throws {@link DraftStorageException} if the store cannot do
  * its job, for example because the disk is full or a file is damaged.
  */

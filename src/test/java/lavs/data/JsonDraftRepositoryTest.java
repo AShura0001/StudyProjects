@@ -12,9 +12,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -339,5 +344,33 @@ class JsonDraftRepositoryTest {
         repository.delete(remove.getLocalId());
 
         assertTrue(repository.findById(keep.getLocalId()).isPresent());
+    }
+
+    @Test
+    void save_fromSeveralThreadsWhileAnotherThreadReads_storesEveryDraftWithoutErrors() throws Exception {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        ExecutorService threads = Executors.newFixedThreadPool(5);
+        try {
+            List<Future<?>> work = new ArrayList<>();
+            for (int writer = 0; writer < 4; writer++) {
+                work.add(threads.submit(() -> {
+                    for (int i = 0; i < 25; i++) {
+                        repository.save(new Draft(DraftType.CUSTOMER, "text"));
+                    }
+                }));
+            }
+            work.add(threads.submit(() -> {
+                for (int i = 0; i < 25; i++) {
+                    repository.findPending();
+                }
+            }));
+            for (Future<?> job : work) {
+                job.get(30, TimeUnit.SECONDS);
+            }
+        } finally {
+            threads.shutdownNow();
+        }
+
+        assertEquals(100, repository.findPending().size());
     }
 }

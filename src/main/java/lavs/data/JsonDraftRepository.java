@@ -29,6 +29,10 @@ import java.util.stream.Stream;
  * <p>A save writes the new version to a temporary file first and then renames it
  * over the real file, so a crash part way through never leaves a half-written
  * draft behind.
+ *
+ * <p>It is safe to use from several threads at once, for example the screen
+ * saving a new draft while the background sync reads and updates others. Calls
+ * take turns, and none of them waits for the network.
  */
 public class JsonDraftRepository implements DraftRepository {
 
@@ -57,7 +61,7 @@ public class JsonDraftRepository implements DraftRepository {
      * step, so the previous version stays intact until the new one is complete.
      */
     @Override
-    public void save(Draft draft) {
+    public synchronized void save(Draft draft) {
         Objects.requireNonNull(draft, "draft must not be null");
         Path target = folder.resolve(draft.getLocalId() + FILE_EXTENSION);
         Path temp = folder.resolve(draft.getLocalId() + TEMP_EXTENSION);
@@ -79,7 +83,7 @@ public class JsonDraftRepository implements DraftRepository {
      * missing one.
      */
     @Override
-    public Optional<Draft> findById(String localId) {
+    public synchronized Optional<Draft> findById(String localId) {
         Objects.requireNonNull(localId, "localId must not be null");
         Path file = folder.resolve(localId + FILE_EXTENSION);
         if (!Files.exists(file)) {
@@ -97,7 +101,7 @@ public class JsonDraftRepository implements DraftRepository {
      * Drafts with the same creation time are ordered by ID so the order is stable.
      */
     @Override
-    public List<Draft> findPending() {
+    public synchronized List<Draft> findPending() {
         if (!Files.isDirectory(folder)) {
             return List.of();
         }
@@ -125,7 +129,7 @@ public class JsonDraftRepository implements DraftRepository {
 
     /** {@inheritDoc} */
     @Override
-    public void delete(String localId) {
+    public synchronized void delete(String localId) {
         Objects.requireNonNull(localId, "localId must not be null");
         try {
             Files.deleteIfExists(folder.resolve(localId + FILE_EXTENSION));
