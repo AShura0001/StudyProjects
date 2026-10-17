@@ -5,6 +5,7 @@ import lavs.business.repository.CustomerEmailGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
+import mainframe.client.messages.customer.AddEmail;
 import mainframe.client.messages.customer.DeleteEmail;
 import mainframe.client.messages.customer.UpdateEmail;
 import mainframe.client.messages.customerEmail.Retrieve;
@@ -54,6 +55,22 @@ public class CustomerEmailAdapter implements CustomerEmailGateway {
         DeleteEmail deleteEmail = new DeleteEmail(customerNumber, id);
         return deleteEmail.send(connection).getWasSuccessful();
 
+    }
+
+    @Override
+    public Optional<Email> addCustomerEmail(Email email) throws IOException {
+        AddEmail addEmail = new AddEmail(
+                email.getAddress(),
+                email.getCustomerNumber(),
+                email.isPrimary(),
+                email.getOtherType(),
+                email.getType()
+        );
+        if(addEmail.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addEmail.getId(), addEmail.getCustomer());
+            return mapMessageToEmail(retrieve);
+        }
+        return Optional.empty();
     }
 
     private Optional<Email> mapMessageToEmail(Message message) throws IOException {

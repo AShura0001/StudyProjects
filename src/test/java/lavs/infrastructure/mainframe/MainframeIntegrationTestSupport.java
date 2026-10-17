@@ -21,12 +21,12 @@ public abstract class MainframeIntegrationTestSupport {
 
     protected final String username = System.getProperty(
             "mainframe.username",
-            "admin"
+            "Group_2"
     );
 
     protected final String password = System.getProperty(
             "mainframe.password",
-            "admin"
+            "bug"
     );
 
     @BeforeEach

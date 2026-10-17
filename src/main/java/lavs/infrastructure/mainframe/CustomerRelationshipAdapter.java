@@ -4,6 +4,8 @@ import lavs.business.model.Relationship;
 import lavs.business.repository.CustomerRelationshipGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.AddPhoneNumber;
+import mainframe.client.messages.customer.AddRelationship;
 import mainframe.client.messages.customer.DeleteRelationship;
 import mainframe.client.messages.customer.UpdateRelationship;
 import mainframe.client.messages.customerRelationship.Retrieve;
@@ -49,6 +51,21 @@ public class CustomerRelationshipAdapter implements CustomerRelationshipGateway 
     public boolean deleteRelationshipByCustomerNumberAndId(long id, String customerNumber) throws IOException {
         DeleteRelationship deleteRelationship = new DeleteRelationship(customerNumber, id);
         return deleteRelationship.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Relationship> addCustomerRelationship(Relationship relationship) throws IOException {
+        AddRelationship addRelationship = new AddRelationship(
+                relationship.get_customerNumber(),
+                relationship.get_otherType(),
+                relationship.get_secondaryCustomerNumber(),
+                relationship.get_type()
+        );
+        if (addRelationship.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addRelationship.getId(), addRelationship.getCustomer());
+            return mapMessageToRelationship(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<Relationship> mapMessageToRelationship(Message message) {

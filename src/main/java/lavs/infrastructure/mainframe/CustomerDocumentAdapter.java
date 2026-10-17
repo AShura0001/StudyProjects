@@ -6,6 +6,7 @@ import lavs.business.repository.CustomerDocumentGateway;
 import lavs.business.repository.CustomerGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.AddDocument;
 import mainframe.client.messages.customerDocument.Retrieve;
 import mainframe.client.messages.loan.DeleteDocument;
 
@@ -28,6 +29,22 @@ public class CustomerDocumentAdapter implements CustomerDocumentGateway {
     public boolean deleteCustomerDocument( long id,String customerNumber) throws IOException {
         DeleteDocument deleteDocument = new DeleteDocument(id, customerNumber);
         return deleteDocument.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Document> addCustomerDocument(Document document) throws IOException {
+        AddDocument addDocument = new AddDocument(
+                document.getCustomerNumber(),
+                document.getFileName(),
+                document.getFileType(),
+                document.getSize(),
+                document.getType()
+        );
+        if(addDocument.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addDocument.getId(),  addDocument.getCustomer());
+            return mapMessageToDocument(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<Document> mapMessageToDocument(Message message){

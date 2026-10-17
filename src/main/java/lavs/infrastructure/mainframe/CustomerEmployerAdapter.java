@@ -4,6 +4,7 @@ import lavs.business.model.Employer;
 import lavs.business.repository.CustomerEmployerGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.AddEmployer;
 import mainframe.client.messages.customer.DeleteEmployer;
 import mainframe.client.messages.customer.UpdateEmployer;
 import mainframe.client.messages.customerEmployer.Retrieve;
@@ -52,6 +53,24 @@ public class CustomerEmployerAdapter implements CustomerEmployerGateway {
     public boolean deleteEmployerByCustomerNumberAndId(long id, String customerNumber) throws IOException {
         DeleteEmployer deleteEmployer = new DeleteEmployer(customerNumber, id);
         return deleteEmployer.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Employer> addCustomerEmployer(Employer employer) throws IOException {
+        AddEmployer addEmployer = new AddEmployer(
+                employer.get_customerNumber(),
+                employer.get_name(),
+                employer.get_position(),
+                employer.get_salary(),
+                employer.get_type()
+        );
+        if (addEmployer.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addEmployer.getId(), addEmployer.getCustomer());
+            return mapMessageToEmployer(retrieve);
+        }
+
+
+        return Optional.empty();
     }
 
     public Optional<Employer> mapMessageToEmployer(Message message) throws IOException {

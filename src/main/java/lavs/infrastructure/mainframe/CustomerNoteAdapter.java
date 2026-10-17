@@ -5,6 +5,7 @@ import lavs.business.repository.CustomerNoteGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
+import mainframe.client.messages.customer.AddNote;
 import mainframe.client.messages.customer.DeleteNote;
 import mainframe.client.messages.customer.UpdateNote;
 import mainframe.client.messages.customerNote.Retrieve;
@@ -25,7 +26,7 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
         Retrieve retrieve = new Retrieve(id, customerNumber);
         Status status = retrieve.send(connection);
         if (status.getWasSuccessful()) {
-            return mapMessageNote(retrieve);
+            return mapMessageToNote(retrieve);
         }
         return Optional.empty();
     }
@@ -42,7 +43,7 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
         if (status.getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(note.get_id(), note.get_customerNumber());
             retrieve.send(connection);
-            return mapMessageNote(retrieve);
+            return mapMessageToNote(retrieve);
         }
         return Optional.empty();
     }
@@ -53,7 +54,21 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
         return deleteNote.send(connection).getWasSuccessful();
     }
 
-    public Optional<Note> mapMessageNote(Message message) {
+    @Override
+    public Optional<Note> addCustomerNote(Note note) throws IOException {
+        AddNote addNote = new AddNote(
+                note.get_customerNumber(),
+                note.get_lines(),
+                note.get_type()
+        );
+        if(addNote.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addNote.getId(), addNote.getCustomer());
+            return mapMessageToNote(retrieve);
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Note> mapMessageToNote(Message message) {
         if (message instanceof Retrieve retrieve) {
             Note note = new Note(
                     retrieve.getAuthor(),
@@ -65,6 +80,7 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
                     retrieve.getNumberOfLines(),
                     retrieve.getType()
             );
+
             return Optional.of(note);
 
         }

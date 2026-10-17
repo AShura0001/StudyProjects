@@ -1,5 +1,6 @@
 package lavs.business.repository;
 
+import lavs.business.model.Document;
 import lavs.business.model.Employer;
 import lavs.business.model.Relationship;
 
@@ -30,5 +31,13 @@ public interface CustomerEmployerGateway {
      * @return true if successful
      */
     boolean deleteEmployerByCustomerNumberAndId(long id, String customerNumber) throws IOException;
+
+    /**
+     *
+     * @param employer
+     * @return
+     * @throws IOException
+     */
+    Optional<Employer> addCustomerEmployer(Employer employer) throws IOException;
 }
 

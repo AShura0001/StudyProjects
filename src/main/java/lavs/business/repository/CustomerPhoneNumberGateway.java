@@ -1,5 +1,6 @@
 package lavs.business.repository;
 
+import lavs.business.model.Note;
 import lavs.business.model.PhoneNumber;
 
 import java.io.IOException;
@@ -29,4 +30,12 @@ public interface CustomerPhoneNumberGateway {
      * @return true if successfully deleted
      */
     boolean deleteCustomerNumberByNumberAndId(long id, String customerNumber) throws IOException;
+
+    /**
+     *
+     * @param phoneNumber
+     * @return
+     * @throws IOException
+     */
+    Optional<PhoneNumber> addCustomerPhoneNumber(PhoneNumber phoneNumber) throws IOException;
 }

@@ -22,4 +22,6 @@ public interface CustomerGateway {
      * @throws IOException
      */
     boolean updateStatus(String customerNumber) throws IOException;
+
+    Optional<Customer> createCustomer(Customer customer) throws IOException;
 }

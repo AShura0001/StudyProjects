@@ -5,6 +5,7 @@ import lavs.business.repository.CustomerPhoneNumberGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
+import mainframe.client.messages.customer.AddPhoneNumber;
 import mainframe.client.messages.customer.DeletePhoneNumber;
 import mainframe.client.messages.customer.UpdatePhoneNumber;
 import mainframe.client.messages.customerPhoneNumber.Retrieve;
@@ -56,6 +57,26 @@ public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
     public boolean deleteCustomerNumberByNumberAndId(long id, String customerNumber) throws IOException {
         DeletePhoneNumber deletePhoneNumber = new DeletePhoneNumber(customerNumber, id);
         return deletePhoneNumber.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<PhoneNumber> addCustomerPhoneNumber(PhoneNumber phoneNumber) throws IOException {
+        AddPhoneNumber addPhoneNumber = new AddPhoneNumber(
+                phoneNumber.is_canTxt(),
+                phoneNumber.get_countryCode(),
+                phoneNumber.get_customerNumber(),
+                phoneNumber.is_isPrimary(),
+                phoneNumber.get_number(),
+                phoneNumber.get_otherType(),
+                phoneNumber.get_type()
+
+
+        );
+        if(addPhoneNumber.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(addPhoneNumber.getId(), addPhoneNumber.getCustomer());
+            return  mapMessageToPhoneNumber(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<PhoneNumber> mapMessageToPhoneNumber(Message message) {

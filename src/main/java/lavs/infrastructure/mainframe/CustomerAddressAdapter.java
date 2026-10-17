@@ -4,6 +4,7 @@ import lavs.business.model.Address;
 import lavs.business.repository.CustomerAddressGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.AddAddress;
 import mainframe.client.messages.customer.DeleteAddress;
 import mainframe.client.messages.customer.UpdateAddress;
 import mainframe.client.messages.customerAddress.Retrieve;
@@ -56,6 +57,28 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
     public boolean deleteCustomerAddress(String customerNumber, long id) throws IOException {
         DeleteAddress deleteAddress = new DeleteAddress(customerNumber, id);
         return deleteAddress.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Address> addCustomerAddress(Address address) throws IOException {
+        AddAddress addAddress = new AddAddress(
+                address.getCity(),
+                address.getCountry(),
+                address.getCustomerNumber(),
+                address.getIsMailing(),
+                address.getIsPrimary(),
+                address.getLine1(),
+                address.getLine2(),
+                address.getOtherType(),
+                address.getPostCode(),
+                address.getSuburb(),
+                address.getType()
+        );
+        if(addAddress.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(address.getId(), addAddress.getCustomer());
+            return  mapMessageToAddress(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<Address> mapMessageToAddress(Message message) {

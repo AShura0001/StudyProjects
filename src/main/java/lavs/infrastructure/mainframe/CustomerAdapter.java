@@ -4,6 +4,7 @@ import lavs.business.model.Customer;
 import lavs.business.repository.CustomerGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.Create;
 import mainframe.client.messages.customer.Retrieve;
 import mainframe.client.messages.customer.UpdateStatus;
 
@@ -35,6 +36,23 @@ public class CustomerAdapter implements CustomerGateway {
         String status = retrieve.getStatus().equalsIgnoreCase(UpdateStatus.STATUS_ACTIVE) ? UpdateStatus.STATUS_INACTIVE : UpdateStatus.STATUS_ACTIVE;
         UpdateStatus updateStatus = new UpdateStatus(customerNumber, status);
         return updateStatus.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Customer> createCustomer(Customer customer) throws IOException {
+        Create create = new Create(
+                customer.get_dateOfBirth(),
+                customer.get_familyName(),
+                customer.get_firstName(),
+                customer.get_nationality(),
+                customer.getOrganisation(),
+                customer.get_title()
+        );
+        if(create.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(create.getNumber());
+            return mapMessageToCustomer(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<Customer> mapMessageToCustomer(Message message) {

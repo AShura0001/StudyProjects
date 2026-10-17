@@ -6,6 +6,7 @@ public class Customer {
     private String firstName;
     private String nationality;
     private String number;
+    private long organisation;
     private String status;
     private String title;
 
@@ -59,6 +60,14 @@ public class Customer {
 
     public String get_title() {
         return title;
+    }
+
+    public long getOrganisation() {
+        return organisation;
+    }
+
+    public void setOrganisation(long organisation) {
+        this.organisation = organisation;
     }
 
     public void set_title(String title) {

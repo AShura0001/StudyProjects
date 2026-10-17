@@ -1,5 +1,6 @@
 package lavs.business.repository;
 
+import lavs.business.model.PhoneNumber;
 import lavs.business.model.Relationship;
 
 import java.io.IOException;
@@ -30,4 +31,13 @@ public interface CustomerRelationshipGateway {
      * @return true if successful
      */
     boolean deleteRelationshipByCustomerNumberAndId(long id, String customerNumber) throws IOException;
+
+    /**
+     *
+     * @param relationship
+     * @return
+     * @throws IOException
+     */
+    Optional<Relationship> addCustomerRelationship(Relationship relationship) throws IOException;
 }
+
