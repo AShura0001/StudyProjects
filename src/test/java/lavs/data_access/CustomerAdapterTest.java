@@ -1,17 +1,18 @@
 package lavs.data_access;
 
 
+import lavs.business.model.Address;
 import lavs.business.model.Customer;
-import mainframe.client.Message;
-import mainframe.client.MessageResponse;
-import mainframe.client.Status;
-import mainframe.client.StubConnection;
+import mainframe.client.*;
+import mainframe.client.messages.customer.AddAddress;
 import mainframe.client.messages.customer.Retrieve;
+import mainframe.client.messages.customer.Search;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Optional;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -156,6 +157,65 @@ class CustomerAdapterTest {
         assertNull(customer.get_title());
     }
 
+    @Test
+    void UpdateAddress() throws IOException, InterruptedException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        Connection connection = new HttpConnection(TestConstants.BASE_URL);
+        connection.Login("test", "test");
+
+        Search searchMessage = sendMessage(
+                connection,
+                new Search(1, "Smith", 25),
+                "search");
+        Search.Item[] customers = searchMessage.getItems();
+        Assertions.assertNotNull(customers.length > 0, "No customers returned");
+        String customerNumber = customers[0].getNumber();
+
+        CustomerAdapter customerAdapter = new CustomerAdapter(connection);
+
+
+        Address address = new Address("Auckland",
+                "New Zealand", "Smith",
+                customerNumber,
+                null,
+                false,
+                false,
+                "Line 1",
+                "Line 2",
+                null,
+                "1234",
+                "Onehunga",
+                AddAddress.TYPE_POSTAL);
+
+        Optional<Address> addressOptional = customerAdapter.updateCustomerAddress(address);
+
+        assertTrue(addressOptional.isPresent());
+
+        Address result = addressOptional.get();
+
+        assertEquals("Auckland", result.get_city());
+        assertEquals("New Zealand", result.get_country());
+        assertEquals("Johnn Smith", result.get_customerName());
+        assertEquals(customerNumber, result.get_customerNumber());
+
+
+        assertEquals(false, result.is_isMailing());
+        assertEquals(false, result.is_isPrimary());
+
+        assertEquals("Line 1", result.get_line1());
+        assertEquals("Line 2", result.get_line2());
+
+        assertEquals(null, result.get_otherType());
+
+        assertEquals("1234", result.get_postCode());
+        assertEquals("Onehunga", result.get_suburb());
+        assertEquals(AddAddress.TYPE_POSTAL, result.get_type());
+
+
+
+
+
+
+    }
 
     /**
      * Minimal Message implementation used to verify that the mapper ignores
@@ -199,5 +259,17 @@ class CustomerAdapterTest {
         @Override
         public void Logout() {
         }
+    }
+
+    private <T extends Message> T sendMessage(Connection connection, T message, String name) throws IOException, InterruptedException {
+        Status status = message.send(connection);
+        Thread.sleep(500);     // give the server time to apply the updates
+
+        Assertions.assertAll(
+                () -> Assertions.assertTrue(status.getWasSuccessful(), name + " message failed"),
+                () -> Assertions.assertNull(status.getErrorMessage(), name + " message failed")
+        );
+
+        return message;
     }
 }
