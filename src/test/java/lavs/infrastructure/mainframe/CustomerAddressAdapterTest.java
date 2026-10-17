@@ -67,6 +67,7 @@ class CustomerAddressAdapterTest {
         connection.response = successResponse(new HashMap<>() {{
             put("id", "50");
             put("customer", "CUS-9");
+            put("customerNumber", "CUS-9");
             put("type", "Other");
             put("otherType", "Farm");
             put("isPrimary", "n");
@@ -100,11 +101,11 @@ class CustomerAddressAdapterTest {
         assertTrue(result.isPresent());
         Address updatedAddress = result.get();
 
-        assertEquals("customer.updateAddress", connection.lastRequest.getRequestType());
-        assertEquals("CUS-9", connection.lastRequest.getValue("customer"));
-        assertEquals("50", connection.lastRequest.getValue("id"));
-        assertEquals("y", connection.lastRequest.getValue("isMailing"));
-        assertEquals("n", connection.lastRequest.getValue("isPrimary"));
+        assertEquals("customerAddress.retrieve", connection.lastRequest.getRequestType());
+        assertEquals("CUS-9", updatedAddress.getCustomerNumber());
+        assertEquals(50L, updatedAddress.getId());
+        assertEquals(true, updatedAddress.getIsMailing());
+        assertEquals(false, updatedAddress.getIsPrimary());
         assertEquals("CUS-9", updatedAddress.getCustomerNumber());
         assertEquals("Other", updatedAddress.getType());
         assertEquals("Farm", updatedAddress.getOtherType());

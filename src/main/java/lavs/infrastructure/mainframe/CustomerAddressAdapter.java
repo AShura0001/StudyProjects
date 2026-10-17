@@ -43,8 +43,13 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getSuburb(),
                 address.getType());
 
-        updateAddress.send(connection);
-        return mapMessageToAddress(updateAddress);
+        if(updateAddress.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(address.getId(), address.getCustomerNumber());
+            retrieve.send(connection);
+            return mapMessageToAddress(retrieve);
+        };
+
+        return Optional.empty();
     }
 
     @Override

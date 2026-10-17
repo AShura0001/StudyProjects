@@ -14,4 +14,12 @@ public interface CustomerGateway {
      * @throws IOException
      */
     Optional<Customer> findByCustomerNumber(String number) throws IOException;
+
+    /**
+     *
+     * @param customerNumber
+     * @return toggles the status between active and inactive and returns true if successful
+     * @throws IOException
+     */
+    boolean updateStatus(String customerNumber) throws IOException;
 }

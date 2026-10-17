@@ -18,7 +18,7 @@ public interface CustomerDocumentGateway {
 
 
     /**
-     *
+     *w
      * @param customerNumber
      * @param id Document id
      * @throws IOException
