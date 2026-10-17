@@ -28,7 +28,7 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
     }
 
     @Override
-    public Address updateCustomerAddress(Address address) throws IOException {
+    public Optional<Address> updateCustomerAddress(Address address) throws IOException {
         UpdateAddress updateAddress = new UpdateAddress(
                 address.getCity(),
                 address.getCountry(),
@@ -44,7 +44,7 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getType());
 
         updateAddress.send(connection);
-        return mapMessageToAddress(updateAddress).orElse(address);
+        return mapMessageToAddress(updateAddress);
     }
 
     @Override

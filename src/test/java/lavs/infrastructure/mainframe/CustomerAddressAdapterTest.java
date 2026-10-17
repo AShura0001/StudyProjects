@@ -94,16 +94,20 @@ class CustomerAddressAdapterTest {
         input.setCountry("New Zealand");
         input.setPostCode("0622");
 
-        Address result = adapter.updateCustomerAddress(input);
+
+
+        Optional<Address> result = adapter.updateCustomerAddress(input);
+        assertTrue(result.isPresent());
+        Address updatedAddress = result.get();
 
         assertEquals("customer.updateAddress", connection.lastRequest.getRequestType());
         assertEquals("CUS-9", connection.lastRequest.getValue("customer"));
         assertEquals("50", connection.lastRequest.getValue("id"));
         assertEquals("y", connection.lastRequest.getValue("isMailing"));
         assertEquals("n", connection.lastRequest.getValue("isPrimary"));
-        assertEquals("CUS-9", result.getCustomerNumber());
-        assertEquals("Other", result.getType());
-        assertEquals("Farm", result.getOtherType());
+        assertEquals("CUS-9", updatedAddress.getCustomerNumber());
+        assertEquals("Other", updatedAddress.getType());
+        assertEquals("Farm", updatedAddress.getOtherType());
     }
 
     @Test

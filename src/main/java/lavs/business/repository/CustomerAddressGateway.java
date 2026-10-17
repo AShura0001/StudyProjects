@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface CustomerAddressGateway {
     Optional<Address> findAddressByCustomerNumberAndId(Long id, String customerNumber) throws IOException;
 
-    Address updateCustomerAddress(Address address) throws IOException;
+    Optional<Address> updateCustomerAddress(Address address) throws IOException;
 
     void deleteCustomerAddress(String customerNumber, long id) throws IOException;
 }
