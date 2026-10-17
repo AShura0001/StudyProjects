@@ -1,0 +1,33 @@
+package lavs.business.repository;
+
+import lavs.business.model.Draft;
+
+/**
+ * What {@link lavs.business.service.DraftSyncService} needs from the mainframe to
+ * send a saved draft.
+ *
+ * <p>The business layer only knows about this interface, so tests can use a fake
+ * and the data access layer decides how the mainframe is actually called.
+ */
+public interface DraftUploadGateway {
+
+    /**
+     * Sends one draft to the mainframe.
+     *
+     * <p>The draft's payload is passed on as it was saved. When the draft belongs
+     * to another record, the real number the mainframe gave that record is passed
+     * separately, so nothing inside the payload text has to be edited.
+     *
+     * @param draft the draft to send
+     * @param parentNumber the mainframe's number for the record this draft belongs
+     *                     to (the customer for a loan, the loan for a co-borrower),
+     *                     or {@code null} when the draft does not belong to another
+     *                     record, such as a customer
+     * @return the number the mainframe assigned to the new record
+     * @throws RecordRejectedException if the mainframe refused the record, with the
+     *                                 reasons for each field
+     * @throws MainframeUnavailableException if the mainframe could not be reached,
+     *                                       so it is not known whether the record arrived
+     */
+    String upload(Draft draft, String parentNumber);
+}
