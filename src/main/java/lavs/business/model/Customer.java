@@ -1,68 +1,67 @@
 package lavs.business.model;
 
 public class Customer {
-    private String _dateOfBirth;
-    private String _familyName;
-    private String _firstName;
-    private String _nationality;
-    private String _number;
-    private String _status;
-    private String _title;
-
+    private String dateOfBirth;
+    private String familyName;
+    private String firstName;
+    private String nationality;
+    private String number;
+    private String status;
+    private String title;
 
     public String get_dateOfBirth() {
-        return _dateOfBirth;
+        return dateOfBirth;
     }
 
-    public void set_dateOfBirth(String _dateOfBirth) {
-        this._dateOfBirth = _dateOfBirth;
+    public void set_dateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String get_familyName() {
-        return _familyName;
+        return familyName;
     }
 
-    public void set_familyName(String _familyName) {
-        this._familyName = _familyName;
+    public void set_familyName(String familyName) {
+        this.familyName = familyName;
     }
 
     public String get_firstName() {
-        return _firstName;
+        return firstName;
     }
 
-    public void set_firstName(String _firstName) {
-        this._firstName = _firstName;
+    public void set_firstName(String firstName) {
+        this.firstName = firstName;
     }
 
     public String get_nationality() {
-        return _nationality;
+        return nationality;
     }
 
-    public void set_nationality(String _nationality) {
-        this._nationality = _nationality;
+    public void set_nationality(String nationality) {
+        this.nationality = nationality;
     }
 
     public String get_number() {
-        return _number;
+        return number;
     }
 
-    public void set_number(String _number) {
-        this._number = _number;
+    public void set_number(String number) {
+        this.number = number;
     }
 
     public String get_status() {
-        return _status;
+        return status;
     }
 
-    public void set_status(String _status) {
-        this._status = _status;
+    public void set_status(String status) {
+        this.status = status;
     }
 
     public String get_title() {
-        return _title;
+        return title;
     }
 
-    public void set_title(String _title) {
-        this._title = _title;
+    public void set_title(String title) {
+        this.title = title;
     }
 }

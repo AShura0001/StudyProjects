@@ -1,139 +1,130 @@
 package lavs.business.model;
 
 public class Address {
-    private String _city;
-    private String _country;
-    private String _customerName;
-    private String _customerNumber;
-    private Long _id;
-    private boolean _isMailing;
-    private boolean _isPrimary;
-    private String _line1;
-    private String _line2;
-    private String _otherType;
-    private String _postCode;
-    private String _suburb;
-    private String _type;
+    private String city;
+    private String country;
+    private String customerName;
+    private String customerNumber;
+    private Long id;
+    private Boolean isMailing;
+    private Boolean isPrimary;
+    private String line1;
+    private String line2;
+    private String number;
+    private String otherType;
+    private String postCode;
+    private String suburb;
+    private String type;
 
-    public Address(){}
-
-    public Address(String _city, String _country, String _customerName, String _customerNumber, Long _id, boolean _isMailing, boolean _isPrimary, String _line1, String _line2, String _otherType, String _postCode, String _suburb, String _type) {
-        this._city = _city;
-        this._country = _country;
-        this._customerName = _customerName;
-        this._customerNumber = _customerNumber;
-        this._id = _id;
-        this._isMailing = _isMailing;
-        this._isPrimary = _isPrimary;
-        this._line1 = _line1;
-        this._line2 = _line2;
-        this._otherType = _otherType;
-        this._postCode = _postCode;
-        this._suburb = _suburb;
-        this._type = _type;
+    public String getCity() {
+        return city;
     }
 
-    public String get_city() {
-        return _city;
+    public void setCity(String city) {
+        this.city = city;
     }
 
-    public void set_city(String _city) {
-        this._city = _city;
+    public String getCountry() {
+        return country;
     }
 
-    public String get_country() {
-        return _country;
+    public void setCountry(String country) {
+        this.country = country;
     }
 
-    public void set_country(String _country) {
-        this._country = _country;
+    public String getCustomerName() {
+        return customerName;
     }
 
-    public long get_id() {
-        return _id;
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 
-    public void set_id(long _id) {
-        this._id = _id;
+    public String getCustomerNumber() {
+        return customerNumber;
     }
 
-    public boolean is_isMailing() {
-        return _isMailing;
+    public void setCustomerNumber(String customerNumber) {
+        this.customerNumber = customerNumber;
     }
 
-    public void set_isMailing(boolean _isMailing) {
-        this._isMailing = _isMailing;
+    public Long getId() {
+        return id;
     }
 
-    public boolean is_isPrimary() {
-        return _isPrimary;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public void set_isPrimary(boolean _isPrimary) {
-        this._isPrimary = _isPrimary;
+    public Boolean getIsMailing() {
+        return isMailing;
     }
 
-    public String get_line1() {
-        return _line1;
+    public void setIsMailing(Boolean isMailing) {
+        this.isMailing = isMailing;
     }
 
-    public void set_line1(String _line1) {
-        this._line1 = _line1;
+    public Boolean getIsPrimary() {
+        return isPrimary;
     }
 
-    public String get_line2() {
-        return _line2;
+    public void setIsPrimary(Boolean isPrimary) {
+        this.isPrimary = isPrimary;
     }
 
-    public void set_line2(String _line2) {
-        this._line2 = _line2;
+    public String getLine1() {
+        return line1;
     }
 
-    public String get_otherType() {
-        return _otherType;
+    public void setLine1(String line1) {
+        this.line1 = line1;
     }
 
-    public void set_otherType(String _otherType) {
-        this._otherType = _otherType;
+    public String getLine2() {
+        return line2;
     }
 
-    public String get_postCode() {
-        return _postCode;
+    public void setLine2(String line2) {
+        this.line2 = line2;
     }
 
-    public void set_postCode(String _postCode) {
-        this._postCode = _postCode;
+    public String getNumber() {
+        return number;
     }
 
-    public String get_suburb() {
-        return _suburb;
+    public void setNumber(String number) {
+        this.number = number;
     }
 
-    public void set_suburb(String _suburb) {
-        this._suburb = _suburb;
+    public String getOtherType() {
+        return otherType;
     }
 
-    public String get_type() {
-        return _type;
+    public void setOtherType(String otherType) {
+        this.otherType = otherType;
     }
 
-    public void set_type(String _type) {
-        this._type = _type;
+    public String getPostCode() {
+        return postCode;
     }
 
-    public String get_customerName() {
-        return _customerName;
+    public void setPostCode(String postCode) {
+        this.postCode = postCode;
     }
 
-    public void set_customerName(String _customerName) {
-        this._customerName = _customerName;
+    public String getSuburb() {
+        return suburb;
     }
 
-    public String get_customerNumber() {
-        return _customerNumber;
+    public void setSuburb(String suburb) {
+        this.suburb = suburb;
     }
 
-    public void set_customerNumber(String _customerNumber) {
-        this._customerNumber = _customerNumber;
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
