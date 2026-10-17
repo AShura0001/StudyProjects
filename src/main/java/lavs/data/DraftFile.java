@@ -1,5 +1,7 @@
 package lavs.data;
 
+import java.util.Map;
+
 /**
  * The shape of one draft file on disk.
  *
@@ -14,11 +16,16 @@ package lavs.data;
  * @param payload the record as plain text
  * @param status the name of the draft status, for example {@code PENDING}
  * @param createdAt the creation time as ISO-8601 text, for example {@code 2026-10-15T09:30:00Z}
+ * @param serverNumber the number the mainframe assigned, or null if it has none
+ * @param errors the reason for each refused field; may be missing in files saved
+ *               before errors were stored, which is read as no errors
  */
 public record DraftFile(
         String localId,
         String type,
         String payload,
         String status,
-        String createdAt) {
+        String createdAt,
+        String serverNumber,
+        Map<String, String> errors) {
 }

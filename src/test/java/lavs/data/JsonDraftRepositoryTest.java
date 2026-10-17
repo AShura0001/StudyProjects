@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -25,8 +26,22 @@ class JsonDraftRepositoryTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private static final Map<String, String> ERRORS = Map.of("principal", "Must be greater than zero.");
+
     @TempDir
     Path folder;
+
+    private static Draft pending(String id, DraftType type, String payload, Instant created) {
+        return new Draft(id, type, payload, DraftStatus.PENDING, created, null, Map.of());
+    }
+
+    private static Draft synced(String id, DraftType type, String payload, Instant created) {
+        return new Draft(id, type, payload, DraftStatus.SYNCED, created, "LOAN-1", Map.of());
+    }
+
+    private static Draft rejected(String id, DraftType type, String payload, Instant created) {
+        return new Draft(id, type, payload, DraftStatus.REJECTED, created, null, ERRORS);
+    }
 
     @Test
     void save_withNewDraft_writesAJsonFileNamedAfterTheId() {
@@ -42,12 +57,37 @@ class JsonDraftRepositoryTest {
     void save_withNewDraft_writesAllFieldsToTheFile() throws IOException {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
         Instant created = Instant.parse("2026-10-01T09:30:00Z");
-        Draft draft = new Draft("abc", DraftType.CUSTOMER, "customer text", DraftStatus.PENDING, created);
+        Draft draft = pending("abc", DraftType.CUSTOMER, "customer text", created);
 
         repository.save(draft);
 
         DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
-        assertEquals(new DraftFile("abc", "CUSTOMER", "customer text", "PENDING", "2026-10-01T09:30:00Z"), written);
+        assertEquals(new DraftFile("abc", "CUSTOMER", "customer text", "PENDING", "2026-10-01T09:30:00Z",
+                null, Map.of()), written);
+    }
+
+    @Test
+    void save_withSyncedDraft_writesTheServerNumber() throws IOException {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Draft draft = synced("abc", DraftType.LOAN, "loan text", Instant.parse("2026-10-01T09:30:00Z"));
+
+        repository.save(draft);
+
+        DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
+        assertEquals("SYNCED", written.status());
+        assertEquals("LOAN-1", written.serverNumber());
+    }
+
+    @Test
+    void save_withRejectedDraft_writesTheErrors() throws IOException {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Draft draft = rejected("abc", DraftType.LOAN, "loan text", Instant.parse("2026-10-01T09:30:00Z"));
+
+        repository.save(draft);
+
+        DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
+        assertEquals("REJECTED", written.status());
+        assertEquals(ERRORS, written.errors());
     }
 
     @Test
@@ -56,12 +96,13 @@ class JsonDraftRepositoryTest {
         Draft draft = new Draft(DraftType.LOAN, "loan text");
         repository.save(draft);
 
-        draft.setStatus(DraftStatus.SYNCED);
+        draft.markSynced("LOAN-1");
         repository.save(draft);
 
         DraftFile written = mapper.readValue(
                 folder.resolve(draft.getLocalId() + ".json").toFile(), DraftFile.class);
         assertEquals("SYNCED", written.status());
+        assertEquals("LOAN-1", written.serverNumber());
     }
 
     @Test
@@ -89,7 +130,7 @@ class JsonDraftRepositoryTest {
     void findById_afterSave_returnsTheSameDraft() {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
         Instant created = Instant.parse("2026-10-01T09:30:00Z");
-        Draft saved = new Draft("abc", DraftType.CUSTOMER, "customer text", DraftStatus.REJECTED, created);
+        Draft saved = rejected("abc", DraftType.CUSTOMER, "customer text", created);
         repository.save(saved);
 
         Draft found = repository.findById("abc").orElseThrow();
@@ -99,7 +140,43 @@ class JsonDraftRepositoryTest {
                 () -> assertEquals(DraftType.CUSTOMER, found.getType()),
                 () -> assertEquals("customer text", found.getPayload()),
                 () -> assertEquals(DraftStatus.REJECTED, found.getStatus()),
-                () -> assertEquals(created, found.getCreatedAt()));
+                () -> assertEquals(created, found.getCreatedAt()),
+                () -> assertEquals(ERRORS, found.getErrors()),
+                () -> assertTrue(found.getServerNumber().isEmpty()));
+    }
+
+    @Test
+    void findById_afterSavingASyncedDraft_returnsTheServerNumber() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        repository.save(synced("abc", DraftType.LOAN, "loan text", Instant.parse("2026-10-01T09:30:00Z")));
+
+        Draft found = repository.findById("abc").orElseThrow();
+
+        assertEquals(DraftStatus.SYNCED, found.getStatus());
+        assertEquals("LOAN-1", found.getServerNumber().orElseThrow());
+    }
+
+    @Test
+    void findById_withFileSavedBeforeNumbersAndErrorsExisted_readsItAsPending() throws IOException {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Files.writeString(folder.resolve("old.json"),
+                "{\"localId\":\"old\",\"type\":\"LOAN\",\"payload\":\"x\","
+                        + "\"status\":\"PENDING\",\"createdAt\":\"2026-10-01T09:30:00Z\"}");
+
+        Draft found = repository.findById("old").orElseThrow();
+
+        assertEquals(DraftStatus.PENDING, found.getStatus());
+        assertTrue(found.getErrors().isEmpty());
+    }
+
+    @Test
+    void findById_withSyncedFileThatHasNoNumber_throwsStorageException() throws IOException {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Files.writeString(folder.resolve("odd.json"),
+                "{\"localId\":\"odd\",\"type\":\"LOAN\",\"payload\":\"x\","
+                        + "\"status\":\"SYNCED\",\"createdAt\":\"2026-10-01T09:30:00Z\"}");
+
+        assertThrows(DraftStorageException.class, () -> repository.findById("odd"));
     }
 
     @Test
@@ -148,9 +225,9 @@ class JsonDraftRepositoryTest {
     void findPending_withMixedStatuses_returnsOnlyPendingDrafts() {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
         Instant time = Instant.parse("2026-10-01T09:30:00Z");
-        repository.save(new Draft("pending", DraftType.LOAN, "a", DraftStatus.PENDING, time));
-        repository.save(new Draft("synced", DraftType.LOAN, "b", DraftStatus.SYNCED, time));
-        repository.save(new Draft("rejected", DraftType.LOAN, "c", DraftStatus.REJECTED, time));
+        repository.save(pending("pending", DraftType.LOAN, "a", time));
+        repository.save(synced("synced", DraftType.LOAN, "b", time));
+        repository.save(rejected("rejected", DraftType.LOAN, "c", time));
 
         List<Draft> pending = repository.findPending();
 
@@ -161,11 +238,11 @@ class JsonDraftRepositoryTest {
     @Test
     void findPending_withSeveralDrafts_returnsOldestFirst() {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
-        repository.save(new Draft("newest", DraftType.LOAN, "x", DraftStatus.PENDING,
+        repository.save(pending("newest", DraftType.LOAN, "x",
                 Instant.parse("2026-10-03T09:00:00Z")));
-        repository.save(new Draft("oldest", DraftType.CUSTOMER, "x", DraftStatus.PENDING,
+        repository.save(pending("oldest", DraftType.CUSTOMER, "x",
                 Instant.parse("2026-10-01T09:00:00Z")));
-        repository.save(new Draft("middle", DraftType.COBORROWER, "x", DraftStatus.PENDING,
+        repository.save(pending("middle", DraftType.COBORROWER, "x",
                 Instant.parse("2026-10-02T09:00:00Z")));
 
         List<String> order = repository.findPending().stream().map(Draft::getLocalId).toList();
@@ -177,8 +254,8 @@ class JsonDraftRepositoryTest {
     void findPending_withSameCreationTime_ordersByIdSoTheOrderIsStable() {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
         Instant time = Instant.parse("2026-10-01T09:00:00Z");
-        repository.save(new Draft("b", DraftType.LOAN, "x", DraftStatus.PENDING, time));
-        repository.save(new Draft("a", DraftType.LOAN, "x", DraftStatus.PENDING, time));
+        repository.save(pending("b", DraftType.LOAN, "x", time));
+        repository.save(pending("a", DraftType.LOAN, "x", time));
 
         List<String> order = repository.findPending().stream().map(Draft::getLocalId).toList();
 
@@ -188,7 +265,7 @@ class JsonDraftRepositoryTest {
     @Test
     void findPending_withOneDamagedFile_skipsItAndReturnsTheOthers() throws IOException {
         JsonDraftRepository repository = new JsonDraftRepository(folder);
-        repository.save(new Draft("good", DraftType.LOAN, "x", DraftStatus.PENDING,
+        repository.save(pending("good", DraftType.LOAN, "x",
                 Instant.parse("2026-10-01T09:00:00Z")));
         Files.writeString(folder.resolve("broken.json"), "this is not json");
 

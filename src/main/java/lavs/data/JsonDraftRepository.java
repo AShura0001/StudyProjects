@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -147,7 +148,9 @@ public class JsonDraftRepository implements DraftRepository {
                 draft.getType().name(),
                 draft.getPayload(),
                 draft.getStatus().name(),
-                draft.getCreatedAt().toString());
+                draft.getCreatedAt().toString(),
+                draft.getServerNumber().orElse(null),
+                draft.getErrors());
     }
 
     private Draft toDraft(DraftFile file) {
@@ -160,6 +163,8 @@ public class JsonDraftRepository implements DraftRepository {
                 DraftType.valueOf(file.type()),
                 file.payload(),
                 DraftStatus.valueOf(file.status()),
-                Instant.parse(file.createdAt()));
+                Instant.parse(file.createdAt()),
+                file.serverNumber(),
+                file.errors() == null ? Map.of() : file.errors());
     }
 }

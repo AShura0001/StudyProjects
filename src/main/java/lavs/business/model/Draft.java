@@ -1,7 +1,11 @@
 package lavs.business.model;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -9,16 +13,27 @@ import java.util.UUID;
  * confirmed by the mainframe.
  *
  * <p>The record itself is kept as plain text in the payload, so this class does
- * not depend on any JSON library. The local ID, type, payload and creation time
- * never change; only the status does.
+ * not depend on any JSON library. The local ID, type and creation time never
+ * change.
+ *
+ * <p>A draft can only be in one of these states, and the methods that change its
+ * status keep it that way:
+ *
+ * <ul>
+ *   <li>{@link DraftStatus#PENDING}: no server number and no errors.</li>
+ *   <li>{@link DraftStatus#SYNCED}: a server number and no errors. It never changes again.</li>
+ *   <li>{@link DraftStatus#REJECTED}: at least one error and no server number.</li>
+ * </ul>
  */
 public class Draft {
 
     private final String localId;
     private final DraftType type;
-    private final String payload;
     private final Instant createdAt;
+    private String payload;
     private DraftStatus status;
+    private String serverNumber;
+    private Map<String, String> errors;
 
     /**
      * Creates a brand new draft with a fresh unique ID, a status of
@@ -29,26 +44,36 @@ public class Draft {
      * @throws NullPointerException if any argument is null
      */
     public Draft(DraftType type, String payload) {
-        this(UUID.randomUUID().toString(), type, payload, DraftStatus.PENDING, Instant.now());
+        this(UUID.randomUUID().toString(), type, payload, DraftStatus.PENDING, Instant.now(), null, Map.of());
     }
 
     /**
      * Rebuilds a draft that already exists, for example when it is loaded from
-     * disk. The ID, status and creation time are kept exactly as they were.
+     * disk. Everything is kept exactly as it was, but the combination of status,
+     * server number and errors must be one the draft can really be in.
      *
      * @param localId the unique ID the draft was created with
      * @param type the kind of record this draft holds
      * @param payload the record as plain text
      * @param status where the draft is in its life
      * @param createdAt the moment the draft was first created
-     * @throws NullPointerException if any argument is null
+     * @param serverNumber the number the mainframe assigned, or null if it has none
+     * @param errors the reason for each refused field, empty if there are none
+     * @throws NullPointerException if the local ID, type, payload, status, creation
+     *                              time or errors are null
+     * @throws IllegalArgumentException if the status does not match the server
+     *                                  number and errors, as described in the class comment
      */
-    public Draft(String localId, DraftType type, String payload, DraftStatus status, Instant createdAt) {
+    public Draft(String localId, DraftType type, String payload, DraftStatus status, Instant createdAt,
+                 String serverNumber, Map<String, String> errors) {
         this.localId = Objects.requireNonNull(localId, "localId must not be null");
         this.type = Objects.requireNonNull(type, "type must not be null");
         this.payload = Objects.requireNonNull(payload, "payload must not be null");
         this.status = Objects.requireNonNull(status, "status must not be null");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
+        this.serverNumber = serverNumber;
+        this.errors = copyOf(Objects.requireNonNull(errors, "errors must not be null"));
+        requireConsistent();
     }
 
     /**
@@ -97,12 +122,105 @@ public class Draft {
     }
 
     /**
-     * Changes where this draft is in its life.
+     * Gets the number the mainframe assigned to this record.
      *
-     * @param status the new status
-     * @throws NullPointerException if the status is null
+     * @return the server number, or empty if the mainframe has not accepted it
      */
-    public void setStatus(DraftStatus status) {
-        this.status = Objects.requireNonNull(status, "status must not be null");
+    public Optional<String> getServerNumber() {
+        return Optional.ofNullable(serverNumber);
+    }
+
+    /**
+     * Gets the reason the mainframe refused each field, in the order given.
+     *
+     * @return an unmodifiable map from field name to reason, empty unless rejected
+     */
+    public Map<String, String> getErrors() {
+        return errors;
+    }
+
+    /**
+     * Records that the mainframe accepted this draft. Any errors are cleared.
+     *
+     * @param number the number the mainframe assigned to the record
+     * @throws NullPointerException if the number is null
+     * @throws IllegalArgumentException if the number is blank
+     * @throws IllegalStateException if the draft is not pending
+     */
+    public void markSynced(String number) {
+        requireStatus(DraftStatus.PENDING, "marked as synced");
+        requireNotBlank(number, "number");
+        this.status = DraftStatus.SYNCED;
+        this.serverNumber = number;
+        this.errors = Map.of();
+    }
+
+    /**
+     * Records that the mainframe refused this draft.
+     *
+     * @param fieldErrors the reason for each refused field, at least one
+     * @throws NullPointerException if the errors are null
+     * @throws IllegalArgumentException if there are no errors
+     * @throws IllegalStateException if the draft is not pending
+     */
+    public void markRejected(Map<String, String> fieldErrors) {
+        requireStatus(DraftStatus.PENDING, "marked as rejected");
+        Objects.requireNonNull(fieldErrors, "fieldErrors must not be null");
+        if (fieldErrors.isEmpty()) {
+            throw new IllegalArgumentException("a rejected draft needs at least one error");
+        }
+        this.status = DraftStatus.REJECTED;
+        this.serverNumber = null;
+        this.errors = copyOf(fieldErrors);
+    }
+
+    /**
+     * Replaces the record with a new version, for example when the staff member
+     * edits it or corrects what the mainframe refused. The draft becomes pending
+     * again and any errors are cleared.
+     *
+     * @param newPayload the new version of the record as plain text
+     * @throws NullPointerException if the payload is null
+     * @throws IllegalStateException if the draft is already synced
+     */
+    public void revise(String newPayload) {
+        Objects.requireNonNull(newPayload, "newPayload must not be null");
+        if (status == DraftStatus.SYNCED) {
+            throw new IllegalStateException("a synced draft cannot be revised");
+        }
+        this.payload = newPayload;
+        this.status = DraftStatus.PENDING;
+        this.errors = Map.of();
+    }
+
+    private void requireStatus(DraftStatus expected, String action) {
+        if (status != expected) {
+            throw new IllegalStateException("a " + status + " draft cannot be " + action);
+        }
+    }
+
+    private void requireConsistent() {
+        boolean hasNumber = serverNumber != null;
+        boolean hasErrors = !errors.isEmpty();
+        boolean consistent = switch (status) {
+            case PENDING -> !hasNumber && !hasErrors;
+            case SYNCED -> hasNumber && !serverNumber.isBlank() && !hasErrors;
+            case REJECTED -> !hasNumber && hasErrors;
+        };
+        if (!consistent) {
+            throw new IllegalArgumentException("a " + status + " draft cannot have server number "
+                    + serverNumber + " and " + errors.size() + " errors");
+        }
+    }
+
+    private static void requireNotBlank(String value, String name) {
+        Objects.requireNonNull(value, name + " must not be null");
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(name + " must not be blank");
+        }
+    }
+
+    private static Map<String, String> copyOf(Map<String, String> source) {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(source));
     }
 }
