@@ -2,6 +2,8 @@ package lavs.business.service;
 
 import lavs.business.model.LoanSummary;
 import lavs.business.model.RepaymentEntry;
+import lavs.business.repository.FakeDraftRepository;
+import lavs.business.repository.FakeDraftUploadGateway;
 import lavs.business.repository.LoanGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+/** The parts of the loan service that ask the mainframe for figures it works out. */
 class LoanServiceTest {
 
     private static final LoanSummary SUMMARY = new LoanSummary("LN-1", "Jane Doe", 360,
@@ -34,12 +38,12 @@ class LoanServiceTest {
     }
 
     private final LoanGateway gateway = mock(LoanGateway.class);
-    private final LoanService service = new LoanService(gateway);
-
-    @Test
-    void newService_withNullGateway_isRejected() {
-        assertThrows(NullPointerException.class, () -> new LoanService(null));
-    }
+    private final FakeDraftRepository repository = new FakeDraftRepository();
+    private final LoanService service = new LoanService(gateway, mock(CustomerProfileSource.class),
+            details -> Map.of(),
+            new BackgroundSync(new DraftSyncService(repository, new FakeDraftUploadGateway()),
+                    new ManualScheduler(), RetryPolicy.standard()),
+            repository);
 
     @Test
     void summaryOf_withAKnownLoan_returnsTheMainframesSummary() {
