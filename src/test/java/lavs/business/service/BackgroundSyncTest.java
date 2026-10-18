@@ -82,7 +82,7 @@ class BackgroundSyncTest {
         scheduler.runImmediate();
 
         assertEquals(DraftStatus.SYNCED, statusOf(draft));
-        assertEquals(List.of(new SyncResult(1, 0, 0, false)), listener.finished);
+        assertEquals(List.of(new SyncResult(1, 0, 0, 0, false)), listener.finished);
     }
 
     @Test
@@ -138,7 +138,7 @@ class BackgroundSyncTest {
 
         assertEquals(DraftStatus.PENDING, statusOf(draft));
         assertEquals(List.of(Duration.ofSeconds(1)), scheduler.waitingDelays());
-        assertEquals(List.of(new SyncResult(0, 0, 0, true)), listener.lost);
+        assertEquals(List.of(new SyncResult(0, 0, 0, 0, true)), listener.lost);
         assertEquals(List.of(Duration.ofSeconds(1)), listener.retryDelays);
         assertTrue(listener.finished.isEmpty());
     }
@@ -210,7 +210,7 @@ class BackgroundSyncTest {
         scheduler.runImmediate();
 
         assertEquals(DraftStatus.REJECTED, statusOf(draft));
-        assertEquals(List.of(new SyncResult(0, 1, 0, false)), listener.finished);
+        assertEquals(List.of(new SyncResult(0, 1, 0, 0, false)), listener.finished);
         assertTrue(scheduler.waitingDelays().isEmpty());
     }
 
@@ -222,7 +222,7 @@ class BackgroundSyncTest {
 
         scheduler.runImmediate();
 
-        assertEquals(List.of(new SyncResult(0, 1, 1, false)), listener.finished);
+        assertEquals(List.of(new SyncResult(0, 1, 1, 0, false)), listener.finished);
         assertTrue(scheduler.waitingDelays().isEmpty());
     }
 
@@ -250,6 +250,79 @@ class BackgroundSyncTest {
         scheduler.runImmediate();
 
         assertEquals(1, listener.finished.size());
+    }
+
+    @Test
+    void lostReply_reportsTheUncertainDraftAndPlansARetryForTheRest() {
+        Draft draft = sync.saveDraft(DraftType.CUSTOMER, "customer text");
+        gateway.loseNextReplies(1);
+
+        scheduler.runImmediate();
+
+        assertEquals(DraftStatus.UNCERTAIN, statusOf(draft));
+        assertEquals(List.of(new SyncResult(0, 0, 0, 1, true)), listener.lost);
+        assertEquals(List.of(Duration.ofSeconds(1)), scheduler.waitingDelays());
+    }
+
+    @Test
+    void lostReply_neverCreatesADuplicateEvenWhenTheRetryRuns() {
+        sync.saveDraft(DraftType.CUSTOMER, "customer text");
+        gateway.loseNextReplies(1);
+        scheduler.runImmediate();
+
+        scheduler.fireNextDelayed();
+
+        assertEquals(1, gateway.recordsCreated());
+        assertEquals(1, gateway.attempts().size());
+    }
+
+    @Test
+    void findUncertain_afterALostReply_listsTheDraft() {
+        Draft draft = sync.saveDraft(DraftType.CUSTOMER, "customer text");
+        gateway.loseNextReplies(1);
+        scheduler.runImmediate();
+
+        assertEquals(List.of(draft.getLocalId()), sync.findUncertain().stream().map(Draft::getLocalId).toList());
+    }
+
+    @Test
+    void confirmNotSent_putsTheDraftBackAndAsksForAPass() {
+        Draft draft = sync.saveDraft(DraftType.CUSTOMER, "customer text");
+        gateway.loseNextRequests(1);
+        scheduler.runImmediate();
+
+        sync.confirmNotSent(draft.getLocalId());
+        scheduler.runImmediate();
+
+        assertEquals(DraftStatus.SYNCED, statusOf(draft));
+        assertEquals(1, gateway.recordsCreated());
+    }
+
+    @Test
+    void confirmSynced_keepsTheNumberAndAsksForAPassSoWaitingDraftsGo() {
+        Draft customer = sync.saveDraft(DraftType.CUSTOMER, "customer text");
+        Draft loan = sync.saveDraft(DraftType.LOAN, "loan text", List.of(customer.getLocalId()));
+        gateway.loseNextReplies(1);
+        scheduler.runImmediate();
+
+        sync.confirmSynced(customer.getLocalId(), "CUS-1");
+        assertEquals(1, scheduler.immediateCount());
+        scheduler.runImmediate();
+
+        assertEquals(DraftStatus.SYNCED, statusOf(loan));
+        assertEquals(List.of("CUS-1"), gateway.attempts().get(1).parentNumbers());
+    }
+
+    @Test
+    void requestSync_afterARestartThatInterruptedAnUpload_reportsTheDraftAsUncertain() {
+        repository.save(new Draft("interrupted", DraftType.LOAN, "text", DraftStatus.SENDING,
+                java.time.Instant.parse("2026-10-01T09:00:00Z"), null, Map.of()));
+
+        sync.requestSync();
+        scheduler.runImmediate();
+
+        assertEquals(List.of(new SyncResult(0, 0, 0, 1, false)), listener.finished);
+        assertTrue(gateway.attempts().isEmpty());
     }
 
     @Test

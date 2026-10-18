@@ -20,16 +20,32 @@ class DraftTest {
     private static final Instant TIME = Instant.parse("2026-10-01T09:30:00Z");
     private static final Map<String, String> ERRORS = Map.of("principal", "Must be greater than zero.");
 
-    private static Draft rejectedDraft() {
+    private static Draft sendingDraft() {
         Draft draft = new Draft(DraftType.LOAN, "text");
-        draft.markRejected(ERRORS);
+        draft.markSending();
         return draft;
     }
 
     private static Draft syncedDraft() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
         draft.markSynced("LOAN-1");
         return draft;
+    }
+
+    private static Draft rejectedDraft() {
+        Draft draft = sendingDraft();
+        draft.markRejected(ERRORS);
+        return draft;
+    }
+
+    private static Draft uncertainDraft() {
+        Draft draft = sendingDraft();
+        draft.markUncertain();
+        return draft;
+    }
+
+    private static Draft rebuilt(DraftStatus status, String number, Map<String, String> errors) {
+        return new Draft("abc", DraftType.LOAN, "text", status, TIME, number, errors);
     }
 
     @Test
@@ -64,7 +80,7 @@ class DraftTest {
 
     @Test
     void rebuiltDraft_whenCreatedWithATime_keepsThatTime() {
-        Draft draft = new Draft("abc", DraftType.LOAN, "text", DraftStatus.SYNCED, TIME, "LOAN-1", Map.of());
+        Draft draft = rebuilt(DraftStatus.SYNCED, "LOAN-1", Map.of());
 
         assertEquals(TIME, draft.getCreatedAt());
     }
@@ -83,63 +99,91 @@ class DraftTest {
 
     @Test
     void rebuiltDraft_asSyncedWithItsNumber_keepsTheNumber() {
-        Draft draft = new Draft("abc", DraftType.LOAN, "text", DraftStatus.SYNCED, TIME, "LOAN-7", Map.of());
+        Draft draft = rebuilt(DraftStatus.SYNCED, "LOAN-7", Map.of());
 
         assertEquals("LOAN-7", draft.getServerNumber().orElseThrow());
     }
 
     @Test
     void rebuiltDraft_asRejectedWithErrors_keepsTheErrors() {
-        Draft draft = new Draft("abc", DraftType.LOAN, "text", DraftStatus.REJECTED, TIME, null, ERRORS);
+        Draft draft = rebuilt(DraftStatus.REJECTED, null, ERRORS);
 
         assertEquals(ERRORS, draft.getErrors());
     }
 
     @Test
+    void rebuiltDraft_asSendingOrUncertainWithNothingElse_isAllowed() {
+        assertEquals(DraftStatus.SENDING, rebuilt(DraftStatus.SENDING, null, Map.of()).getStatus());
+        assertEquals(DraftStatus.UNCERTAIN, rebuilt(DraftStatus.UNCERTAIN, null, Map.of()).getStatus());
+    }
+
+    @Test
     void rebuiltDraft_asPendingWithANumber_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.PENDING, TIME, "LOAN-1", Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.PENDING, "LOAN-1", Map.of()));
     }
 
     @Test
     void rebuiltDraft_asPendingWithErrors_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.PENDING, TIME, null, ERRORS));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.PENDING, null, ERRORS));
+    }
+
+    @Test
+    void rebuiltDraft_asSendingWithANumberOrErrors_isRejected() {
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.SENDING, "LOAN-1", Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.SENDING, null, ERRORS));
+    }
+
+    @Test
+    void rebuiltDraft_asUncertainWithANumberOrErrors_isRejected() {
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.UNCERTAIN, "LOAN-1", Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.UNCERTAIN, null, ERRORS));
     }
 
     @Test
     void rebuiltDraft_asSyncedWithoutANumber_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.SYNCED, TIME, null, Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.SYNCED, null, Map.of()));
     }
 
     @Test
     void rebuiltDraft_asSyncedWithABlankNumber_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.SYNCED, TIME, " ", Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.SYNCED, " ", Map.of()));
     }
 
     @Test
     void rebuiltDraft_asSyncedWithErrors_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.SYNCED, TIME, "LOAN-1", ERRORS));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.SYNCED, "LOAN-1", ERRORS));
     }
 
     @Test
     void rebuiltDraft_asRejectedWithoutErrors_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.REJECTED, TIME, null, Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.REJECTED, null, Map.of()));
     }
 
     @Test
     void rebuiltDraft_asRejectedWithANumber_isRejected() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Draft("abc", DraftType.LOAN, "text", DraftStatus.REJECTED, TIME, "LOAN-1", ERRORS));
+        assertThrows(IllegalArgumentException.class, () -> rebuilt(DraftStatus.REJECTED, "LOAN-1", ERRORS));
     }
 
     @Test
-    void markSynced_onPendingDraft_storesTheNumberAndChangesStatus() {
+    void markSending_onPendingDraft_changesTheStatus() {
         Draft draft = new Draft(DraftType.LOAN, "text");
+
+        draft.markSending();
+
+        assertEquals(DraftStatus.SENDING, draft.getStatus());
+    }
+
+    @Test
+    void markSending_onAnyOtherStatus_isRejected() {
+        assertThrows(IllegalStateException.class, () -> sendingDraft().markSending());
+        assertThrows(IllegalStateException.class, () -> uncertainDraft().markSending());
+        assertThrows(IllegalStateException.class, () -> syncedDraft().markSending());
+        assertThrows(IllegalStateException.class, () -> rejectedDraft().markSending());
+    }
+
+    @Test
+    void markSynced_onSendingDraft_storesTheNumberAndChangesStatus() {
+        Draft draft = sendingDraft();
 
         draft.markSynced("LOAN-1");
 
@@ -148,18 +192,35 @@ class DraftTest {
     }
 
     @Test
+    void markSynced_onUncertainDraft_storesTheNumberAndChangesStatus() {
+        Draft draft = uncertainDraft();
+
+        draft.markSynced("LOAN-9");
+
+        assertEquals(DraftStatus.SYNCED, draft.getStatus());
+        assertEquals("LOAN-9", draft.getServerNumber().orElseThrow());
+    }
+
+    @Test
     void markSynced_withNullNumber_isRejected() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
 
         assertThrows(NullPointerException.class, () -> draft.markSynced(null));
     }
 
     @Test
     void markSynced_withBlankNumber_isRejected() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
 
         assertThrows(IllegalArgumentException.class, () -> draft.markSynced("  "));
-        assertEquals(DraftStatus.PENDING, draft.getStatus());
+        assertEquals(DraftStatus.SENDING, draft.getStatus());
+    }
+
+    @Test
+    void markSynced_onPendingDraft_isRejectedBecauseNothingWasSent() {
+        Draft draft = new Draft(DraftType.LOAN, "text");
+
+        assertThrows(IllegalStateException.class, () -> draft.markSynced("LOAN-1"));
     }
 
     @Test
@@ -178,8 +239,8 @@ class DraftTest {
     }
 
     @Test
-    void markRejected_onPendingDraft_storesTheErrorsAndChangesStatus() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+    void markRejected_onSendingDraft_storesTheErrorsAndChangesStatus() {
+        Draft draft = sendingDraft();
 
         draft.markRejected(ERRORS);
 
@@ -190,7 +251,7 @@ class DraftTest {
 
     @Test
     void markRejected_withManyErrors_keepsTheOrderTheyWereGiven() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
         Map<String, String> errors = new LinkedHashMap<>();
         errors.put("startDate", "Bad date.");
         errors.put("principal", "Too small.");
@@ -203,7 +264,7 @@ class DraftTest {
 
     @Test
     void markRejected_whenTheOriginalMapChangesLater_isNotAffected() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
         Map<String, String> errors = new LinkedHashMap<>();
         errors.put("principal", "Too small.");
         draft.markRejected(errors);
@@ -222,17 +283,24 @@ class DraftTest {
 
     @Test
     void markRejected_withNoErrors_isRejected() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
 
         assertThrows(IllegalArgumentException.class, () -> draft.markRejected(Map.of()));
-        assertEquals(DraftStatus.PENDING, draft.getStatus());
+        assertEquals(DraftStatus.SENDING, draft.getStatus());
     }
 
     @Test
     void markRejected_withNullErrors_isRejected() {
-        Draft draft = new Draft(DraftType.LOAN, "text");
+        Draft draft = sendingDraft();
 
         assertThrows(NullPointerException.class, () -> draft.markRejected(null));
+    }
+
+    @Test
+    void markRejected_onPendingDraft_isRejectedBecauseNothingWasSent() {
+        Draft draft = new Draft(DraftType.LOAN, "text");
+
+        assertThrows(IllegalStateException.class, () -> draft.markRejected(ERRORS));
     }
 
     @Test
@@ -248,6 +316,57 @@ class DraftTest {
         Draft draft = rejectedDraft();
 
         assertThrows(IllegalStateException.class, () -> draft.markRejected(Map.of("rate", "Too high.")));
+    }
+
+    @Test
+    void markRejected_onUncertainDraft_isRejected() {
+        Draft draft = uncertainDraft();
+
+        assertThrows(IllegalStateException.class, () -> draft.markRejected(ERRORS));
+    }
+
+    @Test
+    void markUncertain_onSendingDraft_changesTheStatus() {
+        Draft draft = sendingDraft();
+
+        draft.markUncertain();
+
+        assertEquals(DraftStatus.UNCERTAIN, draft.getStatus());
+        assertTrue(draft.getServerNumber().isEmpty());
+        assertTrue(draft.getErrors().isEmpty());
+    }
+
+    @Test
+    void markUncertain_onAnyOtherStatus_isRejected() {
+        assertThrows(IllegalStateException.class, () -> new Draft(DraftType.LOAN, "text").markUncertain());
+        assertThrows(IllegalStateException.class, () -> uncertainDraft().markUncertain());
+        assertThrows(IllegalStateException.class, () -> syncedDraft().markUncertain());
+        assertThrows(IllegalStateException.class, () -> rejectedDraft().markUncertain());
+    }
+
+    @Test
+    void markNotSent_onSendingDraft_putsItBackToPending() {
+        Draft draft = sendingDraft();
+
+        draft.markNotSent();
+
+        assertEquals(DraftStatus.PENDING, draft.getStatus());
+    }
+
+    @Test
+    void markNotSent_onUncertainDraft_putsItBackToPending() {
+        Draft draft = uncertainDraft();
+
+        draft.markNotSent();
+
+        assertEquals(DraftStatus.PENDING, draft.getStatus());
+    }
+
+    @Test
+    void markNotSent_onPendingSyncedOrRejectedDraft_isRejected() {
+        assertThrows(IllegalStateException.class, () -> new Draft(DraftType.LOAN, "text").markNotSent());
+        assertThrows(IllegalStateException.class, () -> syncedDraft().markNotSent());
+        assertThrows(IllegalStateException.class, () -> rejectedDraft().markNotSent());
     }
 
     @Test
@@ -288,6 +407,22 @@ class DraftTest {
 
         assertThrows(IllegalStateException.class, () -> draft.revise("new text"));
         assertEquals("text", draft.getPayload());
+    }
+
+    @Test
+    void revise_onSendingDraft_isRejectedBecauseTheOldVersionMayBeOnItsWay() {
+        Draft draft = sendingDraft();
+
+        assertThrows(IllegalStateException.class, () -> draft.revise("new text"));
+        assertEquals("text", draft.getPayload());
+    }
+
+    @Test
+    void revise_onUncertainDraft_isRejectedBecauseTheOldVersionMayAlreadyBeThere() {
+        Draft draft = uncertainDraft();
+
+        assertThrows(IllegalStateException.class, () -> draft.revise("new text"));
+        assertEquals(DraftStatus.UNCERTAIN, draft.getStatus());
     }
 
     @Test

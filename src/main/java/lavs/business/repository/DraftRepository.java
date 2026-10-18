@@ -1,6 +1,7 @@
 package lavs.business.repository;
 
 import lavs.business.model.Draft;
+import lavs.business.model.DraftStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,20 @@ public interface DraftRepository {
      * @throws DraftStorageException if the list of stored drafts could not be read
      */
     List<Draft> findPending();
+
+    /**
+     * Finds every draft with the given status, oldest first, so the same order is
+     * used after every restart.
+     *
+     * <p>A stored draft that cannot be read is left out of the result and reported
+     * in the log, so one damaged draft does not block the others.
+     *
+     * @param status the status to look for
+     * @return the matching drafts, or an empty list if there are none
+     * @throws NullPointerException if the status is null
+     * @throws DraftStorageException if the list of stored drafts could not be read
+     */
+    List<Draft> findByStatus(DraftStatus status);
 
     /**
      * Removes a draft for good. Does nothing if there is no draft with that ID.

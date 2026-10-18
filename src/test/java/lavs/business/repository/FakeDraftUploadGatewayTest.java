@@ -146,6 +146,65 @@ class FakeDraftUploadGatewayTest {
     }
 
     @Test
+    void upload_whenTheReplyIsLost_savesTheRecordButTellsTheCallerNothing() {
+        Draft draft = new Draft(DraftType.CUSTOMER, "a");
+        fake.loseNextReplies(1);
+
+        assertThrows(UploadOutcomeUnknownException.class, () -> fake.upload(draft, List.of()));
+
+        assertEquals(List.of(new Attempt(draft.getLocalId(), DraftType.CUSTOMER, List.of(),
+                Outcome.REPLY_LOST, "CUS-1")), fake.attempts());
+        assertEquals(1, fake.recordsCreated());
+    }
+
+    @Test
+    void upload_whenTheRequestIsLost_createsNothing() {
+        Draft draft = new Draft(DraftType.CUSTOMER, "a");
+        fake.loseNextRequests(1);
+
+        assertThrows(UploadOutcomeUnknownException.class, () -> fake.upload(draft, List.of()));
+
+        assertEquals(Outcome.REQUEST_LOST, fake.attempts().get(0).outcome());
+        assertNull(fake.attempts().get(0).assignedNumber());
+        assertEquals(0, fake.recordsCreated());
+    }
+
+    @Test
+    void loseNextReplies_onlyAffectsTheGivenNumberOfUploads() {
+        Draft draft = new Draft(DraftType.CUSTOMER, "a");
+        fake.loseNextReplies(1);
+        assertThrows(UploadOutcomeUnknownException.class, () -> fake.upload(draft, List.of()));
+
+        String second = fake.upload(draft, List.of());
+
+        assertEquals("CUS-2", second);
+        assertEquals(2, fake.recordsCreated());
+    }
+
+    @Test
+    void loseNextRequests_onlyAffectsTheGivenNumberOfUploads() {
+        Draft draft = new Draft(DraftType.CUSTOMER, "a");
+        fake.loseNextRequests(1);
+        assertThrows(UploadOutcomeUnknownException.class, () -> fake.upload(draft, List.of()));
+
+        assertEquals("CUS-1", fake.upload(draft, List.of()));
+    }
+
+    @Test
+    void recordsCreated_countsOnlyWhatTheMainframeReallySaved() {
+        Draft accepted = new Draft(DraftType.CUSTOMER, "a");
+        Draft refused = new Draft(DraftType.CUSTOMER, "b");
+        fake.rejectDraft(refused.getLocalId(), Map.of("surname", "Required."));
+
+        fake.upload(accepted, List.of());
+        assertThrows(RecordRejectedException.class, () -> fake.upload(refused, List.of()));
+        fake.goOffline();
+        assertThrows(MainframeUnavailableException.class, () -> fake.upload(accepted, List.of()));
+
+        assertEquals(1, fake.recordsCreated());
+    }
+
+    @Test
     void attempts_whenTheReturnedListIsChanged_doesNotChangeTheDiary() {
         fake.upload(new Draft(DraftType.CUSTOMER, "a"), List.of());
 

@@ -25,6 +25,14 @@ public interface DraftUploadGateway {
      * loan has one (its customer) and a co-borrower has two (its loan, then the
      * co-borrower's own customer record).
      *
+     * <p><strong>Telling the three failures apart matters.</strong> An implementation
+     * is expected to check that the mainframe can be reached <em>before</em> it sends
+     * anything. If that check fails, nothing was sent, so it throws
+     * {@link MainframeUnavailableException}. If the check passes and the send then
+     * fails without a usable answer, the record may have been saved, so it throws
+     * {@link UploadOutcomeUnknownException}. A refusal is always
+     * {@link RecordRejectedException}.
+     *
      * @param draft the draft to send
      * @param parentNumbers the mainframe's numbers for the records this draft
      *                      belongs to, in the same order as
@@ -33,8 +41,10 @@ public interface DraftUploadGateway {
      * @return the number the mainframe assigned to the new record
      * @throws RecordRejectedException if the mainframe refused the record, with the
      *                                 reasons for each field
-     * @throws MainframeUnavailableException if the mainframe could not be reached,
-     *                                       so it is not known whether the record arrived
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     *                                       and nothing was sent
+     * @throws UploadOutcomeUnknownException if the record was sent but nobody knows
+     *                                       whether the mainframe saved it
      */
     String upload(Draft draft, List<String> parentNumbers);
 }

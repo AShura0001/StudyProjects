@@ -99,7 +99,56 @@ public class BackgroundSync {
     }
 
     /**
-     * Asks for a pass over the pending drafts as soon as the worker is free. Asking
+     * Gets the drafts that may or may not be on the mainframe and are waiting for a
+     * person to check. They are never sent again until someone settles them with
+     * {@link #confirmSynced(String, String)} or {@link #confirmNotSent(String)}.
+     *
+     * @return the uncertain drafts, oldest first
+     * @throws lavs.business.repository.DraftStorageException if the drafts could not be read
+     */
+    public List<Draft> findUncertain() {
+        return service.findUncertain();
+    }
+
+    /**
+     * Records that a person found the record of an uncertain draft on the mainframe,
+     * and asks for a pass, since drafts waiting for it can now be sent.
+     *
+     * @param localId the local ID of the uncertain draft
+     * @param serverNumber the number the mainframe gave the record
+     * @return the draft, now synced
+     * @throws NullPointerException if either argument is null
+     * @throws IllegalArgumentException if there is no such draft or the number is blank
+     * @throws IllegalStateException if the draft is not uncertain
+     * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
+     */
+    public Draft confirmSynced(String localId, String serverNumber) {
+        Draft draft = service.confirmSynced(localId, serverNumber);
+        requestSync();
+        return draft;
+    }
+
+    /**
+     * Records that a person checked and did not find the record of an uncertain
+     * draft on the mainframe, and asks for a pass so that it is sent again.
+     *
+     * @param localId the local ID of the uncertain draft
+     * @return the draft, now pending
+     * @throws NullPointerException if the ID is null
+     * @throws IllegalArgumentException if there is no such draft
+     * @throws IllegalStateException if the draft is not uncertain
+     * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
+     */
+    public Draft confirmNotSent(String localId) {
+        Draft draft = service.confirmNotSent(localId);
+        requestSync();
+        return draft;
+    }
+
+    /**
+     * Asks for a pass over the pending drafts as soon as the worker is free. Call
+     * this once when the application starts, to send what was left from last time
+     * and to turn any attempt that was cut short into an uncertain draft. Asking
      * again before that pass starts does not queue another one. A retry that was
      * waiting is cancelled, because this pass replaces it. Does nothing once
      * {@link #stop()} has been called.

@@ -17,7 +17,7 @@ public interface SyncListener {
 
     /**
      * Called when a pass finished without losing the connection. Some drafts may
-     * still have been refused or blocked, as the result says.
+     * still have been refused, blocked or made uncertain, as the result says.
      *
      * @param result what the pass achieved
      */
@@ -25,8 +25,9 @@ public interface SyncListener {
     }
 
     /**
-     * Called when a pass stopped because the mainframe could not be reached.
-     * Everything not yet sent stays saved, and another attempt is already planned.
+     * Called when a pass stopped because the mainframe could not be reached or an
+     * attempt lost its outcome (check {@link SyncResult#uncertain()}). Everything not
+     * yet sent stays saved, and another attempt is already planned.
      *
      * @param result what the pass achieved before it stopped
      * @param retryIn how long until the next attempt

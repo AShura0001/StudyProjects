@@ -14,6 +14,7 @@ import lavs.business.service.DraftSyncService.SyncResult;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +39,18 @@ class DraftSyncServiceTest {
 
     private void savePending(String id, DraftType type, String createdAt) {
         savePending(id, type, createdAt, List.of());
+    }
+
+    private void saveLeftSending(String id, DraftType type, String createdAt) {
+        repository.save(new Draft(id, type, "text", DraftStatus.SENDING, Instant.parse(createdAt),
+                null, Map.of()));
+    }
+
+    private Draft uncertainThroughALostReply(DraftType type, String payload) {
+        Draft draft = service.saveDraft(type, payload);
+        gateway.loseNextReplies(1);
+        service.syncPending();
+        return draft;
     }
 
     @Test
@@ -96,7 +109,7 @@ class DraftSyncServiceTest {
     void syncPending_withNoDrafts_doesNothing() {
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 0, 0, false), result);
+        assertEquals(new SyncResult(0, 0, 0, 0, false), result);
         assertTrue(gateway.attempts().isEmpty());
     }
 
@@ -106,19 +119,34 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(1, 0, 0, false), result);
+        assertEquals(new SyncResult(1, 0, 0, 0, false), result);
         assertEquals(DraftStatus.SYNCED, stored(draft.getLocalId()).getStatus());
         assertEquals("CUS-1", stored(draft.getLocalId()).getServerNumber().orElseThrow());
     }
 
     @Test
-    void syncPending_whenOffline_leavesTheDraftPendingAndReportsTheLostConnection() {
+    void syncPending_beforeEachUpload_hasAlreadySavedTheDraftAsSending() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "customer text");
+        List<DraftStatus> seenDuringTheUpload = new ArrayList<>();
+        DraftSyncService watching = new DraftSyncService(repository, (d, parentNumbers) -> {
+            seenDuringTheUpload.add(stored(d.getLocalId()).getStatus());
+            return "CUS-1";
+        });
+
+        watching.syncPending();
+
+        assertEquals(List.of(DraftStatus.SENDING), seenDuringTheUpload);
+        assertEquals(DraftStatus.SYNCED, stored(draft.getLocalId()).getStatus());
+    }
+
+    @Test
+    void syncPending_whenOffline_putsTheDraftBackToPendingAndReportsTheLostConnection() {
         Draft draft = service.saveDraft(DraftType.CUSTOMER, "customer text");
         gateway.goOffline();
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 0, 0, true), result);
+        assertEquals(new SyncResult(0, 0, 0, 0, true), result);
         assertEquals(DraftStatus.PENDING, stored(draft.getLocalId()).getStatus());
         assertTrue(stored(draft.getLocalId()).getServerNumber().isEmpty());
     }
@@ -145,7 +173,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(2, 0, 0, false), result);
+        assertEquals(new SyncResult(2, 0, 0, 0, false), result);
         assertEquals(DraftStatus.SYNCED, stored(first.getLocalId()).getStatus());
         assertEquals(DraftStatus.SYNCED, stored(second.getLocalId()).getStatus());
     }
@@ -158,7 +186,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 1, 0, false), result);
+        assertEquals(new SyncResult(0, 1, 0, 0, false), result);
         assertEquals(DraftStatus.REJECTED, stored(draft.getLocalId()).getStatus());
         assertEquals(reasons, stored(draft.getLocalId()).getErrors());
     }
@@ -196,7 +224,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(1, 1, 0, false), result);
+        assertEquals(new SyncResult(1, 1, 0, 0, false), result);
         assertEquals(DraftStatus.REJECTED, stored(refused.getLocalId()).getStatus());
         assertEquals(DraftStatus.SYNCED, stored(fine.getLocalId()).getStatus());
     }
@@ -219,7 +247,7 @@ class DraftSyncServiceTest {
 
         SyncResult second = service.syncPending();
 
-        assertEquals(new SyncResult(0, 0, 0, false), second);
+        assertEquals(new SyncResult(0, 0, 0, 0, false), second);
         assertEquals(1, gateway.attempts().size());
     }
 
@@ -236,13 +264,231 @@ class DraftSyncServiceTest {
     }
 
     @Test
-    void syncPending_whenSavingTheResultFails_reportsTheError() {
+    void syncPending_whenTheStoreFailsBeforeSending_sendsNothingAndKeepsTheDraftPending() {
         Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
         repository.setFailingToSave(true);
 
         assertThrows(DraftStorageException.class, () -> service.syncPending());
 
-        assertEquals(List.of(draft.getLocalId()), gateway.acceptedDraftIds());
+        assertTrue(gateway.attempts().isEmpty());
+        assertEquals(DraftStatus.PENDING, stored(draft.getLocalId()).getStatus());
+    }
+
+    @Test
+    void syncPending_whenTheStoreFailsAfterSending_neverSendsTheDraftASecondTime() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+        repository.failAfterSaves(1);
+
+        assertThrows(DraftStorageException.class, () -> service.syncPending());
+        assertEquals(1, gateway.recordsCreated());
+        repository.setFailingToSave(false);
+        SyncResult next = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 1, false), next);
+        assertEquals(DraftStatus.UNCERTAIN, stored(draft.getLocalId()).getStatus());
+        assertEquals(1, gateway.attempts().size());
+        assertEquals(1, gateway.recordsCreated());
+    }
+
+    @Test
+    void syncPending_whenTheReplyIsLost_makesTheDraftUncertainAndStops() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+        gateway.loseNextReplies(1);
+
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 1, true), result);
+        assertEquals(DraftStatus.UNCERTAIN, stored(draft.getLocalId()).getStatus());
+        assertTrue(stored(draft.getLocalId()).getServerNumber().isEmpty());
+    }
+
+    @Test
+    void syncPending_afterALostReply_doesNotCreateADuplicate() {
+        uncertainThroughALostReply(DraftType.LOAN, "loan text");
+
+        SyncResult again = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 0, false), again);
+        assertEquals(1, gateway.attempts().size());
+        assertEquals(1, gateway.recordsCreated());
+    }
+
+    @Test
+    void syncPending_whenTheRequestIsLost_alsoLeavesTheDraftUncertainAndDoesNotResend() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+        gateway.loseNextRequests(1);
+
+        SyncResult result = service.syncPending();
+        service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 1, true), result);
+        assertEquals(DraftStatus.UNCERTAIN, stored(draft.getLocalId()).getStatus());
+        assertEquals(1, gateway.attempts().size());
+        assertEquals(0, gateway.recordsCreated());
+    }
+
+    @Test
+    void syncPending_whenAnAttemptIsUncertain_doesNotTryTheLaterDrafts() {
+        service.saveDraft(DraftType.CUSTOMER, "first");
+        Draft second = service.saveDraft(DraftType.CUSTOMER, "second");
+        gateway.loseNextReplies(1);
+
+        service.syncPending();
+
+        assertEquals(1, gateway.attempts().size());
+        assertEquals(DraftStatus.PENDING, stored(second.getLocalId()).getStatus());
+    }
+
+    @Test
+    void syncPending_whenACustomerIsUncertain_keepsItsLoanWaiting() {
+        Draft customer = service.saveDraft(DraftType.CUSTOMER, "customer text");
+        Draft loan = service.saveDraft(DraftType.LOAN, "loan text", List.of(customer.getLocalId()));
+        gateway.loseNextReplies(1);
+        service.syncPending();
+
+        SyncResult again = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 1, 0, false), again);
+        assertEquals(DraftStatus.PENDING, stored(loan.getLocalId()).getStatus());
+        assertEquals(1, gateway.attempts().size());
+    }
+
+    @Test
+    void syncPending_whenAnEarlierRunStoppedMidAttempt_makesThatDraftUncertainWithoutSendingIt() {
+        saveLeftSending("interrupted", DraftType.LOAN, "2026-10-01T09:00:00Z");
+
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 1, false), result);
+        assertEquals(DraftStatus.UNCERTAIN, stored("interrupted").getStatus());
+        assertTrue(gateway.attempts().isEmpty());
+    }
+
+    @Test
+    void syncPending_whenAnEarlierRunStoppedMidAttempt_stillSendsTheOtherPendingDrafts() {
+        saveLeftSending("interrupted", DraftType.CUSTOMER, "2026-10-01T09:00:00Z");
+        savePending("waiting", DraftType.CUSTOMER, "2026-10-02T09:00:00Z");
+
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(1, 0, 0, 1, false), result);
+        assertEquals(List.of("waiting"), gateway.acceptedDraftIds());
+    }
+
+    @Test
+    void syncPending_countsBothTheInterruptedAndTheNewlyUncertainDrafts() {
+        saveLeftSending("interrupted", DraftType.CUSTOMER, "2026-10-01T09:00:00Z");
+        service.saveDraft(DraftType.CUSTOMER, "new");
+        gateway.loseNextReplies(1);
+
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(0, 0, 0, 2, true), result);
+    }
+
+    @Test
+    void findUncertain_afterALostReply_listsTheDraft() {
+        Draft draft = uncertainThroughALostReply(DraftType.CUSTOMER, "one");
+
+        assertEquals(List.of(draft.getLocalId()), service.findUncertain().stream().map(Draft::getLocalId).toList());
+    }
+
+    @Test
+    void findUncertain_whenNothingIsUncertain_isEmpty() {
+        service.saveDraft(DraftType.CUSTOMER, "one");
+
+        assertTrue(service.findUncertain().isEmpty());
+    }
+
+    @Test
+    void confirmNotSent_afterALostRequest_sendsTheDraftAgainAndCreatesItOnce() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+        gateway.loseNextRequests(1);
+        service.syncPending();
+
+        service.confirmNotSent(draft.getLocalId());
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(1, 0, 0, 0, false), result);
+        assertEquals(DraftStatus.SYNCED, stored(draft.getLocalId()).getStatus());
+        assertEquals(1, gateway.recordsCreated());
+    }
+
+    @Test
+    void confirmNotSent_returnsTheDraftAsPending() {
+        Draft draft = uncertainThroughALostReply(DraftType.CUSTOMER, "one");
+
+        Draft result = service.confirmNotSent(draft.getLocalId());
+
+        assertEquals(DraftStatus.PENDING, result.getStatus());
+        assertEquals(DraftStatus.PENDING, stored(draft.getLocalId()).getStatus());
+    }
+
+    @Test
+    void confirmSynced_afterALostReply_keepsTheNumberAndNeverSendsItAgain() {
+        Draft draft = uncertainThroughALostReply(DraftType.CUSTOMER, "one");
+
+        Draft result = service.confirmSynced(draft.getLocalId(), "CUS-1");
+        service.syncPending();
+
+        assertEquals(DraftStatus.SYNCED, result.getStatus());
+        assertEquals("CUS-1", stored(draft.getLocalId()).getServerNumber().orElseThrow());
+        assertEquals(1, gateway.attempts().size());
+        assertEquals(1, gateway.recordsCreated());
+    }
+
+    @Test
+    void confirmSynced_whenTheCustomerIsFound_letsItsLoanGoWithTheCustomersNumber() {
+        Draft customer = service.saveDraft(DraftType.CUSTOMER, "customer text");
+        Draft loan = service.saveDraft(DraftType.LOAN, "loan text", List.of(customer.getLocalId()));
+        gateway.loseNextReplies(1);
+        service.syncPending();
+        service.confirmSynced(customer.getLocalId(), "CUS-1");
+
+        SyncResult result = service.syncPending();
+
+        assertEquals(new SyncResult(1, 0, 0, 0, false), result);
+        assertEquals(List.of("CUS-1"), gateway.attempts().get(1).parentNumbers());
+        assertEquals(DraftStatus.SYNCED, stored(loan.getLocalId()).getStatus());
+    }
+
+    @Test
+    void confirmSynced_onADraftThatIsNotUncertain_isRejected() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+
+        assertThrows(IllegalStateException.class, () -> service.confirmSynced(draft.getLocalId(), "CUS-1"));
+    }
+
+    @Test
+    void confirmNotSent_onADraftThatIsNotUncertain_isRejected() {
+        Draft draft = service.saveDraft(DraftType.CUSTOMER, "one");
+
+        assertThrows(IllegalStateException.class, () -> service.confirmNotSent(draft.getLocalId()));
+    }
+
+    @Test
+    void confirmSynced_onAnUnknownDraft_isRejected() {
+        assertThrows(IllegalArgumentException.class, () -> service.confirmSynced("ghost", "CUS-1"));
+    }
+
+    @Test
+    void confirmNotSent_onAnUnknownDraft_isRejected() {
+        assertThrows(IllegalArgumentException.class, () -> service.confirmNotSent("ghost"));
+    }
+
+    @Test
+    void confirmSynced_withABlankNumber_isRejectedAndTheDraftStaysUncertain() {
+        Draft draft = uncertainThroughALostReply(DraftType.CUSTOMER, "one");
+
+        assertThrows(IllegalArgumentException.class, () -> service.confirmSynced(draft.getLocalId(), " "));
+
+        assertEquals(DraftStatus.UNCERTAIN, stored(draft.getLocalId()).getStatus());
+    }
+
+    @Test
+    void confirm_withANullId_isRejected() {
+        assertThrows(NullPointerException.class, () -> service.confirmNotSent(null));
+        assertThrows(NullPointerException.class, () -> service.confirmSynced(null, "CUS-1"));
     }
 
     @Test
@@ -252,7 +498,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(2, 0, 0, false), result);
+        assertEquals(new SyncResult(2, 0, 0, 0, false), result);
         assertEquals(List.of(customer.getLocalId(), loan.getLocalId()), gateway.acceptedDraftIds());
         assertEquals(List.of(), gateway.attempts().get(0).parentNumbers());
         assertEquals(List.of("CUS-1"), gateway.attempts().get(1).parentNumbers());
@@ -266,7 +512,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(2, 0, 0, false), result);
+        assertEquals(new SyncResult(2, 0, 0, 0, false), result);
         assertEquals(List.of("customer", "loan"), gateway.acceptedDraftIds());
     }
 
@@ -279,7 +525,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(4, 0, 0, false), result);
+        assertEquals(new SyncResult(4, 0, 0, 0, false), result);
         assertEquals(List.of("LOAN-1", "CUS-2"), gateway.attempts().get(3).parentNumbers());
     }
 
@@ -291,7 +537,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 1, 1, false), result);
+        assertEquals(new SyncResult(0, 1, 1, 0, false), result);
         assertEquals(DraftStatus.PENDING, stored(loan.getLocalId()).getStatus());
         assertEquals(1, gateway.attempts().size());
     }
@@ -305,7 +551,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 1, 2, false), result);
+        assertEquals(new SyncResult(0, 1, 2, 0, false), result);
     }
 
     @Test
@@ -321,7 +567,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(2, 0, 0, false), result);
+        assertEquals(new SyncResult(2, 0, 0, 0, false), result);
         assertEquals(DraftStatus.SYNCED, stored(loan.getLocalId()).getStatus());
         assertEquals(3, gateway.attempts().size());
         assertEquals(List.of("CUS-1"), gateway.attempts().get(2).parentNumbers());
@@ -335,7 +581,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(1, 0, 0, false), result);
+        assertEquals(new SyncResult(1, 0, 0, 0, false), result);
         assertEquals(List.of("CUS-1"), gateway.attempts().get(1).parentNumbers());
         assertEquals(DraftStatus.SYNCED, stored(loan.getLocalId()).getStatus());
     }
@@ -348,7 +594,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 0, 0, true), result);
+        assertEquals(new SyncResult(0, 0, 0, 0, true), result);
         assertEquals(1, gateway.attempts().size());
         assertEquals(DraftStatus.PENDING, stored(loan.getLocalId()).getStatus());
     }
@@ -368,8 +614,8 @@ class DraftSyncServiceTest {
         SyncResult first = new DraftSyncService(repository, dropsAfterTheFirst).syncPending();
         SyncResult second = service.syncPending();
 
-        assertEquals(new SyncResult(1, 0, 0, true), first);
-        assertEquals(new SyncResult(1, 0, 0, false), second);
+        assertEquals(new SyncResult(1, 0, 0, 0, true), first);
+        assertEquals(new SyncResult(1, 0, 0, 0, false), second);
         assertEquals(List.of("CUS-1"), gateway.attempts().get(0).parentNumbers());
         assertEquals(DraftStatus.SYNCED, stored(loan.getLocalId()).getStatus());
     }
@@ -380,7 +626,7 @@ class DraftSyncServiceTest {
 
         SyncResult result = service.syncPending();
 
-        assertEquals(new SyncResult(0, 0, 1, false), result);
+        assertEquals(new SyncResult(0, 0, 1, 0, false), result);
         assertTrue(gateway.attempts().isEmpty());
     }
 }

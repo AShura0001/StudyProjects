@@ -113,6 +113,7 @@ class JsonDraftRepositoryTest {
         Draft draft = new Draft(DraftType.LOAN, "loan text");
         repository.save(draft);
 
+        draft.markSending();
         draft.markSynced("LOAN-1");
         repository.save(draft);
 
@@ -344,6 +345,58 @@ class JsonDraftRepositoryTest {
         repository.delete(remove.getLocalId());
 
         assertTrue(repository.findById(keep.getLocalId()).isPresent());
+    }
+
+    @Test
+    void findById_afterSavingASendingOrUncertainDraft_returnsThatStatus() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Instant time = Instant.parse("2026-10-01T09:30:00Z");
+        repository.save(new Draft("sending", DraftType.LOAN, "a", DraftStatus.SENDING, time, null, Map.of()));
+        repository.save(new Draft("unsure", DraftType.LOAN, "b", DraftStatus.UNCERTAIN, time, null, Map.of()));
+
+        assertEquals(DraftStatus.SENDING, repository.findById("sending").orElseThrow().getStatus());
+        assertEquals(DraftStatus.UNCERTAIN, repository.findById("unsure").orElseThrow().getStatus());
+    }
+
+    @Test
+    void findByStatus_withMixedDrafts_returnsOnlyThatStatusOldestFirst() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Instant early = Instant.parse("2026-10-01T09:00:00Z");
+        Instant late = Instant.parse("2026-10-02T09:00:00Z");
+        repository.save(new Draft("late", DraftType.LOAN, "x", DraftStatus.UNCERTAIN, late, null, Map.of()));
+        repository.save(pending("other", DraftType.LOAN, "x", early));
+        repository.save(new Draft("early", DraftType.LOAN, "x", DraftStatus.UNCERTAIN, early, null, Map.of()));
+
+        List<String> ids = repository.findByStatus(DraftStatus.UNCERTAIN).stream().map(Draft::getLocalId).toList();
+
+        assertEquals(List.of("early", "late"), ids);
+    }
+
+    @Test
+    void findPending_doesNotIncludeSendingOrUncertainDrafts() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+        Instant time = Instant.parse("2026-10-01T09:00:00Z");
+        repository.save(pending("waiting", DraftType.LOAN, "x", time));
+        repository.save(new Draft("sending", DraftType.LOAN, "x", DraftStatus.SENDING, time, null, Map.of()));
+        repository.save(new Draft("unsure", DraftType.LOAN, "x", DraftStatus.UNCERTAIN, time, null, Map.of()));
+
+        List<String> ids = repository.findPending().stream().map(Draft::getLocalId).toList();
+
+        assertEquals(List.of("waiting"), ids);
+    }
+
+    @Test
+    void findByStatus_withNullStatus_isRejected() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder);
+
+        assertThrows(NullPointerException.class, () -> repository.findByStatus(null));
+    }
+
+    @Test
+    void findByStatus_whenFolderDoesNotExist_returnsEmptyList() {
+        JsonDraftRepository repository = new JsonDraftRepository(folder.resolve("never-created"));
+
+        assertTrue(repository.findByStatus(DraftStatus.SENDING).isEmpty());
     }
 
     @Test
