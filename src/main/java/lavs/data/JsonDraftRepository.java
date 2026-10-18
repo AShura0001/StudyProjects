@@ -102,10 +102,24 @@ public class JsonDraftRepository implements DraftRepository {
      */
     @Override
     public synchronized List<Draft> findPending() {
+        return findByStatus(DraftStatus.PENDING);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A file that cannot be read is skipped and a warning is logged. The damaged
+     * file is left on disk untouched. Temporary files left by an interrupted save
+     * are ignored. Drafts with the same creation time are ordered by ID so the
+     * order is stable.
+     */
+    @Override
+    public synchronized List<Draft> findByStatus(DraftStatus status) {
+        Objects.requireNonNull(status, "status must not be null");
         if (!Files.isDirectory(folder)) {
             return List.of();
         }
-        List<Draft> pending = new ArrayList<>();
+        List<Draft> matching = new ArrayList<>();
         try (Stream<Path> files = Files.list(folder)) {
             for (Path file : (Iterable<Path>) files::iterator) {
                 if (!file.getFileName().toString().endsWith(FILE_EXTENSION)) {
@@ -113,8 +127,8 @@ public class JsonDraftRepository implements DraftRepository {
                 }
                 try {
                     Draft draft = read(file);
-                    if (draft.getStatus() == DraftStatus.PENDING) {
-                        pending.add(draft);
+                    if (draft.getStatus() == status) {
+                        matching.add(draft);
                     }
                 } catch (DraftStorageException e) {
                     LOGGER.log(Level.WARNING, "Skipping unreadable draft file " + file.getFileName(), e);
@@ -123,8 +137,8 @@ public class JsonDraftRepository implements DraftRepository {
         } catch (IOException e) {
             throw new DraftStorageException("Could not list drafts in " + folder, e);
         }
-        pending.sort(Comparator.comparing(Draft::getCreatedAt).thenComparing(Draft::getLocalId));
-        return pending;
+        matching.sort(Comparator.comparing(Draft::getCreatedAt).thenComparing(Draft::getLocalId));
+        return matching;
     }
 
     /** {@inheritDoc} */

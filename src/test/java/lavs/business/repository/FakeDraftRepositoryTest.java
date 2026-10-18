@@ -35,7 +35,7 @@ class FakeDraftRepositoryTest {
         Draft draft = new Draft(DraftType.LOAN, "text");
         repository.save(draft);
 
-        draft.markSynced("LOAN-1");
+        draft.markSending();
 
         assertEquals(DraftStatus.PENDING, repository.findById(draft.getLocalId()).orElseThrow().getStatus());
     }
@@ -61,6 +61,49 @@ class FakeDraftRepositoryTest {
         repository.delete(draft.getLocalId());
 
         assertTrue(repository.findById(draft.getLocalId()).isEmpty());
+    }
+
+    @Test
+    void findByStatus_withMixedDrafts_returnsOnlyThatStatusOldestFirst() {
+        Instant early = Instant.parse("2026-10-01T09:00:00Z");
+        Instant late = Instant.parse("2026-10-02T09:00:00Z");
+        repository.save(new Draft("late", DraftType.LOAN, "x", DraftStatus.SENDING, late, null, Map.of()));
+        repository.save(new Draft("other", DraftType.LOAN, "x", DraftStatus.PENDING, early, null, Map.of()));
+        repository.save(new Draft("early", DraftType.LOAN, "x", DraftStatus.SENDING, early, null, Map.of()));
+
+        List<String> ids = repository.findByStatus(DraftStatus.SENDING).stream().map(Draft::getLocalId).toList();
+
+        assertEquals(List.of("early", "late"), ids);
+    }
+
+    @Test
+    void findByStatus_withNullStatus_isRejected() {
+        assertThrows(NullPointerException.class, () -> repository.findByStatus(null));
+    }
+
+    @Test
+    void failAfterSaves_letsTheGivenNumberOfSavesWorkThenFails() {
+        Draft first = new Draft(DraftType.LOAN, "x");
+        Draft second = new Draft(DraftType.LOAN, "x");
+        repository.failAfterSaves(1);
+        repository.save(first);
+
+        assertThrows(DraftStorageException.class, () -> repository.save(second));
+
+        assertTrue(repository.findById(first.getLocalId()).isPresent());
+        assertTrue(repository.findById(second.getLocalId()).isEmpty());
+    }
+
+    @Test
+    void setFailingToSave_withFalse_makesSavesWorkAgainAfterFailAfterSaves() {
+        repository.failAfterSaves(0);
+        Draft draft = new Draft(DraftType.LOAN, "x");
+        assertThrows(DraftStorageException.class, () -> repository.save(draft));
+
+        repository.setFailingToSave(false);
+        repository.save(draft);
+
+        assertTrue(repository.findById(draft.getLocalId()).isPresent());
     }
 
     @Test

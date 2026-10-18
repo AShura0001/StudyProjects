@@ -13,9 +13,10 @@ import java.util.Objects;
 /**
  * A stand-in for the mainframe, for tests only.
  *
- * <p>It can be told to work normally, to be unreachable, or to refuse a particular
- * draft. It keeps a diary of every attempt, in order, so a test can check what
- * was sent, in which order and with which parent numbers.
+ * <p>It can be told to work normally, to be unreachable, to refuse a particular
+ * draft, or to lose the reply or the request of the next uploads. It keeps a diary
+ * of every attempt, in order, so a test can check what was sent, in which order
+ * and with which parent numbers, and how many records the mainframe really holds.
  *
  * <p>Numbers are simple and count up for each draft type: {@code CUS-1},
  * {@code CUS-2}, {@code LOAN-1}, {@code COB-1}. Like the real mainframe, it
@@ -26,9 +27,16 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
 
     /** How one attempt to upload ended. */
     public enum Outcome {
+        /** The mainframe saved the record and the reply arrived. */
         ACCEPTED,
+        /** The mainframe could not be reached, and nothing was sent. */
         UNREACHABLE,
-        REJECTED
+        /** The mainframe refused the record. */
+        REJECTED,
+        /** The mainframe saved the record, but the reply was lost. */
+        REPLY_LOST,
+        /** The request was lost on the way, so the mainframe never saw it. */
+        REQUEST_LOST
     }
 
     /**
@@ -38,7 +46,8 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
      * @param type the type of the draft that was sent
      * @param parentNumbers the parent numbers that came with the draft
      * @param outcome how the attempt ended
-     * @param assignedNumber the number given to the new record, or null if the attempt failed
+     * @param assignedNumber the number the mainframe gave the new record, or null
+     *                       if the mainframe created nothing
      */
     public record Attempt(String draftId, DraftType type, List<String> parentNumbers,
                           Outcome outcome, String assignedNumber) {
@@ -48,8 +57,10 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
     private final Map<DraftType, Integer> counters = new EnumMap<>(DraftType.class);
     private final Map<String, Map<String, String>> rejections = new HashMap<>();
     private boolean online = true;
+    private int repliesToLose;
+    private int requestsToLose;
 
-    /** Makes every upload fail as if the connection had dropped. */
+    /** Makes every upload fail as if the connection had dropped before anything was sent. */
     public synchronized void goOffline() {
         online = false;
     }
@@ -78,6 +89,27 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
         rejections.remove(draftId);
     }
 
+    /**
+     * Makes the next few uploads reach the mainframe and be saved there, but lose
+     * the reply, so the caller gets an {@link UploadOutcomeUnknownException}.
+     *
+     * @param count how many uploads to affect
+     */
+    public synchronized void loseNextReplies(int count) {
+        repliesToLose = count;
+    }
+
+    /**
+     * Makes the next few uploads get lost on the way, so the mainframe never sees
+     * them, but the caller still gets an {@link UploadOutcomeUnknownException}
+     * because it cannot tell.
+     *
+     * @param count how many uploads to affect
+     */
+    public synchronized void loseNextRequests(int count) {
+        requestsToLose = count;
+    }
+
     @Override
     public synchronized String upload(Draft draft, List<String> parentNumbers) {
         Objects.requireNonNull(draft, "draft must not be null");
@@ -86,12 +118,22 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
             record(draft, parentNumbers, Outcome.UNREACHABLE, null);
             throw new MainframeUnavailableException("the fake mainframe is offline");
         }
+        if (requestsToLose > 0) {
+            requestsToLose--;
+            record(draft, parentNumbers, Outcome.REQUEST_LOST, null);
+            throw new UploadOutcomeUnknownException("the fake request was lost on the way");
+        }
         Map<String, String> errors = rejections.get(draft.getLocalId());
         if (errors != null) {
             record(draft, parentNumbers, Outcome.REJECTED, null);
             throw new RecordRejectedException("the fake mainframe refused " + draft.getLocalId(), errors);
         }
         String number = nextNumber(draft.getType());
+        if (repliesToLose > 0) {
+            repliesToLose--;
+            record(draft, parentNumbers, Outcome.REPLY_LOST, number);
+            throw new UploadOutcomeUnknownException("the fake reply was lost");
+        }
         record(draft, parentNumbers, Outcome.ACCEPTED, number);
         return number;
     }
@@ -115,6 +157,16 @@ public class FakeDraftUploadGateway implements DraftUploadGateway {
                 .filter(attempt -> attempt.outcome() == Outcome.ACCEPTED)
                 .map(Attempt::draftId)
                 .toList();
+    }
+
+    /**
+     * Counts the records the mainframe really holds, including those whose reply
+     * was lost. This is how a test notices a duplicate.
+     *
+     * @return the number of records created
+     */
+    public synchronized int recordsCreated() {
+        return (int) attempts.stream().filter(attempt -> attempt.assignedNumber() != null).count();
     }
 
     private void record(Draft draft, List<String> parentNumbers, Outcome outcome, String assignedNumber) {

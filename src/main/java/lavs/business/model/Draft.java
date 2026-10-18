@@ -23,10 +23,26 @@ import java.util.UUID;
  * status keep it that way:
  *
  * <ul>
- *   <li>{@link DraftStatus#PENDING}: no server number and no errors.</li>
+ *   <li>{@link DraftStatus#PENDING}, {@link DraftStatus#SENDING} and
+ *       {@link DraftStatus#UNCERTAIN}: no server number and no errors.</li>
  *   <li>{@link DraftStatus#SYNCED}: a server number and no errors. It never changes again.</li>
  *   <li>{@link DraftStatus#REJECTED}: at least one error and no server number.</li>
  * </ul>
+ *
+ * <p>A draft is always marked as sending, and saved, <em>before</em> an attempt to
+ * send it. That is what lets a crash or a lost reply be recognised afterwards
+ * instead of silently sending the record twice. The steps are:
+ *
+ * <pre>
+ * PENDING   --markSending--&gt;   SENDING
+ * SENDING   --markSynced--&gt;    SYNCED
+ * SENDING   --markRejected--&gt;  REJECTED
+ * SENDING   --markNotSent--&gt;   PENDING     (it certainly never left)
+ * SENDING   --markUncertain--&gt; UNCERTAIN   (it may have arrived)
+ * UNCERTAIN --markSynced--&gt;    SYNCED      (a person found it on the mainframe)
+ * UNCERTAIN --markNotSent--&gt;   PENDING     (a person confirmed it is not there)
+ * REJECTED / PENDING --revise--&gt; PENDING
+ * </pre>
  */
 public class Draft {
 
@@ -196,15 +212,27 @@ public class Draft {
     }
 
     /**
-     * Records that the mainframe accepted this draft. Any errors are cleared.
+     * Records that an attempt to send this draft is about to start. The draft must
+     * be saved in this state before anything is sent.
+     *
+     * @throws IllegalStateException if the draft is not pending
+     */
+    public void markSending() {
+        requireStatus("marked as sending", DraftStatus.PENDING);
+        this.status = DraftStatus.SENDING;
+    }
+
+    /**
+     * Records that the mainframe accepted this draft, or that a person found it
+     * there after an uncertain attempt. Any errors are cleared.
      *
      * @param number the number the mainframe assigned to the record
      * @throws NullPointerException if the number is null
      * @throws IllegalArgumentException if the number is blank
-     * @throws IllegalStateException if the draft is not pending
+     * @throws IllegalStateException if the draft is not sending or uncertain
      */
     public void markSynced(String number) {
-        requireStatus(DraftStatus.PENDING, "marked as synced");
+        requireStatus("marked as synced", DraftStatus.SENDING, DraftStatus.UNCERTAIN);
         requireNotBlank(number, "number");
         this.status = DraftStatus.SYNCED;
         this.serverNumber = number;
@@ -217,10 +245,10 @@ public class Draft {
      * @param fieldErrors the reason for each refused field, at least one
      * @throws NullPointerException if the errors are null
      * @throws IllegalArgumentException if there are no errors
-     * @throws IllegalStateException if the draft is not pending
+     * @throws IllegalStateException if the draft is not sending
      */
     public void markRejected(Map<String, String> fieldErrors) {
-        requireStatus(DraftStatus.PENDING, "marked as rejected");
+        requireStatus("marked as rejected", DraftStatus.SENDING);
         Objects.requireNonNull(fieldErrors, "fieldErrors must not be null");
         if (fieldErrors.isEmpty()) {
             throw new IllegalArgumentException("a rejected draft needs at least one error");
@@ -231,35 +259,58 @@ public class Draft {
     }
 
     /**
+     * Records that an attempt to send this draft ended without anyone knowing
+     * whether it reached the mainframe.
+     *
+     * @throws IllegalStateException if the draft is not sending
+     */
+    public void markUncertain() {
+        requireStatus("marked as uncertain", DraftStatus.SENDING);
+        this.status = DraftStatus.UNCERTAIN;
+    }
+
+    /**
+     * Puts the draft back to pending because it is known not to be on the mainframe:
+     * either the attempt never left, or a person checked and did not find it.
+     *
+     * @throws IllegalStateException if the draft is not sending or uncertain
+     */
+    public void markNotSent() {
+        requireStatus("marked as not sent", DraftStatus.SENDING, DraftStatus.UNCERTAIN);
+        this.status = DraftStatus.PENDING;
+    }
+
+    /**
      * Replaces the record with a new version, for example when the staff member
      * edits it or corrects what the mainframe refused. The draft becomes pending
      * again and any errors are cleared.
      *
      * @param newPayload the new version of the record as plain text
      * @throws NullPointerException if the payload is null
-     * @throws IllegalStateException if the draft is already synced
+     * @throws IllegalStateException if the draft is sending, uncertain or synced
      */
     public void revise(String newPayload) {
         Objects.requireNonNull(newPayload, "newPayload must not be null");
-        if (status == DraftStatus.SYNCED) {
-            throw new IllegalStateException("a synced draft cannot be revised");
-        }
+        requireStatus("revised", DraftStatus.PENDING, DraftStatus.REJECTED);
         this.payload = newPayload;
         this.status = DraftStatus.PENDING;
         this.errors = Map.of();
     }
 
-    private void requireStatus(DraftStatus expected, String action) {
-        if (status != expected) {
-            throw new IllegalStateException("a " + status + " draft cannot be " + action);
+    private void requireStatus(String action, DraftStatus... allowed) {
+        for (DraftStatus option : allowed) {
+            if (status == option) {
+                return;
+            }
         }
+        throw new IllegalStateException("a " + status + " draft cannot be " + action);
     }
 
     private void requireConsistent() {
         boolean hasNumber = serverNumber != null;
         boolean hasErrors = !errors.isEmpty();
         boolean consistent = switch (status) {
-            case PENDING -> !hasNumber && !hasErrors;
+            case PENDING, SENDING, UNCERTAIN -> !hasNumber && !hasErrors;
             case SYNCED -> hasNumber && !serverNumber.isBlank() && !hasErrors;
             case REJECTED -> !hasNumber && hasErrors;
         };

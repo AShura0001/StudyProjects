@@ -7,6 +7,7 @@ import lavs.business.repository.DraftRepository;
 import lavs.business.repository.DraftUploadGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.RecordRejectedException;
+import lavs.business.repository.UploadOutcomeUnknownException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,8 +28,17 @@ import java.util.Optional;
  * customer, is only sent once those drafts have been accepted. It is then sent
  * with the real numbers the mainframe gave them.
  *
- * <p>This version does its work on the calling thread. Running in the background
- * comes later.
+ * <p>Sending a record twice is the one mistake that cannot be undone, so every
+ * attempt is recorded <em>before</em> it starts. If the outcome of an attempt is
+ * lost, whether the reply never came back or the application stopped part way
+ * through, the draft becomes uncertain. An uncertain draft is never sent again
+ * by this service. A person has to check the mainframe and say whether the record
+ * is there, using {@link #confirmSynced(String, String)} or
+ * {@link #confirmNotSent(String)}.
+ *
+ * <p>This version does its work on the calling thread, and
+ * {@link #syncPending()} must never run at the same time as itself.
+ * {@link BackgroundSync} makes sure of that.
  */
 public class DraftSyncService {
 
@@ -46,12 +56,16 @@ public class DraftSyncService {
      * @param synced how many drafts the mainframe accepted
      * @param rejected how many drafts the mainframe refused
      * @param blocked how many drafts could not be sent because a draft they depend
-     *                on was refused, is missing or was never accepted; they stay
-     *                pending. Only counted when the pass finished normally.
+     *                on was refused, is uncertain, is missing or was never accepted;
+     *                they stay pending. Only counted when the pass finished normally.
+     * @param uncertain how many drafts became uncertain during this pass, either
+     *                  because an attempt lost its outcome or because an earlier
+     *                  run stopped in the middle of an attempt
      * @param connectionLost true if the pass stopped early because the mainframe
-     *                       could not be reached, so some drafts were not tried
+     *                       could not be reached or an attempt lost its outcome, so
+     *                       some drafts were not tried
      */
-    public record SyncResult(int synced, int rejected, int blocked, boolean connectionLost) {
+    public record SyncResult(int synced, int rejected, int blocked, int uncertain, boolean connectionLost) {
     }
 
     private final DraftRepository repository;
@@ -111,24 +125,81 @@ public class DraftSyncService {
     }
 
     /**
+     * Gets the drafts that may or may not be on the mainframe and are waiting for a
+     * person to check.
+     *
+     * @return the uncertain drafts, oldest first
+     * @throws lavs.business.repository.DraftStorageException if the drafts could not be read
+     */
+    public List<Draft> findUncertain() {
+        return repository.findByStatus(DraftStatus.UNCERTAIN);
+    }
+
+    /**
+     * Records that a person checked the mainframe and found the record of an
+     * uncertain draft there. Drafts that were waiting for it can then be sent.
+     *
+     * @param localId the local ID of the uncertain draft
+     * @param serverNumber the number the mainframe gave the record
+     * @return the draft, now synced
+     * @throws NullPointerException if either argument is null
+     * @throws IllegalArgumentException if there is no such draft or the number is blank
+     * @throws IllegalStateException if the draft is not uncertain
+     * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
+     */
+    public Draft confirmSynced(String localId, String serverNumber) {
+        Draft draft = uncertainDraft(localId);
+        draft.markSynced(serverNumber);
+        repository.save(draft);
+        return draft;
+    }
+
+    /**
+     * Records that a person checked the mainframe and did not find the record of an
+     * uncertain draft there. The draft becomes pending and will be sent again.
+     *
+     * @param localId the local ID of the uncertain draft
+     * @return the draft, now pending
+     * @throws NullPointerException if the ID is null
+     * @throws IllegalArgumentException if there is no such draft
+     * @throws IllegalStateException if the draft is not uncertain
+     * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
+     */
+    public Draft confirmNotSent(String localId) {
+        Draft draft = uncertainDraft(localId);
+        draft.markNotSent();
+        repository.save(draft);
+        return draft;
+    }
+
+    /**
      * Tries to send every pending draft whose dependencies are accepted, and saves
      * what the mainframe answered for each one. Drafts are taken oldest first, but a
      * draft always waits for the drafts it depends on, even if it is older.
+     *
+     * <p>Before anything else, a draft still marked as sending is turned into an
+     * uncertain one. This service never leaves a draft in that state when it
+     * finishes normally, so one found at the start of a pass means an earlier run
+     * stopped part way through an attempt.
+     *
+     * <p>Each draft is marked as sending and saved <em>before</em> it is sent.
      *
      * <ul>
      *   <li>Accepted: the draft becomes synced and keeps the number it was given.
      *       Drafts that were waiting for it can now be sent in the same pass.</li>
      *   <li>Refused: the draft becomes rejected and keeps the reasons. Drafts that
      *       depend on it are left pending, and the pass carries on with the rest.</li>
-     *   <li>Not reachable: the pass stops at once and leaves this draft and all the
-     *       later ones pending, since nothing is known about whether it arrived.</li>
+     *   <li>Not reachable, so nothing was sent: the draft goes back to pending and
+     *       the pass stops at once, leaving all the later drafts pending.</li>
+     *   <li>Outcome unknown: the draft becomes uncertain and the pass stops at once.</li>
      * </ul>
      *
-     * @return how many drafts were accepted, refused and left blocked, and whether
-     *         the pass stopped early
+     * @return how many drafts were accepted, refused, left blocked and made
+     *         uncertain, and whether the pass stopped early
      * @throws lavs.business.repository.DraftStorageException if a draft could not be read or saved
      */
     public SyncResult syncPending() {
+        int uncertain = settleInterruptedAttempts();
         List<Draft> waiting = new ArrayList<>(repository.findPending());
         int synced = 0;
         int rejected = 0;
@@ -144,6 +215,8 @@ public class DraftSyncService {
                 }
                 candidates.remove();
                 progress = true;
+                draft.markSending();
+                repository.save(draft);
                 try {
                     String number = gateway.upload(draft, parentNumbers.get());
                     draft.markSynced(number);
@@ -154,11 +227,37 @@ public class DraftSyncService {
                     repository.save(draft);
                     rejected++;
                 } catch (MainframeUnavailableException e) {
-                    return new SyncResult(synced, rejected, 0, true);
+                    draft.markNotSent();
+                    repository.save(draft);
+                    return new SyncResult(synced, rejected, 0, uncertain, true);
+                } catch (UploadOutcomeUnknownException e) {
+                    draft.markUncertain();
+                    repository.save(draft);
+                    return new SyncResult(synced, rejected, 0, uncertain + 1, true);
                 }
             }
         }
-        return new SyncResult(synced, rejected, waiting.size(), false);
+        return new SyncResult(synced, rejected, waiting.size(), uncertain, false);
+    }
+
+    private int settleInterruptedAttempts() {
+        int settled = 0;
+        for (Draft draft : repository.findByStatus(DraftStatus.SENDING)) {
+            draft.markUncertain();
+            repository.save(draft);
+            settled++;
+        }
+        return settled;
+    }
+
+    private Draft uncertainDraft(String localId) {
+        Objects.requireNonNull(localId, "localId must not be null");
+        Draft draft = repository.findById(localId)
+                .orElseThrow(() -> new IllegalArgumentException("there is no saved draft with ID " + localId));
+        if (draft.getStatus() != DraftStatus.UNCERTAIN) {
+            throw new IllegalStateException("a " + draft.getStatus() + " draft is not waiting for a check");
+        }
+        return draft;
     }
 
     private Optional<List<String>> parentNumbersOf(Draft draft) {
