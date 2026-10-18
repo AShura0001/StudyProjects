@@ -1,7 +1,6 @@
 package lavs.infrastructure.mainframe;
 
-import lavs.business.model.CustomerType;
-import lavs.business.repository.CustomerSearchResult;
+import lavs.business.repository.PageResult;
 import mainframe.client.Connection;
 import mainframe.client.HttpConnection;
 import mainframe.client.Status;
@@ -92,27 +91,85 @@ public abstract class MainframeIntegrationTestSupport {
     }
 
     @FunctionalInterface
-    protected interface PageFetcher<T extends CustomerType> {
-        CustomerSearchResult<T> fetch(long page, long pageSize) throws IOException;
+    protected interface PageFetcher<T> {
+        PageResult<T> fetch(long page, long pageSize) throws IOException;
     }
 
     /**
      * Walks every page of a list call and returns all items, so tests can
      * find records they created even when the customer has many of them.
      */
-    protected static <T extends CustomerType> List<T> fetchAllPages(PageFetcher<T> fetcher)
+    protected static <T> List<T> fetchAllPages(PageFetcher<T> fetcher)
             throws IOException {
         final long pageSize = 20;
         final int maxPages = 100;
         List<T> all = new ArrayList<>();
 
         for (long page = 1; page <= maxPages; page++) {
-            CustomerSearchResult<T> result = fetcher.fetch(page, pageSize);
+            PageResult<T> result = fetcher.fetch(page, pageSize);
             all.addAll(result.getList());
             if (result.getList().isEmpty() || all.size() >= result.getTotal()) {
                 break;
             }
         }
         return all;
+    }
+
+    /**
+     * Creates a new loan in the New status for a customer. The mainframe cannot
+     * delete loans, so only call this when a test needs a fresh one.
+     */
+    protected String createTestLoan(String customerNumber) throws IOException {
+        mainframe.client.messages.loan.Create create = new mainframe.client.messages.loan.Create(
+                customerNumber,
+                100.00,
+                mainframe.client.messages.loan.Create.PAYMENTFREQUENCY_MONTHLY,
+                5000.00,
+                5.0,
+                mainframe.client.messages.loan.Create.RATEFREQUENCY_YEARLY,
+                mainframe.client.messages.loan.Create.RATETYPE_FIXED,
+                "2031-01-01",
+                "2026-01-01");
+        Status status = create.send(connection);
+        assertTrue(status.getWasSuccessful(), "Could not create a test loan: " + status.getErrorMessage());
+        return create.getLoanNumber();
+    }
+
+    /**
+     * Reuses one of the customer's loans that is still New, or creates one, so
+     * test runs don't keep adding loans.
+     */
+    protected String findOrCreateTestLoan(String customerNumber) throws IOException {
+        mainframe.client.messages.loan.List loans = new mainframe.client.messages.loan.List(customerNumber, 1, 50);
+        if (loans.send(connection).getWasSuccessful()) {
+            for (mainframe.client.messages.loan.List.Item loan : loans.getItems()) {
+                if (mainframe.client.messages.loan.UpdateStatus.STATUS_NEW.equalsIgnoreCase(loan.getStatus())) {
+                    return loan.getLoanNumber();
+                }
+            }
+        }
+        return createTestLoan(customerNumber);
+    }
+
+    /**
+     * Finds an existing customer other than the given one, for records that link
+     * two customers. Set -Dmainframe.secondaryCustomerNumber to choose one.
+     */
+    protected String findOtherCustomerNumber(String excluding) throws IOException {
+        String configured = System.getProperty("mainframe.secondaryCustomerNumber");
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+
+        mainframe.client.messages.customer.Search search =
+                new mainframe.client.messages.customer.Search(1, "Smith", 25);
+        assertTrue(search.send(connection).getWasSuccessful(), "Customer search failed");
+
+        for (mainframe.client.messages.customer.Search.Item item : search.getItems()) {
+            if (!excluding.equals(item.getNumber())) {
+                return item.getNumber();
+            }
+        }
+        throw new AssertionError("No second customer found; set -Dmainframe.secondaryCustomerNumber");
     }
 }
