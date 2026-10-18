@@ -11,7 +11,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("integration")
-class CustomerDocumentAdapterIntegrationTest
+class CustomerDocumentApdaterIntegrationTest
         extends MainframeIntegrationTestSupport {
 
     private static final String CUSTOMER_NUMBER =
