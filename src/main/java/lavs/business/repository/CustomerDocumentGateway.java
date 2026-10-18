@@ -33,4 +33,14 @@ public interface CustomerDocumentGateway {
      * @throws IOException
      */
     Optional<Document> addCustomerDocument(Document document) throws IOException;
+
+    /**
+     *
+     * @param page  The current page of Customers to retrieve
+     * @param customerNumber String search term
+     * @param page_size Number of elements per page
+     * @return
+     * @throws IOException
+     */
+    CustomerSearchResult<Document> ListCustomerDocuments(long page, String customerNumber, long page_size) throws IOException;
 }

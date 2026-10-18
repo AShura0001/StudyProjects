@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Email {
+public class Email implements  CustomerType {
     private String address;
     private String customerName;
     private String customerNumber;

@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Document {
+public class Document implements  CustomerType {
     private String customerName;
     private String customerNumber;
     private String fileName;
