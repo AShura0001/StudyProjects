@@ -329,14 +329,15 @@ class DraftSyncServiceTest {
 
     @Test
     void syncPending_whenAnAttemptIsUncertain_doesNotTryTheLaterDrafts() {
-        service.saveDraft(DraftType.CUSTOMER, "first");
-        Draft second = service.saveDraft(DraftType.CUSTOMER, "second");
+        savePending("first", DraftType.CUSTOMER, "2026-10-01T09:00:00Z");
+        savePending("second", DraftType.CUSTOMER, "2026-10-02T09:00:00Z");
         gateway.loseNextReplies(1);
 
         service.syncPending();
 
         assertEquals(1, gateway.attempts().size());
-        assertEquals(DraftStatus.PENDING, stored(second.getLocalId()).getStatus());
+        assertEquals(DraftStatus.UNCERTAIN, stored("first").getStatus());
+        assertEquals(DraftStatus.PENDING, stored("second").getStatus());
     }
 
     @Test
