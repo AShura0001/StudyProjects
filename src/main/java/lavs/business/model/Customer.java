@@ -10,6 +10,19 @@ public class Customer {
     private String status;
     private String title;
 
+
+
+    public Customer(String dateOfBirth, String familyName, String firstName, String number, String status, String title) {
+        this.dateOfBirth = dateOfBirth;
+        this.familyName = familyName;
+        this.firstName = firstName;
+        this.number = number;
+        this.status = status;
+        this.title = title;
+    }
+
+    public Customer() {}
+
     public String get_dateOfBirth() {
         return dateOfBirth;
     }

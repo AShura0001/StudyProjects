@@ -2,13 +2,16 @@ package lavs.infrastructure.mainframe;
 
 import lavs.business.model.Customer;
 import lavs.business.repository.CustomerGateway;
+import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.messages.customer.Create;
 import mainframe.client.messages.customer.Retrieve;
+import mainframe.client.messages.customer.Search;
 import mainframe.client.messages.customer.UpdateStatus;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerAdapter implements CustomerGateway {
@@ -48,11 +51,37 @@ public class CustomerAdapter implements CustomerGateway {
                 customer.getOrganisation(),
                 customer.get_title()
         );
-        if(create.send(connection).getWasSuccessful()) {
+        if (create.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(create.getNumber());
             return mapMessageToCustomer(retrieve);
         }
         return Optional.empty();
+    }
+
+    public CustomerSearchResult searchCustomer(long page, String searchTerm, long page_size) throws IOException {
+        Search search = new Search(page, searchTerm, page_size);
+        if (search.send(connection).getWasSuccessful()) {
+            ArrayList<Customer> customers = mapItemsToCustomer(search.getItems());
+            return new CustomerSearchResult(customers, search.getTotal(), search.getPage());
+        }
+        return null;
+    }
+
+    private ArrayList<Customer> mapItemsToCustomer(Search.Item[] items) {
+        ArrayList<Customer> customers = new ArrayList<>();
+        for (Search.Item item : items) {
+            Customer customer = new Customer(
+                    item.getDateOfBirth(),
+                    item.getFamilyName(),
+                    item.getFirstName(),
+                    item.getNumber(),
+                    item.getStatus(),
+                    item.getTitle()
+                    );
+            customers.add(customer);
+        }
+        return customers;
+
     }
 
     public Optional<Customer> mapMessageToCustomer(Message message) {
