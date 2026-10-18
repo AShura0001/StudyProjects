@@ -1,8 +1,10 @@
 package lavs.infrastructure.mainframe;
 
+import lavs.business.model.Document;
 import mainframe.client.Connection;
 import mainframe.client.HttpConnection;
 import mainframe.client.Status;
+import mainframe.client.messages.customer.AddDocument;
 import mainframe.client.messages.customer.Create;
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class MainframeCustomerSeeder {
+    static Connection connection;
 
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ISO_LOCAL_DATE;
@@ -43,94 +46,25 @@ public final class MainframeCustomerSeeder {
                 "bug"
         );
 
-        List<SeededCustomer> customers = seedCustomers(
-                url,
-                username,
-                password,
-                numberOfCustomers
-        );
+        connection = new HttpConnection(url);
+        connection.Login(username, password);
 
-        System.out.println();
-        System.out.println("Created " + customers.size() + " customers:");
+        Document document = new Document();
+        document.setCustomerNumber("01-0001-0000020");
+        document.setFileName("proof-of-address.pdf");
+        document.setFileType("application/pdf");
+        document.setId(1001L);
+        document.setNumber("DOC-1001");
+        document.setSize(245760L);
+        document.setType("ProofOfAddress");
 
-        for (SeededCustomer customer : customers) {
-            System.out.println(
-                    customer.number()
-                            + " - "
-                            + customer.firstName()
-                            + " "
-                            + customer.familyName()
-            );
-        }
-    }
-
-    public static List<SeededCustomer> seedCustomers(
-            String url,
-            String username,
-            String password,
-            int numberOfCustomers
-    ) throws IOException {
-
-        if (numberOfCustomers < 1) {
-            throw new IllegalArgumentException(
-                    "numberOfCustomers must be greater than zero"
-            );
+        CustomerDocumentAdapter adapter = new CustomerDocumentAdapter(connection);
+        for (int i = 0; i < 5; i++) {
+            adapter.addCustomerDocument(document);
         }
 
-        Connection connection = new HttpConnection(url);
-        List<SeededCustomer> createdCustomers = new ArrayList<>();
-
-        try {
-            Status loginStatus = connection.Login(username, password);
-
-            if (!loginStatus.getWasSuccessful()) {
-                throw new IOException(
-                        "Mainframe login failed: "
-                                + loginStatus.getErrorMessage()
-                );
-            }
-
-            for (int i = 1; i <= numberOfCustomers; i++) {
-                Create create = buildCustomer(i);
-
-                Status createStatus = create.send(connection);
-
-                if (!createStatus.getWasSuccessful()) {
-                    throw new IOException(
-                            "Could not create customer " + i + ": "
-                                    + createStatus.getErrorMessage()
-                    );
-                }
-
-                createdCustomers.add(new SeededCustomer(
-                        create.getNumber(),
-                        create.getFirstName(),
-                        create.getFamilyName(),
-                        create.getStatus()
-                ));
-            }
-
-            return List.copyOf(createdCustomers);
-        } finally {
-            connection.Logout();
-            connection.close();
-        }
     }
 
-    private static Create buildCustomer(int index) {
-        String uniqueValue = String.valueOf(System.currentTimeMillis());
-
-        return new Create(
-                LocalDate.of(1990, 1, 1)
-                        .plusDays(index)
-                        .format(DATE_FORMAT),
-                "IntegrationFamily" + index,
-                "IntegrationFirst" + uniqueValue + "_" + index,
-                "New Zealand",
-                0,
-                "Mr"
-        );
-    }
 
     private static String getRequiredSetting(
             String environmentVariable,
@@ -175,12 +109,6 @@ public final class MainframeCustomerSeeder {
         return defaultValue;
     }
 
-    public record SeededCustomer(
-            String number,
-            String firstName,
-            String familyName,
-            String status
-    ) {
-    }
+
 }
 

@@ -88,7 +88,7 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
 
 
     @Override
-    public CustomerSearchResult<Address> ListCustomerAddress(
+    public CustomerSearchResult<Address> ListCustomerAddresses(
             long page,
             String customerNumber,
             long pageSize

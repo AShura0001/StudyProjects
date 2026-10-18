@@ -1,7 +1,6 @@
 package lavs.infrastructure.mainframe;
 
 import lavs.business.model.Address;
-import lavs.business.model.CustomerType;
 import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.HttpConnection;
@@ -71,7 +70,7 @@ class CustomerAddressAdapterIntegrationTest {
         long pageSize = 10;
 
         CustomerSearchResult<Address> result =
-                adapter.ListCustomerAddress(
+                adapter.ListCustomerAddresses(
                         page,
                         CUSTOMER_NUMBER,
                         pageSize
@@ -106,7 +105,7 @@ class CustomerAddressAdapterIntegrationTest {
             throws Exception {
 
         CustomerSearchResult<Address> result =
-                adapter.ListCustomerAddress(
+                adapter.ListCustomerAddresses(
                         1,
                         CUSTOMER_NUMBER,
                         10
@@ -137,7 +136,7 @@ class CustomerAddressAdapterIntegrationTest {
             throws Exception {
 
         CustomerSearchResult<Address> result =
-                adapter.ListCustomerAddress(
+                adapter.ListCustomerAddresses(
                         1,
                         "CUSTOMER-DOES-NOT-EXIST",
                         10
@@ -152,14 +151,14 @@ class CustomerAddressAdapterIntegrationTest {
             throws Exception {
 
         CustomerSearchResult<Address> firstPage =
-                adapter.ListCustomerAddress(
+                adapter.ListCustomerAddresses(
                         1,
                         CUSTOMER_NUMBER,
                         1
                 );
 
         CustomerSearchResult<Address> secondPage =
-                adapter.ListCustomerAddress(
+                adapter.ListCustomerAddresses(
                         2,
                         CUSTOMER_NUMBER,
                         1
