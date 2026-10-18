@@ -8,7 +8,7 @@ import mainframe.client.Message;
 import mainframe.client.messages.customer.AddDocument;
 import mainframe.client.messages.customerDocument.List;
 import mainframe.client.messages.customerDocument.Retrieve;
-import mainframe.client.messages.loan.DeleteDocument;
+import mainframe.client.messages.customer.DeleteDocument;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class CustomerDocumentAdapter implements CustomerDocumentGateway {
 
     @Override
     public boolean deleteCustomerDocument(long id, String customerNumber) throws IOException {
-        DeleteDocument deleteDocument = new DeleteDocument(id, customerNumber);
+        DeleteDocument deleteDocument = new DeleteDocument(customerNumber, id);
         return deleteDocument.send(connection).getWasSuccessful();
     }
 
@@ -47,8 +47,10 @@ public class CustomerDocumentAdapter implements CustomerDocumentGateway {
                 document.getType()
         );
         if (addDocument.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(addDocument.getId(), addDocument.getCustomer());
-            return mapMessageToDocument(retrieve);
+            Retrieve retrieve = new Retrieve(addDocument.getId(), document.getCustomerNumber());
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToDocument(retrieve);
+            }
         }
         return Optional.empty();
     }

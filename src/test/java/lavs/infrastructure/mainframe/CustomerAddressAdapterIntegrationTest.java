@@ -50,6 +50,10 @@ class CustomerAddressAdapterIntegrationTest {
                         + loginStatus.getErrorMessage()
         );
 
+        Thread.sleep(250);
+
+
+
         adapter =
                 new CustomerAddressAdapter(connection);
     }

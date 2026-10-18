@@ -79,8 +79,10 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getType()
         );
         if (addAddress.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(address.getId(), addAddress.getCustomer());
-            return mapMessageToAddress(retrieve);
+            Retrieve retrieve = new Retrieve(addAddress.getId(), address.getCustomerNumber());
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToAddress(retrieve);
+            }
         }
         return Optional.empty();
     }

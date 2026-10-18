@@ -53,6 +53,7 @@ public class CustomerAdapter implements CustomerGateway {
         );
         if (create.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(create.getNumber());
+            retrieve.send(connection);
             return mapMessageToCustomer(retrieve);
         }
         return Optional.empty();
