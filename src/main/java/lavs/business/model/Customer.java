@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Customer {
+public class Customer implements  CustomerType {
     private String dateOfBirth;
     private String familyName;
     private String firstName;
@@ -9,6 +9,19 @@ public class Customer {
     private long organisation;
     private String status;
     private String title;
+
+
+
+    public Customer(String dateOfBirth, String familyName, String firstName, String number, String status, String title) {
+        this.dateOfBirth = dateOfBirth;
+        this.familyName = familyName;
+        this.firstName = firstName;
+        this.number = number;
+        this.status = status;
+        this.title = title;
+    }
+
+    public Customer() {}
 
     public String get_dateOfBirth() {
         return dateOfBirth;
