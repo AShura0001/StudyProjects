@@ -4,6 +4,7 @@ import lavs.business.model.Address;
 import lavs.business.repository.CustomerAddressGateway;
 import mainframe.client.Connection;
 import mainframe.client.Message;
+import mainframe.client.messages.customer.AddAddress;
 import mainframe.client.messages.customer.DeleteAddress;
 import mainframe.client.messages.customer.UpdateAddress;
 import mainframe.client.messages.customerAddress.Retrieve;
@@ -28,7 +29,7 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
     }
 
     @Override
-    public Address updateCustomerAddress(Address address) throws IOException {
+    public Optional<Address> updateCustomerAddress(Address address) throws IOException {
         UpdateAddress updateAddress = new UpdateAddress(
                 address.getCity(),
                 address.getCountry(),
@@ -43,14 +44,41 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getSuburb(),
                 address.getType());
 
-        updateAddress.send(connection);
-        return mapMessageToAddress(updateAddress).orElse(address);
+        if(updateAddress.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(address.getId(), address.getCustomerNumber());
+            retrieve.send(connection);
+            return mapMessageToAddress(retrieve);
+        };
+
+        return Optional.empty();
     }
 
     @Override
-    public void deleteCustomerAddress(String customerNumber, long id) throws IOException {
+    public boolean deleteCustomerAddress(String customerNumber, long id) throws IOException {
         DeleteAddress deleteAddress = new DeleteAddress(customerNumber, id);
-        deleteAddress.send(connection);
+        return deleteAddress.send(connection).getWasSuccessful();
+    }
+
+    @Override
+    public Optional<Address> addCustomerAddress(Address address) throws IOException {
+        AddAddress addAddress = new AddAddress(
+                address.getCity(),
+                address.getCountry(),
+                address.getCustomerNumber(),
+                address.getIsMailing(),
+                address.getIsPrimary(),
+                address.getLine1(),
+                address.getLine2(),
+                address.getOtherType(),
+                address.getPostCode(),
+                address.getSuburb(),
+                address.getType()
+        );
+        if(addAddress.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(address.getId(), addAddress.getCustomer());
+            return  mapMessageToAddress(retrieve);
+        }
+        return Optional.empty();
     }
 
     public Optional<Address> mapMessageToAddress(Message message) {

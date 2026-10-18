@@ -3,7 +3,7 @@ import mainframe.client.*;
 import java.io.IOException;
 public class DeleteEmail implements Message {
     private String _customer;
-    private long _id;
+    private Long _id;
     public DeleteEmail() {}
     public DeleteEmail(String customer, long id) {
         _customer = customer;
