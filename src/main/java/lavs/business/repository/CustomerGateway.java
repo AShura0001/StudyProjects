@@ -1,6 +1,7 @@
 package lavs.business.repository;
 
 import lavs.business.model.Customer;
+import lavs.business.model.CustomerType;
 
 import java.io.IOException;
 import java.util.List;

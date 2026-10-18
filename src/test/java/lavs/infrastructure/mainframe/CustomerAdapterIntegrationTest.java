@@ -99,4 +99,6 @@ class CustomerAdapterIntegrationTest
         assertEquals(customer.get_firstName(), retrieved.get().get_firstName());
 
     }
+
+
 }

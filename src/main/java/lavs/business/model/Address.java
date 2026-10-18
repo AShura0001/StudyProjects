@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Address {
+public class Address  implements  CustomerType {
     private String city;
     private String country;
     private String customerName;

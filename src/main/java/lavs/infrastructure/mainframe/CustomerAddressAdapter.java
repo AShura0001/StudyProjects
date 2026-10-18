@@ -2,14 +2,17 @@ package lavs.infrastructure.mainframe;
 
 import lavs.business.model.Address;
 import lavs.business.repository.CustomerAddressGateway;
+import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.messages.customer.AddAddress;
 import mainframe.client.messages.customer.DeleteAddress;
 import mainframe.client.messages.customer.UpdateAddress;
+import mainframe.client.messages.customerAddress.List;
 import mainframe.client.messages.customerAddress.Retrieve;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerAddressAdapter implements CustomerAddressGateway {
@@ -44,11 +47,12 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getSuburb(),
                 address.getType());
 
-        if(updateAddress.send(connection).getWasSuccessful()) {
+        if (updateAddress.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(address.getId(), address.getCustomerNumber());
             retrieve.send(connection);
             return mapMessageToAddress(retrieve);
-        };
+        }
+        ;
 
         return Optional.empty();
     }
@@ -74,11 +78,64 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
                 address.getSuburb(),
                 address.getType()
         );
-        if(addAddress.send(connection).getWasSuccessful()) {
+        if (addAddress.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(address.getId(), addAddress.getCustomer());
-            return  mapMessageToAddress(retrieve);
+            return mapMessageToAddress(retrieve);
         }
         return Optional.empty();
+    }
+
+
+
+    @Override
+    public CustomerSearchResult<Address> ListCustomerAddress(
+            long page,
+            String customerNumber,
+            long pageSize
+    ) throws IOException {
+
+        mainframe.client.messages.customerAddress.List list =
+                new mainframe.client.messages.customerAddress.List(
+                        customerNumber,
+                        page,
+                        pageSize
+                );
+
+        if (!list.send(connection).getWasSuccessful()) {
+            return new CustomerSearchResult<>(
+                    java.util.List.of(),
+                    0,
+                    page
+            );
+        }
+
+        ArrayList<Address> addresses =
+                mapItemsToAddresslist(list);
+
+        return new CustomerSearchResult<>(
+                addresses,
+                list.getTotal(),
+                list.getPage()
+        );
+    }
+
+    public ArrayList<Address> mapItemsToAddresslist(List list) {
+        ArrayList<Address> addresses = new ArrayList<>();
+        for (List.Item item : list.getItems()) {
+            Address address = new Address();
+            address.setId(item.getId());
+            address.setCity(item.getCity());
+            address.setCountry(item.getCountry());
+            address.setIsMailing(item.getIsMailing().equalsIgnoreCase("y") ? Boolean.TRUE : Boolean.FALSE);
+            address.setIsPrimary(item.getIsPrimary().equalsIgnoreCase("y") ? Boolean.TRUE : Boolean.FALSE);
+            address.setType(item.getType());
+            address.setCustomerNumber(list.getCustomerNumber());
+            address.setCustomerName(list.getCustomerName());
+
+            addresses.add(address);
+
+        }
+        return addresses;
     }
 
     public Optional<Address> mapMessageToAddress(Message message) {

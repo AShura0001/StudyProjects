@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Relationship {
+public class Relationship implements  CustomerType {
     private String _customerName;
     private String _customerNumber;
     private long _id;

@@ -46,6 +46,7 @@ public abstract class MainframeIntegrationTestSupport {
                 "Mainframe login failed: "
                         + loginStatus.getErrorMessage()
         );
+        Thread.sleep(250);
     }
 
     @AfterEach

@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Customer {
+public class Customer implements  CustomerType {
     private String dateOfBirth;
     private String familyName;
     private String firstName;

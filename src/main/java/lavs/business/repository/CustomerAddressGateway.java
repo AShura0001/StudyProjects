@@ -42,4 +42,15 @@ public interface CustomerAddressGateway {
      */
     Optional<Address> addCustomerAddress(Address address) throws IOException;
 
+    /**
+     *
+     * @param page  The current page of Customers to retrieve
+     * @param searchTerm String search term
+     * @param page_size Number of elements per page
+     * @return
+     * @throws IOException
+     */
+    CustomerSearchResult<Address> ListCustomerAddress(long page, String searchTerm, long page_size) throws IOException;
+
+
 }
