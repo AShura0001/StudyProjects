@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class PhoneNumber {
+public class PhoneNumber implements  CustomerType {
     private boolean _canTxt;
     private String _countryCode;
     private String _customerName;

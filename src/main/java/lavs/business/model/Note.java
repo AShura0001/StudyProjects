@@ -1,6 +1,6 @@
 package lavs.business.model;
 
-public class Note {
+public class Note implements  CustomerType {
     private String _author;
     private String _customerName;
     private String _customerNumber;
