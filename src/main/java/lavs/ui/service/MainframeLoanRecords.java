@@ -89,6 +89,18 @@ public class MainframeLoanRecords implements LoanRecords {
                 "Saving loan changes is not connected to the mainframe yet. Your changes are still on screen.");
     }
 
+    @Override
+    public Map<String, String> addCoBorrower(String loanNumber, String coBorrowerNumber, String type) {
+        throw new NotSupportedYetException(
+                "Adding a co-borrower is not connected to the mainframe yet. Your details are still on screen.");
+    }
+
+    @Override
+    public Created createLoan(String customerNumber, NewLoan loan) {
+        throw new NotSupportedYetException(
+                "Adding a loan is not connected to the mainframe yet. Your details are still on screen.");
+    }
+
     private static String term(MainframeLoanLookup.Facts facts) {
         if (facts.startDate() == null || facts.renewalDate() == null) {
             return "";

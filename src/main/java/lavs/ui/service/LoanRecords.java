@@ -33,4 +33,18 @@ public interface LoanRecords {
      * @throws NotSupportedYetException when saving is not connected yet
      */
     Map<String, String> save(LoanDetails loan);
+
+    /** The fields of the Add loan form; everything arrives trimmed. */
+    record NewLoan(String principal, String rateType, String rateAmount, String rateFrequency,
+                   String paymentAmount, String paymentFrequency, String startDate, String renewalDate) {
+    }
+
+    /** Either the new loan number, or field name to message. */
+    record Created(String loanNumber, Map<String, String> errors) {
+    }
+
+    /** @return field name to message; an empty map means the co-borrower was added */
+    Map<String, String> addCoBorrower(String loanNumber, String coBorrowerNumber, String type);
+
+    Created createLoan(String customerNumber, NewLoan loan);
 }

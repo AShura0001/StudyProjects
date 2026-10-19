@@ -90,6 +90,55 @@ public class StubLoanService implements LoanRecords {
         return errors;
     }
 
+    @Override
+    public Map<String, String> addCoBorrower(String loanNumber, String coBorrowerNumber, String type) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!coBorrowerNumber.matches("CUS-[0-9]+")) {
+            errors.put("coBorrowerNumber", "Customer ID must look like CUS-20481.");
+        }
+        if (!type.equalsIgnoreCase("Co-borrower") && !type.equalsIgnoreCase("Guarantor")) {
+            errors.put("type", "Type must be Co-borrower or Guarantor.");
+        }
+        return errors;
+    }
+
+    @Override
+    public Created createLoan(String customerNumber, NewLoan loan) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!(number(loan.principal()) > 0)) {
+            errors.put("principal", "Loan amount must be greater than zero.");
+        }
+        if (loan.rateType().isBlank()) {
+            errors.put("rateType", "Rate type is required.");
+        }
+        double rate = number(loan.rateAmount());
+        if (Double.isNaN(rate) || rate < 0 || rate > 100) {
+            errors.put("rateAmount", "Interest rate must be between 0 and 100.");
+        }
+        if (loan.rateFrequency().isBlank()) {
+            errors.put("rateFrequency", "Rate frequency is required.");
+        }
+        if (!(number(loan.paymentAmount()) > 0)) {
+            errors.put("paymentAmount", "Payment amount must be greater than zero.");
+        }
+        if (loan.paymentFrequency().isBlank()) {
+            errors.put("paymentFrequency", "Payment frequency is required.");
+        }
+        LocalDate start = date(loan.startDate());
+        LocalDate renewal = date(loan.renewalDate());
+        if (start == null) {
+            errors.put("startDate", "Start date must look like 2025-01-02.");
+        }
+        if (renewal == null) {
+            errors.put("renewalDate", "Renewal date must look like 2030-01-02.");
+        } else if (start != null && !renewal.isAfter(start)) {
+            errors.put("renewalDate", "Renewal date must be after the start date.");
+        }
+        return new Created(errors.isEmpty() ? "LN-5005" : null, errors);
+    }
+
     private static LoanDetails build(Sample s) {
         double r = s.rate() / 100 / 12;
         double payment = round(s.amount() * r / (1 - Math.pow(1 + r, -s.months())));

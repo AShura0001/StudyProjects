@@ -438,7 +438,14 @@ public class LoanDetailsController {
 
     @FXML
     private void onAddCoBorrower() {
-        showNotice("Adding a co-borrower has not been built yet.");
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable backFromLoan = onBack;
+        Runnable reopen = () -> Navigator.<LoanDetailsController>show("loandetails",
+                l -> l.open(loanNumber, backFromLoan));
+        Navigator.<AddCoBorrowerController>show("addcoborrower", a -> a.open(loanNumber, reopen, reopen));
     }
 
     @FXML

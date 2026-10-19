@@ -332,7 +332,14 @@ public class CustomerDetailsController {
 
     @FXML
     private void onAddLoan() {
-        showNotice("Adding a loan has not been built yet.");
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Navigator.<AddLoanController>show("addloan", a -> a.open(customerNumber,
+                () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                        c -> c.open(customerNumber, backFromCustomer))));
     }
 
     @FXML
