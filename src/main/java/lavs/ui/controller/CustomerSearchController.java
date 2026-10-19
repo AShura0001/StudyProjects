@@ -16,6 +16,7 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 
+import lavs.ui.LavsApp;
 import lavs.ui.Navigator;
 import lavs.ui.stub.StubCustomerService;
 
@@ -114,6 +115,7 @@ public class CustomerSearchController {
 
     @FXML
     private void onLogout() {
+        LavsApp.context().logout();
         Navigator.show("loggedout");
     }
 
