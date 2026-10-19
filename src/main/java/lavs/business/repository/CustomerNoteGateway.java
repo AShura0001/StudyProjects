@@ -40,4 +40,14 @@ public interface CustomerNoteGateway {
      * @throws IOException
      */
     Optional<Note> addCustomerNote(Note note) throws IOException;
+
+    /**
+     *
+     * @param page  The current page of Notes to retrieve
+     * @param customerNumber The customer whose Notes are listed
+     * @param page_size Number of elements per page
+     * @return A page of Notes for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<Note> ListCustomerNotes(long page, String customerNumber, long page_size) throws IOException;
 }

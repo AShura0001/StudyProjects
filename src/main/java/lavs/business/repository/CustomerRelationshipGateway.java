@@ -39,5 +39,14 @@ public interface CustomerRelationshipGateway {
      * @throws IOException
      */
     Optional<Relationship> addCustomerRelationship(Relationship relationship) throws IOException;
-}
 
+    /**
+     *
+     * @param page  The current page of Relationships to retrieve
+     * @param customerNumber The customer whose Relationships are listed
+     * @param page_size Number of elements per page
+     * @return A page of Relationships for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<Relationship> ListCustomerRelationships(long page, String customerNumber, long page_size) throws IOException;
+}

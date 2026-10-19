@@ -44,4 +44,14 @@ public interface CustomerEmailGateway {
      * @throws IOException
      */
     Optional<Email> addCustomerEmail(Email email) throws IOException;
+
+    /**
+     *
+     * @param page  The current page of Emails to retrieve
+     * @param customerNumber The customer whose Emails are listed
+     * @param page_size Number of elements per page
+     * @return A page of Emails for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<Email> ListCustomerEmails(long page, String customerNumber, long page_size) throws IOException;
 }

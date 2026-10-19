@@ -38,4 +38,14 @@ public interface CustomerPhoneNumberGateway {
      * @throws IOException
      */
     Optional<PhoneNumber> addCustomerPhoneNumber(PhoneNumber phoneNumber) throws IOException;
+
+    /**
+     *
+     * @param page  The current page of PhoneNumbers to retrieve
+     * @param customerNumber The customer whose PhoneNumbers are listed
+     * @param page_size Number of elements per page
+     * @return A page of PhoneNumbers for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<PhoneNumber> ListCustomerPhoneNumbers(long page, String customerNumber, long page_size) throws IOException;
 }
