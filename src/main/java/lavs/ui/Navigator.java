@@ -42,6 +42,8 @@ public final class Navigator {
             if (stage.getScene() == null) {
                 stage.setScene(new Scene(root));
             } else {
+                // Shortcuts belong to the screen that registered them, not to the shared scene.
+                stage.getScene().getAccelerators().clear();
                 stage.getScene().setRoot(root);
             }
         } catch (IOException e) {
