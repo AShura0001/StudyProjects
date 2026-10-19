@@ -29,7 +29,8 @@ import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
-import lavs.ui.stub.StubLoanService;
+import lavs.ui.service.LoanRecords;
+import lavs.ui.service.NotSupportedYetException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -76,12 +77,12 @@ public class LoanDetailsController {
     @FXML private Node editActions;
     @FXML private Label noticeLabel;
 
-    private final StubLoanService loanService = new StubLoanService();
+    private final LoanRecords loanService = LavsApp.context().loans();
     private final Map<String, TextField> fields = new LinkedHashMap<>();
     private Runnable onBack = () -> Navigator.show("customersearch");
 
-    private StubLoanService.LoanDetails details;
-    private List<StubLoanService.CoBorrower> workingCoBorrowers = new ArrayList<>();
+    private LoanRecords.LoanDetails details;
+    private List<LoanRecords.CoBorrower> workingCoBorrowers = new ArrayList<>();
     private boolean editing;
 
     @FXML
@@ -121,9 +122,9 @@ public class LoanDetailsController {
         loanIdLabel.setText(loanNumber);
         setBusy(true);
 
-        Task<StubLoanService.LoanDetails> task = new Task<>() {
+        Task<LoanRecords.LoanDetails> task = new Task<>() {
             @Override
-            protected StubLoanService.LoanDetails call() {
+            protected LoanRecords.LoanDetails call() {
                 return loanService.details(loanNumber);
             }
         };
@@ -179,8 +180,8 @@ public class LoanDetailsController {
         return details != null && !details.equals(readForm());
     }
 
-    private StubLoanService.LoanDetails readForm() {
-        return new StubLoanService.LoanDetails(details.loanNumber(),
+    private LoanRecords.LoanDetails readForm() {
+        return new LoanRecords.LoanDetails(details.loanNumber(),
                 text(loanNameField), text(loanAmountField), text(interestRateField),
                 text(loanTermField), text(startDateField), text(maturityDateField),
                 text(monthlyPaymentField), text(outstandingBalanceField),
@@ -200,13 +201,13 @@ public class LoanDetailsController {
         if (details == null) {
             return;
         }
-        for (StubLoanService.ScheduleEntry entry : details.schedule()) {
+        for (LoanRecords.ScheduleEntry entry : details.schedule()) {
             scheduleBox.getChildren().add(scheduleRow(entry));
         }
     }
 
     /** A null entry builds the header row. */
-    private GridPane scheduleRow(StubLoanService.ScheduleEntry entry) {
+    private GridPane scheduleRow(LoanRecords.ScheduleEntry entry) {
         boolean header = entry == null;
         GridPane row = new GridPane();
         row.getStyleClass().add(header ? "schedule-header-row" : "schedule-row");
@@ -263,12 +264,12 @@ public class LoanDetailsController {
         if (details == null) {
             return;
         }
-        for (StubLoanService.CoBorrower coBorrower : workingCoBorrowers) {
+        for (LoanRecords.CoBorrower coBorrower : workingCoBorrowers) {
             coBorrowersBox.getChildren().add(coBorrowerRow(coBorrower));
         }
     }
 
-    private Node coBorrowerRow(StubLoanService.CoBorrower coBorrower) {
+    private Node coBorrowerRow(LoanRecords.CoBorrower coBorrower) {
         Label name = new Label(coBorrower.name());
         name.getStyleClass().add("cb-name");
         name.setMinWidth(82);
@@ -307,7 +308,7 @@ public class LoanDetailsController {
         return row;
     }
 
-    private void openCoBorrower(StubLoanService.CoBorrower coBorrower) {
+    private void openCoBorrower(LoanRecords.CoBorrower coBorrower) {
         if (!confirmDiscard()) {
             return;
         }
@@ -374,7 +375,7 @@ public class LoanDetailsController {
         if (!editing || details == null) {
             return;
         }
-        StubLoanService.LoanDetails edited = readForm();
+        LoanRecords.LoanDetails edited = readForm();
         clearFieldErrors();
         setBusy(true);
 
@@ -399,7 +400,9 @@ public class LoanDetailsController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Your changes are still on screen.");
+            showNotice(e.getSource().getException() instanceof NotSupportedYetException
+                    ? e.getSource().getException().getMessage()
+                    : "Could not reach the mainframe. Your changes are still on screen.");
         });
 
         startWorker(task, "loan-save");

@@ -18,7 +18,7 @@ import javafx.scene.layout.BorderPane;
 
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
-import lavs.ui.stub.StubCustomerService;
+import lavs.ui.service.CustomerDirectory;
 
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +40,7 @@ public class CustomerSearchController {
     @FXML private Node notFoundInfo;
     @FXML private Label noticeLabel;
 
-    private final StubCustomerService customerService = new StubCustomerService();
+    private final CustomerDirectory customerService = LavsApp.context().customers();
 
     @FXML
     private void initialize() {
@@ -79,16 +79,16 @@ public class CustomerSearchController {
             return;
         }
 
-        Task<List<StubCustomerService.Match>> task = new Task<>() {
+        Task<List<CustomerDirectory.Match>> task = new Task<>() {
             @Override
-            protected List<StubCustomerService.Match> call() {
+            protected List<CustomerDirectory.Match> call() {
                 return customerService.search(term);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            List<StubCustomerService.Match> matches = task.getValue();
+            List<CustomerDirectory.Match> matches = task.getValue();
             if (matches.isEmpty()) {
                 showNotFound();
             } else {
@@ -126,7 +126,7 @@ public class CustomerSearchController {
 
     @FXML
     private void onRegister() {
-        showNotice("Customer registration has not been built yet.");
+        Navigator.show("registercustomer");
     }
 
     private void showNotice(String text) {

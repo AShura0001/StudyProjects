@@ -27,7 +27,8 @@ import javafx.scene.shape.SVGPath;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.NotesPaper;
-import lavs.ui.stub.StubCustomerService;
+import lavs.ui.service.CustomerDirectory;
+import lavs.ui.service.NotSupportedYetException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,11 +60,11 @@ public class CustomerDetailsController {
     @FXML private Button photoEditButton;
     @FXML private Node editActions;
 
-    private final StubCustomerService customerService = new StubCustomerService(350);
+    private final CustomerDirectory customerService = LavsApp.context().customers();
     private Runnable onBack = () -> Navigator.show("customersearch");
 
-    private StubCustomerService.Details details;
-    private List<StubCustomerService.Employer> workingEmployers = new ArrayList<>();
+    private CustomerDirectory.Details details;
+    private List<CustomerDirectory.Employer> workingEmployers = new ArrayList<>();
     private boolean editing;
 
     @FXML
@@ -90,9 +91,9 @@ public class CustomerDetailsController {
         customerIdLabel.setText(customerNumber);
         setBusy(true);
 
-        Task<StubCustomerService.Details> task = new Task<>() {
+        Task<CustomerDirectory.Details> task = new Task<>() {
             @Override
-            protected StubCustomerService.Details call() {
+            protected CustomerDirectory.Details call() {
                 return customerService.details(customerNumber);
             }
         };
@@ -133,8 +134,8 @@ public class CustomerDetailsController {
         return details != null && !details.equals(readForm());
     }
 
-    private StubCustomerService.Details readForm() {
-        return new StubCustomerService.Details(details.customerNumber(),
+    private CustomerDirectory.Details readForm() {
+        return new CustomerDirectory.Details(details.customerNumber(),
                 firstNameField.getText().trim(), lastNameField.getText().trim(),
                 phoneField.getText().trim(), emailField.getText().trim(),
                 addressLine1Field.getText().trim(), addressLine2Field.getText().trim(),
@@ -143,14 +144,14 @@ public class CustomerDetailsController {
 
     private void renderEmployers() {
         employersBox.getChildren().clear();
-        for (StubCustomerService.Employer employer : workingEmployers) {
+        for (CustomerDirectory.Employer employer : workingEmployers) {
             employersBox.getChildren().add(employerItem(employer));
         }
     }
 
     private void renderLoans() {
         loansBox.getChildren().clear();
-        for (StubCustomerService.Loan loan : details.loans()) {
+        for (CustomerDirectory.Loan loan : details.loans()) {
             VBox item = listItem(loan.name(), loan.date() + "  •  " + loan.loanNumber());
             Hyperlink link = new Hyperlink("Click here for further details");
             link.getStyleClass().add("list-item-link");
@@ -160,7 +161,7 @@ public class CustomerDetailsController {
         }
     }
 
-    private void openLoan(StubCustomerService.Loan loan) {
+    private void openLoan(CustomerDirectory.Loan loan) {
         if (!confirmDiscard()) {
             return;
         }
@@ -183,7 +184,7 @@ public class CustomerDetailsController {
     }
 
     /** In edit mode each employer row gains a remove and an Edit button. */
-    private Node employerItem(StubCustomerService.Employer employer) {
+    private Node employerItem(CustomerDirectory.Employer employer) {
         VBox text = listItem(employer.name(), employer.id());
         if (!editing) {
             return text;
@@ -270,7 +271,7 @@ public class CustomerDetailsController {
         if (!editing || details == null) {
             return;
         }
-        StubCustomerService.Details edited = readForm();
+        CustomerDirectory.Details edited = readForm();
         clearFieldErrors();
         setBusy(true);
 
@@ -295,7 +296,9 @@ public class CustomerDetailsController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Your changes are still on screen.");
+            showNotice(e.getSource().getException() instanceof NotSupportedYetException
+                    ? e.getSource().getException().getMessage()
+                    : "Could not reach the mainframe. Your changes are still on screen.");
         });
 
         startWorker(task, "customer-save");

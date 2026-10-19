@@ -1,5 +1,7 @@
 package lavs.ui.stub;
 
+import lavs.ui.service.CustomerDirectory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -8,10 +10,7 @@ import java.util.Locale;
  * Temporary stand-in for the business layer's CustomerService. Blocking on
  * purpose so callers must keep it off the JavaFX thread.
  */
-public class StubCustomerService {
-
-    public record Match(String name, String customerNumber) {
-    }
+public class StubCustomerService implements CustomerDirectory {
 
     public static final int TOTAL_CUSTOMERS = 6767;
 
@@ -58,17 +57,6 @@ public class StubCustomerService {
         int from = Math.min(page * size, DIRECTORY.size());
         int to = Math.min(from + size, DIRECTORY.size());
         return DIRECTORY.subList(from, to);
-    }
-
-    public record Employer(String name, String id) {
-    }
-
-    public record Loan(String name, String date, String loanNumber) {
-    }
-
-    public record Details(String customerNumber, String firstName, String lastName, String phone,
-                          String email, String addressLine1, String addressLine2, String notes,
-                          List<Employer> employers, List<Loan> loans) {
     }
 
     /** Returns sample details for any customer number found in the directory, or null. */
@@ -124,6 +112,32 @@ public class StubCustomerService {
             errors.put("addressLine1", "Address line 1 is required.");
         }
         return errors;
+    }
+
+    @Override
+    public Registration register(NewCustomer form) {
+        pause();
+        java.util.Map<String, String> errors = new java.util.LinkedHashMap<>();
+        if (form.title().isBlank()) {
+            errors.put("title", "Title is required.");
+        }
+        if (form.firstName().isBlank()) {
+            errors.put("firstName", "First name is required.");
+        }
+        if (form.lastName().isBlank()) {
+            errors.put("lastName", "Last name is required.");
+        }
+        try {
+            if (java.time.LocalDate.parse(form.dateOfBirth()).isAfter(java.time.LocalDate.now())) {
+                errors.put("dateOfBirth", "Date of birth cannot be in the future.");
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            errors.put("dateOfBirth", "Date of birth must look like 1990-04-23.");
+        }
+        if (form.nationality().isBlank()) {
+            errors.put("nationality", "Nationality is required.");
+        }
+        return new Registration(errors.isEmpty() ? "CUS-" + (20481 + TOTAL_CUSTOMERS) : null, errors);
     }
 
     private boolean pause() {

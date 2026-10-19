@@ -1,5 +1,7 @@
 package lavs.ui.stub;
 
+import lavs.ui.service.LoanRecords;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -13,23 +15,7 @@ import java.util.Map;
  * purpose so callers must keep it off the JavaFX thread. The schedule is a
  * real amortisation of the sample loan so the numbers add up.
  */
-public class StubLoanService {
-
-    public record CoBorrower(String name, String customerNumber) {
-    }
-
-    public record ScheduleEntry(int number, String dueDate, String principal, String interest,
-                                String total, String status) {
-    }
-
-    public record LoanDetails(String loanNumber, String loanName, String loanAmount,
-                              String interestRate, String loanTerm, String startDate,
-                              String maturityDate, String monthlyPayment, String outstandingBalance,
-                              String statusText, int paymentsMade, int paymentsTotal,
-                              String totalPaid, String principalPaid, String interestPaid,
-                              String remainingBalance, String nextPaymentDue,
-                              List<CoBorrower> coBorrowers, List<ScheduleEntry> schedule) {
-    }
+public class StubLoanService implements LoanRecords {
 
     private record Sample(String loanNumber, String name, double amount, double rate, int months,
                           LocalDate start, List<CoBorrower> coBorrowers) {
