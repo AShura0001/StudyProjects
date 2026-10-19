@@ -4,18 +4,19 @@ import javafx.application.Application;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
-import lavs.ui.controller.CustomerDetailsController;
-import lavs.ui.controller.FullDirectoryController;
-import lavs.ui.controller.LoanDetailsController;
-import lavs.ui.controller.SearchResultsController;
+import lavs.business.service.AuthService;
+import lavs.infrastructure.mainframe.AuthAdapter;
+import lavs.ui.controller.*;
 import lavs.ui.stub.StubCustomerService;
+import mainframe.client.Connection;
+import mainframe.client.HttpConnection;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
  * JavaFX entry point for the LAVS presentation layer.
- *
+ * <p>
  * Screens are loaded from FXML under {@code /lavs/ui/view} through {@link Navigator}.
  */
 public class LavsApp extends Application {
@@ -23,11 +24,23 @@ public class LavsApp extends Application {
     private static final double CONTENT_WIDTH = 900;
     private static final double CONTENT_HEIGHT = 600;
 
+    private static AppContext context;
+
     @Override
     public void start(Stage stage) {
         loadBundledFonts();
-        Navigator.init(stage);
 
+        String url = System.getProperty("lavs.mainframe.url",
+                System.getenv().getOrDefault("LAVS_MAINFRAME_URL", "https://animating-eraser-arrogance.ngrok-free.dev/"));
+        Connection connection = new HttpConnection(url);
+        context = new AppContext(connection, new AuthService(new AuthAdapter(connection)));
+
+        Navigator.init(stage, type -> {
+            if (type == LoginController.class) {
+                return new LoginController(context.auth(), context::onLoggedIn);
+            }
+            return Navigator.defaultController(type);   // other screens still use stubs for now
+        });
         // Optional first argument jumps straight to a screen, e.g. "loggedout".
         var args = getParameters().getUnnamed();
         showScreen(args.isEmpty() ? "login" : args.get(0));
@@ -63,7 +76,7 @@ public class LavsApp extends Application {
     }
 
     private static void loadBundledFonts() {
-        for (String file : new String[] {"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf", "Nunito-Bold.ttf", "Nunito-Regular.ttf"}) {
+        for (String file : new String[]{"Jacquard12-Regular.ttf", "RedHatMono.ttf", "NATS-Regular.ttf", "Nunito-Bold.ttf", "Nunito-Regular.ttf"}) {
             String path = "/lavs/ui/fonts/" + file;
             try (var in = LavsApp.class.getResourceAsStream(path)) {
                 if (in == null || Font.loadFont(in, 12) == null) {
@@ -77,5 +90,17 @@ public class LavsApp extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    @Override
+    public void stop() throws Exception {
+        if (context != null) {
+            context.close();
+        }
+    }
+
+    /** For screens that need to log out. */
+    public static AppContext context() {
+        return context;
     }
 }

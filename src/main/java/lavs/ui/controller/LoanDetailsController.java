@@ -27,6 +27,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
+import lavs.ui.LavsApp;
 import lavs.ui.Navigator;
 import lavs.ui.stub.StubLoanService;
 
@@ -447,6 +448,7 @@ public class LoanDetailsController {
     @FXML
     private void onLogout() {
         if (confirmDiscard()) {
+            LavsApp.context().logout();
             Navigator.show("loggedout");
         }
     }
