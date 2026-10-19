@@ -18,6 +18,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 
 import lavs.ui.Navigator;
+import lavs.ui.Services;
 import lavs.ui.component.CustomerRows;
 import lavs.ui.stub.StubCustomerService;
 
@@ -169,7 +170,7 @@ public class SearchResultsController {
 
     @FXML
     private void onLogout() {
-        Navigator.show("loggedout");
+        Services.logOut();
     }
 
     @FXML

@@ -16,8 +16,10 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 
+import lavs.business.model.AuthResult;
+import lavs.business.service.AuthService;
 import lavs.ui.Navigator;
-import lavs.ui.stub.StubAuthService;
+import lavs.ui.Services;
 
 /**
  * Controller for the login screen.
@@ -35,7 +37,7 @@ public class LoginController {
     @FXML private ProgressIndicator progress;
     @FXML private Label messageLabel;
 
-    private final StubAuthService authService = new StubAuthService();
+    private final AuthService authService = Services.auth();
 
     @FXML
     private void initialize() {
@@ -79,16 +81,16 @@ public class LoginController {
             return;
         }
 
-        Task<StubAuthService.Result> task = new Task<>() {
+        Task<AuthResult> task = new Task<>() {
             @Override
-            protected StubAuthService.Result call() {
+            protected AuthResult call() {
                 return authService.login(employeeId, password);
             }
         };
 
         task.setOnSucceeded(event -> {
             setBusy(false);
-            StubAuthService.Result result = task.getValue();
+            AuthResult result = task.getValue();
             if (result.success()) {
                 Navigator.show("customersearch");
             } else {
