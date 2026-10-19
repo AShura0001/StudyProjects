@@ -45,4 +45,6 @@ public interface CustomerGateway {
     CustomerSearchResult searchCustomer(long page, String searchTerm, long page_size) throws IOException;
 
 
+
+
 }

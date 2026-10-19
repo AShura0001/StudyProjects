@@ -2,15 +2,18 @@ package lavs.infrastructure.mainframe;
 
 import lavs.business.model.Note;
 import lavs.business.repository.CustomerNoteGateway;
+import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.messages.customer.AddNote;
 import mainframe.client.messages.customer.DeleteNote;
 import mainframe.client.messages.customer.UpdateNote;
+import mainframe.client.messages.customerNote.List;
 import mainframe.client.messages.customerNote.Retrieve;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerNoteAdapter implements CustomerNoteGateway {
@@ -62,10 +65,46 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
                 note.get_type()
         );
         if(addNote.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(addNote.getId(), addNote.getCustomer());
-            return mapMessageToNote(retrieve);
+            Retrieve retrieve = new Retrieve(addNote.getId(), note.get_customerNumber());
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToNote(retrieve);
+            }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public CustomerSearchResult<Note> ListCustomerNotes(long page, String customerNumber, long page_size) throws IOException {
+        List list = new List(customerNumber, page, page_size);
+        if (!list.send(connection).getWasSuccessful()) {
+            return new CustomerSearchResult<>(
+                    java.util.List.of(),
+                    0,
+                    page
+            );
+        }
+
+        return new CustomerSearchResult<>(
+                mapItemsToNoteList(list),
+                list.getTotal(),
+                list.getPage()
+        );
+    }
+
+    private ArrayList<Note> mapItemsToNoteList(List list) {
+        ArrayList<Note> items = new ArrayList<>();
+        for (List.Item item : list.getItems()) {
+            Note note = new Note();
+            note.set_id(item.getId());
+            note.set_author(item.getAuthor());
+            note.set_dateAdded(item.getDateAdded());
+            note.set_numberOfLines(item.getNumberOfLines());
+            note.set_type(item.getType());
+            note.set_customerNumber(list.getCustomerNumber());
+            note.set_customerName(list.getCustomerName());
+            items.add(note);
+        }
+        return items;
     }
 
     public Optional<Note> mapMessageToNote(Message message) {

@@ -19,7 +19,10 @@ import javafx.scene.layout.VBox;
 import lavs.business.model.AuthResult;
 import lavs.business.service.AuthService;
 import lavs.ui.Navigator;
-import lavs.ui.Services;
+
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controller for the login screen.
@@ -30,6 +33,8 @@ import lavs.ui.Services;
  */
 public class LoginController {
 
+    private static final Logger LOGGER = Logger.getLogger(LoginController.class.getName());
+
     @FXML private VBox card;
     @FXML private TextField employeeIdField;
     @FXML private PasswordField passwordField;
@@ -37,7 +42,13 @@ public class LoginController {
     @FXML private ProgressIndicator progress;
     @FXML private Label messageLabel;
 
-    private final AuthService authService = Services.auth();
+    private final AuthService authService;
+    private final Runnable onLoggedIn;
+
+    public LoginController(AuthService authService, Runnable onLoggedIn) {
+        this.authService = Objects.requireNonNull(authService, "authService must not be null");
+        this.onLoggedIn = Objects.requireNonNull(onLoggedIn, "onLoggedIn must not be null");
+    }
 
     @FXML
     private void initialize() {
@@ -92,6 +103,7 @@ public class LoginController {
             setBusy(false);
             AuthResult result = task.getValue();
             if (result.success()) {
+                onLoggedIn.run();
                 Navigator.show("customersearch");
             } else {
                 showMessage(result.message(), true);
@@ -102,6 +114,7 @@ public class LoginController {
 
         task.setOnFailed(event -> {
             setBusy(false);
+            LOGGER.log(Level.SEVERE, "Login failed unexpectedly", task.getException());
             showMessage("Could not reach the mainframe. Try again.", true);
         });
 

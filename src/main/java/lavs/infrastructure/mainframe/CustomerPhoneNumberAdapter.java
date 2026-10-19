@@ -2,15 +2,18 @@ package lavs.infrastructure.mainframe;
 
 import lavs.business.model.PhoneNumber;
 import lavs.business.repository.CustomerPhoneNumberGateway;
+import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.messages.customer.AddPhoneNumber;
 import mainframe.client.messages.customer.DeletePhoneNumber;
 import mainframe.client.messages.customer.UpdatePhoneNumber;
+import mainframe.client.messages.customerPhoneNumber.List;
 import mainframe.client.messages.customerPhoneNumber.Retrieve;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
@@ -44,7 +47,7 @@ public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
                 phoneNumber.get_type()
         );
         if(updatePhoneNumber.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(phoneNumber.get_id(), phoneNumber.get_number());
+            Retrieve retrieve = new Retrieve(phoneNumber.get_id(), phoneNumber.get_customerNumber());
             Status status = retrieve.send(connection);
             if (status.getWasSuccessful()) {
                 return mapMessageToPhoneNumber(retrieve);
@@ -73,10 +76,49 @@ public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
 
         );
         if(addPhoneNumber.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(addPhoneNumber.getId(), addPhoneNumber.getCustomer());
-            return  mapMessageToPhoneNumber(retrieve);
+            Retrieve retrieve = new Retrieve(addPhoneNumber.getId(), phoneNumber.get_customerNumber());
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToPhoneNumber(retrieve);
+            }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public CustomerSearchResult<PhoneNumber> ListCustomerPhoneNumbers(long page, String customerNumber, long page_size) throws IOException {
+        List list = new List(customerNumber, page, page_size);
+        if (!list.send(connection).getWasSuccessful()) {
+            return new CustomerSearchResult<>(
+                    java.util.List.of(),
+                    0,
+                    page
+            );
+        }
+
+        return new CustomerSearchResult<>(
+                mapItemsToPhoneNumberList(list),
+                list.getTotal(),
+                list.getPage()
+        );
+    }
+
+    private ArrayList<PhoneNumber> mapItemsToPhoneNumberList(List list) {
+        ArrayList<PhoneNumber> items = new ArrayList<>();
+        for (List.Item item : list.getItems()) {
+            PhoneNumber phoneNumber = new PhoneNumber(
+                    "y".equalsIgnoreCase(item.getCanTxt()),
+                    item.getCountryCode(),
+                    list.getCustomerName(),
+                    list.getCustomerNumber(),
+                    item.getId(),
+                    "y".equalsIgnoreCase(item.getIsPrimary()),
+                    null,
+                    item.getType()
+            );
+            phoneNumber.set_number(item.getNumber());
+            items.add(phoneNumber);
+        }
+        return items;
     }
 
     public Optional<PhoneNumber> mapMessageToPhoneNumber(Message message) {

@@ -39,5 +39,14 @@ public interface CustomerEmployerGateway {
      * @throws IOException
      */
     Optional<Employer> addCustomerEmployer(Employer employer) throws IOException;
-}
 
+    /**
+     *
+     * @param page  The current page of Employers to retrieve
+     * @param customerNumber The customer whose Employers are listed
+     * @param page_size Number of elements per page
+     * @return A page of Employers for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<Employer> ListCustomerEmployers(long page, String customerNumber, long page_size) throws IOException;
+}

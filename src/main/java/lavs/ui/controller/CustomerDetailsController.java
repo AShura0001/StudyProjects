@@ -25,7 +25,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
-import lavs.ui.Services;
+import lavs.ui.LavsApp;
 import lavs.ui.component.NotesPaper;
 import lavs.ui.stub.StubCustomerService;
 
@@ -342,7 +342,8 @@ public class CustomerDetailsController {
     @FXML
     private void onLogout() {
         if (confirmDiscard()) {
-            Services.logOut();
+            LavsApp.context().logout();
+            Navigator.show("loggedout");
         }
     }
 
