@@ -65,10 +65,12 @@ class MainframeDraftUploaderCustomerTest {
     @Test
     void upload_aCustomerDraftWithChildRecords_sendsOneRequestPerRecordAfterTheCustomer() {
         RecordingConnection connection = new RecordingConnection();
-        // One success response per expected send(): create, then one per address/phone/email/employer.
-        for (int i = 0; i < 5; i++) {
-            connection.nextResponses.add(successResponse(Map("number", "CUS-501")));
-        }
+        connection.nextResponses.add(successResponse(Map("number", "CUS-501"))); // customer.create
+        connection.nextResponses.add(successResponse(Map("id", "101")));          // customer.addAddress
+        connection.nextResponses.add(successResponse(Map("id", "102")));          // customer.addPhoneNumber
+        connection.nextResponses.add(successResponse(Map("id", "103")));          // customer.addEmail
+        connection.nextResponses.add(successResponse(Map("id", "104", "salary", "75000.0"))); // customer.addEmployer
+
         MainframeDraftUploader uploader = new MainframeDraftUploader(connection);
         Draft draft = customerDraft(someCustomer(),
                 List.of(someAddress()), List.of(somePhone()), List.of(someEmail()), List.of(someEmployer()));
@@ -76,7 +78,6 @@ class MainframeDraftUploaderCustomerTest {
         String result = uploader.upload(draft, List.of());
 
         assertEquals("CUS-501", result);
-        // 1 create + 1 address + 1 phone + 1 email + 1 employer
         assertEquals(5, connection.requests.size());
         assertEquals("customer.create", connection.requests.get(0).getRequestType());
     }
