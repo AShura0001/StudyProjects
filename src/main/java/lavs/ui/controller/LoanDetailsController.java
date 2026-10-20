@@ -84,6 +84,7 @@ public class LoanDetailsController {
     private LoanRecords.LoanDetails details;
     private List<LoanRecords.CoBorrower> workingCoBorrowers = new ArrayList<>();
     private boolean editing;
+    private boolean busy;
 
     @FXML
     private void initialize() {
@@ -351,7 +352,7 @@ public class LoanDetailsController {
 
     @FXML
     private void onEditMode() {
-        if (details != null && !editing) {
+        if (!busy && details != null && !editing) {
             showNotice("");
             applyMode(true);
         }
@@ -359,7 +360,7 @@ public class LoanDetailsController {
 
     @FXML
     private void onViewMode() {
-        if (editing && confirmDiscard()) {
+        if (!busy && editing && confirmDiscard()) {
             revert();
             applyMode(false);
         }
@@ -372,7 +373,7 @@ public class LoanDetailsController {
 
     @FXML
     private void onSave() {
-        if (!editing || details == null) {
+        if (busy || !editing || details == null) {
             return;
         }
         LoanRecords.LoanDetails edited = readForm();
@@ -496,6 +497,7 @@ public class LoanDetailsController {
     }
 
     private void setBusy(boolean busy) {
+        this.busy = busy;
         setShown(progress, busy);
         content.setOpacity(busy ? 0.35 : 1.0);
         content.setDisable(busy);

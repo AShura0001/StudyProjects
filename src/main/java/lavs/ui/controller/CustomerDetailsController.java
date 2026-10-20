@@ -66,6 +66,7 @@ public class CustomerDetailsController {
     private CustomerDirectory.Details details;
     private List<CustomerDirectory.Employer> workingEmployers = new ArrayList<>();
     private boolean editing;
+    private boolean busy;
 
     @FXML
     private void initialize() {
@@ -247,7 +248,7 @@ public class CustomerDetailsController {
 
     @FXML
     private void onEditMode() {
-        if (details != null && !editing) {
+        if (!busy && details != null && !editing) {
             showNotice("");
             applyMode(true);
         }
@@ -255,7 +256,7 @@ public class CustomerDetailsController {
 
     @FXML
     private void onViewMode() {
-        if (editing && confirmDiscard()) {
+        if (!busy && editing && confirmDiscard()) {
             revert();
             applyMode(false);
         }
@@ -268,7 +269,7 @@ public class CustomerDetailsController {
 
     @FXML
     private void onSave() {
-        if (!editing || details == null) {
+        if (busy || !editing || details == null) {
             return;
         }
         CustomerDirectory.Details edited = readForm();
@@ -315,7 +316,8 @@ public class CustomerDetailsController {
             }
         }
         showNotice(String.join("  ", errors.values()));
-        fields.get(errors.keySet().iterator().next()).requestFocus();
+        errors.keySet().stream().map(fields::get).filter(java.util.Objects::nonNull).findFirst()
+                .ifPresent(TextField::requestFocus);
     }
 
     private void clearFieldErrors() {
@@ -390,6 +392,7 @@ public class CustomerDetailsController {
     }
 
     private void setBusy(boolean busy) {
+        this.busy = busy;
         setShown(progress, busy);
         content.setOpacity(busy ? 0.35 : 1.0);
         content.setDisable(busy);
