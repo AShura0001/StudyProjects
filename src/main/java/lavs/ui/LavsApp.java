@@ -7,7 +7,13 @@ import javafx.stage.Stage;
 import lavs.business.service.AuthService;
 import lavs.infrastructure.mainframe.AuthAdapter;
 import lavs.ui.controller.*;
+import lavs.ui.service.CustomerDirectory;
+import lavs.ui.service.LoanRecords;
+import lavs.ui.service.MainframeCustomerDirectory;
+import lavs.ui.service.MainframeLoanRecords;
 import lavs.ui.stub.StubCustomerService;
+import lavs.ui.sync.SyncState;
+import lavs.ui.stub.StubLoanService;
 import mainframe.client.Connection;
 import mainframe.client.HttpConnection;
 
@@ -33,7 +39,17 @@ public class LavsApp extends Application {
         String url = System.getProperty("lavs.mainframe.url",
                 System.getenv().getOrDefault("LAVS_MAINFRAME_URL", "https://animating-eraser-arrogance.ngrok-free.dev/"));
         Connection connection = new HttpConnection(url);
-        context = new AppContext(connection, new AuthService(new AuthAdapter(connection)));
+        // -Dlavs.stubs=true keeps the customer and loan screens on sample data, e.g. when the tunnel is down.
+        boolean stubs = Boolean.getBoolean("lavs.stubs");
+        CustomerDirectory customers = stubs ? new StubCustomerService() : new MainframeCustomerDirectory(connection);
+        LoanRecords loans = stubs ? new StubLoanService() : new MainframeLoanRecords(connection);
+        context = new AppContext(connection, new AuthService(new AuthAdapter(connection)), customers, loans);
+        // -Dlavs.sync=sent|sending|waiting|attention previews the sync indicator before the services are started.
+        String preview = System.getProperty("lavs.sync");
+        if (preview != null) {
+            SyncState previewState = SyncState.valueOf(preview.toUpperCase());
+            context.syncStatus().set(previewState, previewState == SyncState.WAITING ? 2 : 1);
+        }
 
         Navigator.init(stage, type -> {
             if (type == LoginController.class) {
@@ -63,9 +79,9 @@ public class LavsApp extends Application {
     public static void showScreen(String name) {
         switch (name) {
             case "searchresults" -> Navigator.<SearchResultsController>show(name, c -> c.show("JANE DOE", List.of(
-                    new StubCustomerService.Match("Jane Doe", "CUS-20481"),
-                    new StubCustomerService.Match("Mary Jane", "CUS-20482"),
-                    new StubCustomerService.Match("Sarah Doe Jr. Watkins", "CUS-20483"))));
+                    new CustomerDirectory.Match("Jane Doe", "CUS-20481"),
+                    new CustomerDirectory.Match("Mary Jane", "CUS-20482"),
+                    new CustomerDirectory.Match("Sarah Doe Jr. Watkins", "CUS-20483"))));
             case "fulldirectory" -> Navigator.<FullDirectoryController>show(name, c -> c.open(0));
             case "customerdetails" -> Navigator.<CustomerDetailsController>show(name,
                     c -> c.open("CUS-20490", () -> Navigator.show("customersearch")));

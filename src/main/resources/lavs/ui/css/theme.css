@@ -977,3 +977,37 @@
     -fx-border-color: #a5c3ff;
     -fx-border-width: 2px;
 }
+
+/* ---------- Register customer ---------- */
+
+.form-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 18px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.form-hint {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 11px;
+    -fx-text-fill: #b8bac0;
+}
+
+/* ---------- Sync indicator ---------- */
+
+.sync-pill {
+    -fx-background-color: #2b2b2e;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+}
+
+.sync-dot { -fx-stroke: transparent; }
+.sync-dot-sent      { -fx-fill: #3ddc84; }
+.sync-dot-waiting   { -fx-fill: #f5c542; }
+.sync-dot-attention { -fx-fill: #ff4d4d; }
+.sync-dot-sending   { -fx-fill: #ffffff; }
+.sync-dot-idle      { -fx-fill: rgba(255, 255, 255, 0.25); }
+.sync-dot-empty {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(255, 255, 255, 0.35);
+    -fx-stroke-width: 1px;
+}

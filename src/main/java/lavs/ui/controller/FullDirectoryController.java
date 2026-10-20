@@ -14,10 +14,10 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 
-import lavs.ui.LavsApp;
 import lavs.ui.Navigator;
+import lavs.ui.LavsApp;
 import lavs.ui.component.CustomerRows;
-import lavs.ui.stub.StubCustomerService;
+import lavs.ui.service.CustomerDirectory;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ public class FullDirectoryController {
     @FXML private Button nextButton;
     @FXML private Label noticeLabel;
 
-    private final StubCustomerService customerService = new StubCustomerService(250);
+    private final CustomerDirectory customerService = LavsApp.context().customers();
     private int page;
     private int total;
     private boolean loading;
@@ -71,9 +71,9 @@ public class FullDirectoryController {
         loading = true;
         updatePager();
 
-        Task<List<StubCustomerService.Match>> task = new Task<>() {
+        Task<List<CustomerDirectory.Match>> task = new Task<>() {
             @Override
-            protected List<StubCustomerService.Match> call() {
+            protected List<CustomerDirectory.Match> call() {
                 total = customerService.count();
                 return customerService.page(target, PAGE_SIZE);
             }
@@ -82,7 +82,7 @@ public class FullDirectoryController {
         task.setOnSucceeded(e -> {
             page = target;
             tableBox.getChildren().setAll(CustomerRows.header());
-            for (StubCustomerService.Match m : task.getValue()) {
+            for (CustomerDirectory.Match m : task.getValue()) {
                 tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
                         () -> openDetails(m.customerNumber())));
             }

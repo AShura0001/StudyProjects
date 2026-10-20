@@ -6,6 +6,8 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
+import lavs.ui.component.SyncIndicator;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
@@ -52,9 +54,14 @@ public final class Navigator {
             loader.setControllerFactory(controllerFactory);
             Parent root = loader.load();
             init.accept(loader.getController());
+            if (LavsApp.context() != null) {
+                SyncIndicator.addTo(root, LavsApp.context().syncStatus());
+            }
             if (stage.getScene() == null) {
                 stage.setScene(new Scene(root));
             } else {
+                // Shortcuts belong to the screen that registered them, not to the shared scene.
+                stage.getScene().getAccelerators().clear();
                 stage.getScene().setRoot(root);
             }
         } catch (IOException e) {
