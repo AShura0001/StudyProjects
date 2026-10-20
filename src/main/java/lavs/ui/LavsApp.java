@@ -12,6 +12,7 @@ import lavs.ui.service.LoanRecords;
 import lavs.ui.service.MainframeCustomerDirectory;
 import lavs.ui.service.MainframeLoanRecords;
 import lavs.ui.stub.StubCustomerService;
+import lavs.ui.sync.SyncState;
 import lavs.ui.stub.StubLoanService;
 import mainframe.client.Connection;
 import mainframe.client.HttpConnection;
@@ -43,6 +44,12 @@ public class LavsApp extends Application {
         CustomerDirectory customers = stubs ? new StubCustomerService() : new MainframeCustomerDirectory(connection);
         LoanRecords loans = stubs ? new StubLoanService() : new MainframeLoanRecords(connection);
         context = new AppContext(connection, new AuthService(new AuthAdapter(connection)), customers, loans);
+        // -Dlavs.sync=sent|sending|waiting|attention previews the sync indicator before the services are started.
+        String preview = System.getProperty("lavs.sync");
+        if (preview != null) {
+            SyncState previewState = SyncState.valueOf(preview.toUpperCase());
+            context.syncStatus().set(previewState, previewState == SyncState.WAITING ? 2 : 1);
+        }
 
         Navigator.init(stage, type -> {
             if (type == LoginController.class) {

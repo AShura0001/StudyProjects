@@ -30,6 +30,8 @@ The user interface is JavaFX 21 on Java 21 and starts from `lavs.ui.LavsApp`.
 * To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `loandetails`, `registercustomer`, `addloan`, `addcoborrower`.
 * Add `-Dlavs.stubs=true` to keep the customer and loan screens on built-in sample data (for example when the tunnel is down). Login still needs the mainframe.
 
+The three dots beside Logout show the sync of saved changes: green when all sent, a white dot moving along while sending, two yellow when changes are waiting for the connection, one red when something needs checking (click it for details). Preview a state with `-Dlavs.sync=sent|sending|waiting|attention`. Once the background sync is started, pass it `new SyncStatusListener(context.syncStatus())` as its listener.
+
 Keyboard shortcuts are listed on each screen with F1. Every shortcut is a second way to use a button that is already on screen.
 
 The screens read customers and loans from the mainframe. Saving edits, creating loans and adding co-borrowers show a "not connected yet" message until the matching backend methods exist. The screens are laid out from the Figma mock-ups in the proposal; Register customer, Add loan and Add co-borrower have no mock-up and reuse the Customer Details card.
