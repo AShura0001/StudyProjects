@@ -245,7 +245,7 @@ public class LoanDetailsController {
             } else {
                 Button edit = new Button("Edit");
                 edit.getStyleClass().add("btn-edit-chip");
-                edit.setOnAction(e -> showNotice("Editing a payment has not been built yet."));
+                edit.setOnAction(e -> openPaymentEditor(entry));
                 row.add(edit, values.length, 0);
             }
         }
@@ -258,6 +258,21 @@ public class LoanDetailsController {
             case "Upcoming" -> "sched-upcoming";
             default -> "sched-paid";
         };
+    }
+
+    private void openPaymentEditor(LoanRecords.ScheduleEntry entry) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<EditPaymentController>show("editpayment",
+                p -> p.open(loanNumber, entry.number(), entry.dueDate(), entry.total(), reopen, reopen));
+    }
+
+    private Runnable reopenLoan(String loanNumber) {
+        Runnable backFromLoan = onBack;
+        return () -> Navigator.<LoanDetailsController>show("loandetails", l -> l.open(loanNumber, backFromLoan));
     }
 
     private void renderCoBorrowers() {
@@ -434,7 +449,12 @@ public class LoanDetailsController {
 
     @FXML
     private void onScheduleEdit() {
-        showNotice("Editing the repayment schedule has not been built yet.");
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<EditScheduleController>show("editschedule", s -> s.open(loanNumber, reopen, reopen));
     }
 
     @FXML

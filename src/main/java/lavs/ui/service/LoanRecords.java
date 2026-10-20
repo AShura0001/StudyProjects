@@ -47,4 +47,27 @@ public interface LoanRecords {
     Map<String, String> addCoBorrower(String loanNumber, String coBorrowerNumber, String type);
 
     Created createLoan(String customerNumber, NewLoan loan);
+
+    /** One repayment: its number, due date (2025-01-09) and total as plain digits (100.00). */
+    record PaymentDetails(int number, String date, String amount) {
+    }
+
+    /**
+     * @return field name to message; an empty map means the change was accepted
+     * @throws NotSupportedYetException when saving is not connected yet
+     */
+    Map<String, String> savePayment(String loanNumber, PaymentDetails payment);
+
+    /** The terms the repayment schedule is worked out from. */
+    record ScheduleTerms(String paymentAmount, String paymentFrequency, String renewalDate) {
+    }
+
+    /** @return the loan's schedule terms, or null when the loan is unknown */
+    ScheduleTerms scheduleTerms(String loanNumber);
+
+    /**
+     * @return field name to message; an empty map means the change was accepted
+     * @throws NotSupportedYetException when saving is not connected yet
+     */
+    Map<String, String> saveScheduleTerms(String loanNumber, ScheduleTerms terms);
 }

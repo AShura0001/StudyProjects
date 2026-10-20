@@ -27,7 +27,7 @@ The user interface is JavaFX 21 on Java 21 and starts from `lavs.ui.LavsApp`.
 * `mvn javafx:run` starts the app at the login screen.
 * In IntelliJ or VS Code, run `lavs.ui.Launcher` (a plain `main` that works on a normal classpath).
 * Log in with the mainframe credentials below. The mainframe address is `https://animating-eraser-arrogance.ngrok-free.dev/`; override it with `-Dlavs.mainframe.url=...` or the `LAVS_MAINFRAME_URL` environment variable.
-* To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `loandetails`, `registercustomer`, `addloan`, `addcoborrower`.
+* To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `loandetails`, `registercustomer`, `addloan`, `addcoborrower`, `editemployer`, `editpayment`, `editschedule`.
 * Add `-Dlavs.stubs=true` to keep the customer and loan screens on built-in sample data (for example when the tunnel is down). Login still needs the mainframe.
 
 The three dots beside Logout show the sync of saved changes: green when all sent, a white dot moving along while sending, two yellow when changes are waiting for the connection, one red when something needs checking (click it for details). Preview a state with `-Dlavs.sync=sent|sending|waiting|attention`. Once the background sync is started, pass it `new SyncStatusListener(context.syncStatus())` as its listener.

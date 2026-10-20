@@ -170,6 +170,72 @@ public class MainframeCustomerDirectory implements CustomerDirectory {
         return new Registration(created.get().get_number(), Map.of());
     }
 
+    @Override
+    public EmployerDetails employer(String customerNumber, String employerId) {
+        long id = parseId(employerId);
+        if (id < 0) {
+            return null;
+        }
+        return io(() -> employers.findEmployerByCustomerNumberAndId(id, customerNumber)).map(e -> new EmployerDetails(
+                String.valueOf(e.get_id()), nz(e.get_name()), nz(e.get_position()),
+                String.format(java.util.Locale.US, "%.2f", e.get_salary()))).orElse(null);
+    }
+
+    @Override
+    public Map<String, String> saveEmployer(String customerNumber, EmployerDetails employer) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (employer.name().isBlank()) {
+            errors.put("name", "Employer name is required.");
+        }
+        double salary = 0;
+        try {
+            salary = employer.salary().isBlank() ? 0 : Double.parseDouble(employer.salary().replace(",", ""));
+            if (salary < 0) {
+                errors.put("salary", "Salary cannot be negative.");
+            }
+        } catch (NumberFormatException e) {
+            errors.put("salary", "Salary must be a number such as 85000.00.");
+        }
+        if (!errors.isEmpty()) {
+            return errors;
+        }
+
+        long id = parseId(employer.id());
+        Optional<lavs.business.model.Employer> existing = io(() -> employers.findEmployerByCustomerNumberAndId(id, customerNumber));
+        if (existing.isEmpty()) {
+            errors.put("form", "That employer no longer exists.");
+            return errors;
+        }
+        lavs.business.model.Employer changed = existing.get();
+        changed.set_customerNumber(customerNumber);
+        changed.set_name(employer.name());
+        changed.set_position(employer.position());
+        changed.set_salary(salary);
+        if (io(() -> employers.updateCustomerEmployer(changed)).isEmpty()) {
+            errors.put("form", "The mainframe did not accept the change. Check the details and try again.");
+        }
+        return errors;
+    }
+
+    @Override
+    public byte[] photo(String customerNumber) {
+        return null;
+    }
+
+    @Override
+    public void savePhoto(String customerNumber, byte[] image) {
+        throw new NotSupportedYetException(
+                "Saving a photo is not connected to the mainframe yet. Your changes are still on screen.");
+    }
+
+    private static long parseId(String text) {
+        try {
+            return Long.parseLong(text.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private CustomerSearchResult<Customer> searchPage(long page, String term, long size) {
         return (CustomerSearchResult<Customer>) io(() -> customers.searchCustomer(page, term, size));

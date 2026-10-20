@@ -70,9 +70,9 @@
                     <VBox prefWidth="211" minWidth="211" maxWidth="211" spacing="29">
 
                         <StackPane alignment="TOP_CENTER" prefHeight="201" minHeight="201" maxHeight="201">
-                            <StackPane styleClass="photo-card" prefWidth="211" prefHeight="174"
+                            <StackPane fx:id="photoCard" styleClass="photo-card" prefWidth="211" prefHeight="174"
                                        maxHeight="174" StackPane.alignment="BOTTOM_CENTER">
-                                <StackPane prefWidth="90" prefHeight="90" maxWidth="90" maxHeight="90"
+                                <StackPane fx:id="avatarBox" prefWidth="90" prefHeight="90" maxWidth="90" maxHeight="90"
                                            translateY="14">
                                     <SVGPath styleClass="avatar" scaleX="3.75" scaleY="3.75"
                                              content="M12 3 A4.5 4.5 0 1 1 12 12 A4.5 4.5 0 1 1 12 3 Z M3 21 C3 15.5 7 13.5 12 13.5 C17 13.5 21 15.5 21 21 Z"/>

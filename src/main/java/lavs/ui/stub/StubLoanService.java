@@ -139,6 +139,44 @@ public class StubLoanService implements LoanRecords {
         return new Created(errors.isEmpty() ? "LN-5005" : null, errors);
     }
 
+    @Override
+    public Map<String, String> savePayment(String loanNumber, PaymentDetails payment) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (date(payment.date()) == null) {
+            errors.put("date", "Due date must look like 2025-01-09.");
+        }
+        if (!(number(payment.amount()) > 0)) {
+            errors.put("amount", "Amount must be greater than zero.");
+        }
+        return errors;
+    }
+
+    @Override
+    public ScheduleTerms scheduleTerms(String loanNumber) {
+        LoanDetails loan = details(loanNumber);
+        if (loan == null) {
+            return null;
+        }
+        return new ScheduleTerms(loan.monthlyPayment().replace("$", "").replace(",", ""), "Monthly", loan.maturityDate());
+    }
+
+    @Override
+    public Map<String, String> saveScheduleTerms(String loanNumber, ScheduleTerms terms) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!(number(terms.paymentAmount()) > 0)) {
+            errors.put("paymentAmount", "Payment amount must be greater than zero.");
+        }
+        if (terms.paymentFrequency().isBlank()) {
+            errors.put("paymentFrequency", "Payment frequency is required.");
+        }
+        if (date(terms.renewalDate()) == null) {
+            errors.put("renewalDate", "Renewal date must look like 2030-01-02.");
+        }
+        return errors;
+    }
+
     private static LoanDetails build(Sample s) {
         double r = s.rate() / 100 / 12;
         double payment = round(s.amount() * r / (1 - Math.pow(1 + r, -s.months())));

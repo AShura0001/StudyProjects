@@ -51,4 +51,23 @@ public interface CustomerDirectory {
     Map<String, String> save(Details details);
 
     Registration register(NewCustomer customer);
+
+    /** One employer record; salary is plain digits such as 85000.00. */
+    record EmployerDetails(String id, String name, String position, String salary) {
+    }
+
+    /** @return the employer, or null when unknown */
+    EmployerDetails employer(String customerNumber, String employerId);
+
+    /**
+     * @return field name to message; an empty map means the change was accepted
+     * @throws NotSupportedYetException when saving is not connected yet
+     */
+    Map<String, String> saveEmployer(String customerNumber, EmployerDetails employer);
+
+    /** @return the customer's photo as image bytes, or null when there is none */
+    byte[] photo(String customerNumber);
+
+    /** @throws NotSupportedYetException when saving is not connected yet */
+    void savePhoto(String customerNumber, byte[] image);
 }

@@ -101,6 +101,28 @@ public class MainframeLoanRecords implements LoanRecords {
                 "Adding a loan is not connected to the mainframe yet. Your details are still on screen.");
     }
 
+    @Override
+    public Map<String, String> savePayment(String loanNumber, PaymentDetails payment) {
+        throw new NotSupportedYetException(
+                "Editing a payment is not connected to the mainframe yet. Your changes are still on screen.");
+    }
+
+    @Override
+    public ScheduleTerms scheduleTerms(String loanNumber) {
+        MainframeLoanLookup.Facts facts = lookup.facts(loanNumber);
+        if (facts == null) {
+            return null;
+        }
+        return new ScheduleTerms(String.format(Locale.US, "%.2f", facts.paymentAmount()),
+                nz(facts.paymentFrequency()), text(facts.renewalDate()));
+    }
+
+    @Override
+    public Map<String, String> saveScheduleTerms(String loanNumber, ScheduleTerms terms) {
+        throw new NotSupportedYetException(
+                "Editing the repayment schedule is not connected to the mainframe yet. Your changes are still on screen.");
+    }
+
     private static String term(MainframeLoanLookup.Facts facts) {
         if (facts.startDate() == null || facts.renewalDate() == null) {
             return "";

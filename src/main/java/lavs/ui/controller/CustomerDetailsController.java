@@ -20,7 +20,12 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
@@ -30,6 +35,9 @@ import lavs.ui.component.NotesPaper;
 import lavs.ui.service.CustomerDirectory;
 import lavs.ui.service.NotSupportedYetException;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +67,8 @@ public class CustomerDetailsController {
     @FXML private Button editModeButton;
     @FXML private Button photoEditButton;
     @FXML private Node editActions;
+    @FXML private StackPane photoCard;
+    @FXML private StackPane avatarBox;
 
     private final CustomerDirectory customerService = LavsApp.context().customers();
     private Runnable onBack = () -> Navigator.show("customersearch");
@@ -66,6 +76,9 @@ public class CustomerDetailsController {
     private CustomerDirectory.Details details;
     private List<CustomerDirectory.Employer> workingEmployers = new ArrayList<>();
     private boolean editing;
+    private ImageView photoView;
+    private byte[] savedPhoto;
+    private byte[] pendingPhoto;
     private boolean busy;
 
     @FXML
@@ -106,6 +119,7 @@ public class CustomerDetailsController {
                 showNotice("Could not find customer " + customerNumber + ".");
             } else {
                 revert();
+                loadPhoto(customerNumber);
             }
         });
         task.setOnFailed(e -> {
@@ -129,10 +143,12 @@ public class CustomerDetailsController {
         clearFieldErrors();
         renderEmployers();
         renderLoans();
+        pendingPhoto = null;
+        showPhoto(savedPhoto);
     }
 
     private boolean isDirty() {
-        return details != null && !details.equals(readForm());
+        return details != null && (pendingPhoto != null || !details.equals(readForm()));
     }
 
     private CustomerDirectory.Details readForm() {
@@ -173,6 +189,18 @@ public class CustomerDetailsController {
                         c -> c.open(customerNumber, backFromCustomer))));
     }
 
+    private void openEmployerEditor(CustomerDirectory.Employer employer) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Runnable reopen = () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                c -> c.open(customerNumber, backFromCustomer));
+        Navigator.<EditEmployerController>show("editemployer",
+                e -> e.open(customerNumber, employer.id(), reopen, reopen));
+    }
+
     private VBox listItem(String title, String subtitle) {
         VBox item = new VBox(1);
         item.getStyleClass().add("list-item");
@@ -204,7 +232,7 @@ public class CustomerDetailsController {
 
         Button edit = new Button("Edit");
         edit.getStyleClass().add("btn-edit-chip");
-        edit.setOnAction(e -> showNotice("Editing an employer has not been built yet."));
+        edit.setOnAction(e -> openEmployerEditor(employer));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -273,13 +301,18 @@ public class CustomerDetailsController {
             return;
         }
         CustomerDirectory.Details edited = readForm();
+        byte[] photoToSave = pendingPhoto;
         clearFieldErrors();
         setBusy(true);
 
         Task<Map<String, String>> task = new Task<>() {
             @Override
             protected Map<String, String> call() {
-                return customerService.save(edited);
+                Map<String, String> errors = customerService.save(edited);
+                if (errors.isEmpty() && photoToSave != null) {
+                    customerService.savePhoto(edited.customerNumber(), photoToSave);
+                }
+                return errors;
             }
         };
 
@@ -288,6 +321,9 @@ public class CustomerDetailsController {
             Map<String, String> errors = task.getValue();
             if (errors.isEmpty()) {
                 details = edited;
+                if (photoToSave != null) {
+                    savedPhoto = photoToSave;
+                }
                 revert();
                 applyMode(false);
                 showNotice("Changes saved.");
@@ -329,7 +365,72 @@ public class CustomerDetailsController {
 
     @FXML
     private void onPhotoEdit() {
-        showNotice("Changing the photo has not been built yet.");
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Choose a photo");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp"));
+        java.io.File file = chooser.showOpenDialog(root.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        try {
+            if (file.length() > 5_000_000) {
+                showNotice("That photo is larger than 5 MB. Choose a smaller one.");
+                return;
+            }
+            byte[] bytes = Files.readAllBytes(file.toPath());
+            if (new Image(new ByteArrayInputStream(bytes)).isError()) {
+                showNotice("That file could not be read as an image.");
+                return;
+            }
+            showNotice("");
+            pendingPhoto = bytes;
+            showPhoto(bytes);
+        } catch (IOException e) {
+            showNotice("That file could not be read.");
+        }
+    }
+
+    /** Shows the given image in the photo card, or the placeholder person when there is none. */
+    private void showPhoto(byte[] bytes) {
+        if (bytes == null) {
+            if (photoView != null) {
+                photoView.setVisible(false);
+            }
+            avatarBox.setVisible(true);
+            return;
+        }
+        if (photoView == null) {
+            photoView = new ImageView();
+            photoView.setPreserveRatio(true);
+            photoView.setFitWidth(150);
+            photoView.setFitHeight(150);
+            photoView.setMouseTransparent(true);
+            photoCard.getChildren().add(1, photoView);
+        }
+        Image image = new Image(new ByteArrayInputStream(bytes), 150, 150, true, true);
+        photoView.setImage(image);
+        Rectangle round = new Rectangle(image.getWidth(), image.getHeight());
+        round.setArcWidth(16);
+        round.setArcHeight(16);
+        photoView.setClip(round);
+        photoView.setVisible(true);
+        avatarBox.setVisible(false);
+    }
+
+    private void loadPhoto(String customerNumber) {
+        Task<byte[]> task = new Task<>() {
+            @Override
+            protected byte[] call() {
+                return customerService.photo(customerNumber);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            savedPhoto = task.getValue();
+            if (pendingPhoto == null) {
+                showPhoto(savedPhoto);
+            }
+        });
+        startWorker(task, "customer-photo");
     }
 
     @FXML
