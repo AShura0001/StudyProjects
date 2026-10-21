@@ -31,7 +31,7 @@ public class EditScheduleController extends FormController {
     @FXML
     private void initialize() {
         Inputs.number(paymentAmountField, 2);
-        Inputs.choices(paymentFrequencyField, Choices.PAYMENT_FREQUENCIES, Choices::label);
+        Inputs.choices(paymentFrequencyField, Choices.paymentFrequencies(), Choices::label);
         Inputs.date(renewalDateField);
         register("paymentAmount", paymentAmountField);
         register("paymentFrequency", paymentFrequencyField);

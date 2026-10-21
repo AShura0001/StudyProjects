@@ -1,5 +1,9 @@
 package lavs.ui.component;
 
+import lavs.app.AppServices;
+import lavs.business.service.ReferenceDataService;
+import lavs.ui.AppContext;
+import lavs.ui.LavsApp;
 import mainframe.client.messages.loan.AddCoborrower;
 import mainframe.client.messages.loan.Create;
 
@@ -7,17 +11,32 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * The fixed lists the forms offer in their drop-downs. Loan values are the
+ * The lists the forms offer in their drop-downs. Loan values are the
  * mainframe's own spellings, so whatever is picked can be sent as it is.
- * Swap these for ReferenceDataService lists once that is connected.
+ *
+ * <p>Lists the mainframe keeps as constants, such as address types, come from
+ * {@link ReferenceDataService} once they have been fetched after login. Until
+ * then, or while offline, the fixed lists below are used instead.
  */
 public final class Choices {
 
     private Choices() {
     }
+
+    /** The mainframe's names for the constant categories the forms use. */
+    public static final String ADDRESS_TYPE_CATEGORY = "CustomerAddressType";
+    public static final String RATE_TYPE_CATEGORY = "LoanRateType";
+    public static final String RATE_FREQUENCY_CATEGORY = "LoanRateFrequency";
+    public static final String PAYMENT_FREQUENCY_CATEGORY = "LoanPaymentFrequency";
+    public static final String CO_BORROWER_TYPE_CATEGORY = "LoanCoborrowerType";
+
+    /** Every category above, for fetching them all after login. */
+    public static final List<String> MAINFRAME_CATEGORIES = List.of(ADDRESS_TYPE_CATEGORY, RATE_TYPE_CATEGORY,
+            RATE_FREQUENCY_CATEGORY, PAYMENT_FREQUENCY_CATEGORY, CO_BORROWER_TYPE_CATEGORY);
 
     public static final List<String> TITLES = List.of("Mr", "Mrs", "Ms", "Miss", "Mx", "Dr");
 
@@ -63,6 +82,43 @@ public final class Choices {
             Map.entry("+82", "South Korea"), Map.entry("+65", "Singapore"), Map.entry("+60", "Malaysia"),
             Map.entry("+66", "Thailand"), Map.entry("+62", "Indonesia"), Map.entry("+84", "Vietnam"),
             Map.entry("+27", "South Africa"), Map.entry("+49", "Germany"), Map.entry("+33", "France"));
+
+    public static List<String> addressTypes() {
+        return fromMainframe(ADDRESS_TYPE_CATEGORY, ADDRESS_TYPES);
+    }
+
+    public static List<String> rateTypes() {
+        return fromMainframe(RATE_TYPE_CATEGORY, RATE_TYPES);
+    }
+
+    public static List<String> rateFrequencies() {
+        return fromMainframe(RATE_FREQUENCY_CATEGORY, RATE_FREQUENCIES);
+    }
+
+    public static List<String> paymentFrequencies() {
+        return fromMainframe(PAYMENT_FREQUENCY_CATEGORY, PAYMENT_FREQUENCIES);
+    }
+
+    public static List<String> coBorrowerTypes() {
+        return fromMainframe(CO_BORROWER_TYPE_CATEGORY, CO_BORROWER_TYPES);
+    }
+
+    /**
+     * The category's values from the mainframe if they have already been fetched,
+     * otherwise the fixed list. Never waits for the mainframe, so it is safe on the
+     * JavaFX thread.
+     */
+    public static List<String> fromMainframe(String category, List<String> fixed) {
+        AppContext context = LavsApp.context();
+        return pick(context == null ? Optional.empty() : context.services().flatMap(AppServices::referenceData),
+                category, fixed);
+    }
+
+    static List<String> pick(Optional<ReferenceDataService> referenceData, String category, List<String> fixed) {
+        return referenceData.flatMap(data -> data.cachedValues(category))
+                .filter(values -> !values.isEmpty())
+                .orElse(fixed);
+    }
 
     private static final Map<String, String> LABELS = Map.of(
             Create.RATETYPE_INTERESTONLY, "Interest only",

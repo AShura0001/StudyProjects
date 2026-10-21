@@ -48,7 +48,7 @@ public class AddCoBorrowerController {
 
     @FXML
     private void initialize() {
-        Inputs.choices(typeField, Choices.CO_BORROWER_TYPES, Choices::label);
+        Inputs.choices(typeField, Choices.coBorrowerTypes(), Choices::label);
         setShown(noticeLabel, false);
         setShown(progress, false);
         for (Control field : new Control[] {coBorrowerNumberField, typeField}) {

@@ -62,11 +62,11 @@ public class AddLoanController {
         Inputs.number(principalField, 2);
         Inputs.date(startDateField);
         Inputs.date(renewalDateField);
-        Inputs.choices(rateTypeField, Choices.RATE_TYPES, Choices::label);
+        Inputs.choices(rateTypeField, Choices.rateTypes(), Choices::label);
         Inputs.number(rateAmountField, 3);
-        Inputs.choices(rateFrequencyField, Choices.RATE_FREQUENCIES, Choices::label);
+        Inputs.choices(rateFrequencyField, Choices.rateFrequencies(), Choices::label);
         Inputs.number(paymentAmountField, 2);
-        Inputs.choices(paymentFrequencyField, Choices.PAYMENT_FREQUENCIES, Choices::label);
+        Inputs.choices(paymentFrequencyField, Choices.paymentFrequencies(), Choices::label);
 
         byKey.put("principal", principalField);
         byKey.put("startDate", startDateField);
