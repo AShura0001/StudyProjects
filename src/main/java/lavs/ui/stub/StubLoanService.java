@@ -97,7 +97,8 @@ public class StubLoanService implements LoanRecords {
         if (!coBorrowerNumber.matches("CUS-[0-9]+")) {
             errors.put("coBorrowerNumber", "Customer ID must look like CUS-20481.");
         }
-        if (!type.equalsIgnoreCase("Co-borrower") && !type.equalsIgnoreCase("Guarantor")) {
+        if (!type.equalsIgnoreCase("Coborrower") && !type.equalsIgnoreCase("Co-borrower")
+                && !type.equalsIgnoreCase("Guarantor")) {
             errors.put("type", "Type must be Co-borrower or Guarantor.");
         }
         return errors;

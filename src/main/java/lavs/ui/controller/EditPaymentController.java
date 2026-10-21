@@ -2,16 +2,18 @@ package lavs.ui.controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 
 import lavs.ui.LavsApp;
+import lavs.ui.component.Inputs;
 import lavs.ui.service.LoanRecords;
 
 /** Edit one repayment of a loan; on save the loan's page reopens. */
 public class EditPaymentController extends FormController {
 
     @FXML private Label titleLabel;
-    @FXML private TextField dateField;
+    @FXML private DatePicker dateField;
     @FXML private TextField amountField;
 
     private final LoanRecords loanService = LavsApp.context().loans();
@@ -20,6 +22,8 @@ public class EditPaymentController extends FormController {
 
     @FXML
     private void initialize() {
+        Inputs.date(dateField);
+        Inputs.number(amountField, 2);
         register("date", dateField);
         register("amount", amountField);
         setUp(dateField);
@@ -37,7 +41,7 @@ public class EditPaymentController extends FormController {
         this.onBack = back;
         this.onDone = done;
         titleLabel.setText("Edit payment " + paymentNumber);
-        dateField.setText(date);
+        Inputs.setValue(dateField, date);
         amountField.setText(amount.replace("$", "").replace(",", ""));
         markClean();
     }
@@ -45,7 +49,7 @@ public class EditPaymentController extends FormController {
     @Override
     protected void submitForm() {
         LoanRecords.PaymentDetails edited = new LoanRecords.PaymentDetails(paymentNumber,
-                dateField.getText().trim(), amountField.getText().trim());
+                Inputs.valueOf(dateField), Inputs.valueOf(amountField));
         save(() -> loanService.savePayment(loanNumber, edited));
     }
 

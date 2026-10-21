@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
@@ -125,9 +126,14 @@
                             <HBox spacing="42">
                                 <VBox spacing="4">
                                     <Label text="Phone Number" styleClass="field-label"/>
-                                    <TextField fx:id="phoneField" styleClass="data-field"
-                                               editable="false" focusTraversable="false"
-                                               prefWidth="106" maxWidth="106"/>
+                                    <HBox spacing="4">
+                                        <ComboBox fx:id="phoneCodeBox" styleClass="data-field"
+                                                  prefWidth="70" minWidth="70" maxWidth="70"/>
+                                        <TextField fx:id="phoneField" styleClass="data-field"
+                                                   editable="false" focusTraversable="false"
+                                                   promptText="21 555 0100"
+                                                   prefWidth="106" maxWidth="106"/>
+                                    </HBox>
                                 </VBox>
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
                                     <Label text="Email Address" styleClass="field-label"/>

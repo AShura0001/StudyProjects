@@ -7,6 +7,9 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
@@ -16,6 +19,8 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 
 import lavs.ui.LavsApp;
+import lavs.ui.component.Choices;
+import lavs.ui.component.Inputs;
 import lavs.ui.Navigator;
 import lavs.ui.service.LoanRecords;
 import lavs.ui.service.NotSupportedYetException;
@@ -31,23 +36,32 @@ public class AddLoanController {
     @FXML private Node content;
     @FXML private ProgressIndicator progress;
     @FXML private TextField principalField;
-    @FXML private TextField startDateField;
-    @FXML private TextField renewalDateField;
-    @FXML private TextField rateTypeField;
+    @FXML private DatePicker startDateField;
+    @FXML private DatePicker renewalDateField;
+    @FXML private ComboBox<String> rateTypeField;
     @FXML private TextField rateAmountField;
-    @FXML private TextField rateFrequencyField;
+    @FXML private ComboBox<String> rateFrequencyField;
     @FXML private TextField paymentAmountField;
-    @FXML private TextField paymentFrequencyField;
+    @FXML private ComboBox<String> paymentFrequencyField;
     @FXML private Label noticeLabel;
 
     private final LoanRecords loanService = LavsApp.context().loans();
-    private final Map<String, TextField> byKey = new LinkedHashMap<>();
+    private final Map<String, Control> byKey = new LinkedHashMap<>();
     private String customerNumber;
     private Runnable onBack = () -> Navigator.show("customersearch");
     private boolean busy;
 
     @FXML
     private void initialize() {
+        Inputs.number(principalField, 2);
+        Inputs.date(startDateField);
+        Inputs.date(renewalDateField);
+        Inputs.choices(rateTypeField, Choices.RATE_TYPES, Choices::label);
+        Inputs.number(rateAmountField, 3);
+        Inputs.choices(rateFrequencyField, Choices.RATE_FREQUENCIES, Choices::label);
+        Inputs.number(paymentAmountField, 2);
+        Inputs.choices(paymentFrequencyField, Choices.PAYMENT_FREQUENCIES, Choices::label);
+
         byKey.put("principal", principalField);
         byKey.put("startDate", startDateField);
         byKey.put("renewalDate", renewalDateField);
@@ -59,8 +73,8 @@ public class AddLoanController {
 
         setShown(noticeLabel, false);
         setShown(progress, false);
-        for (TextField field : byKey.values()) {
-            field.textProperty().addListener((obs, old, now) -> field.getStyleClass().remove("field-error"));
+        for (Control field : byKey.values()) {
+            Inputs.onEdit(field, () -> field.getStyleClass().remove("field-error"));
         }
         root.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
@@ -77,7 +91,7 @@ public class AddLoanController {
     }
 
     private boolean isDirty() {
-        return byKey.values().stream().anyMatch(f -> !f.getText().isBlank());
+        return byKey.values().stream().anyMatch(f -> !Inputs.valueOf(f).isBlank());
     }
 
     @FXML
@@ -85,11 +99,16 @@ public class AddLoanController {
         if (busy) {
             return;
         }
+        Map<String, String> badDates = Inputs.badDates(byKey);
+        if (!badDates.isEmpty()) {
+            showFieldErrors(badDates);
+            return;
+        }
         LoanRecords.NewLoan form = new LoanRecords.NewLoan(
-                principalField.getText().trim(), rateTypeField.getText().trim(),
-                rateAmountField.getText().trim(), rateFrequencyField.getText().trim(),
-                paymentAmountField.getText().trim(), paymentFrequencyField.getText().trim(),
-                startDateField.getText().trim(), renewalDateField.getText().trim());
+                Inputs.valueOf(principalField), Inputs.valueOf(rateTypeField),
+                Inputs.valueOf(rateAmountField), Inputs.valueOf(rateFrequencyField),
+                Inputs.valueOf(paymentAmountField), Inputs.valueOf(paymentFrequencyField),
+                Inputs.valueOf(startDateField), Inputs.valueOf(renewalDateField));
         String customer = customerNumber;
 
         Task<LoanRecords.Created> task = new Task<>() {
@@ -126,9 +145,9 @@ public class AddLoanController {
     }
 
     private void showFieldErrors(Map<String, String> errors) {
-        TextField first = null;
+        Control first = null;
         for (String key : errors.keySet()) {
-            TextField field = byKey.get(key);
+            Control field = byKey.get(key);
             if (field != null) {
                 field.getStyleClass().add("field-error");
                 if (first == null) {
@@ -136,7 +155,7 @@ public class AddLoanController {
                 }
             }
         }
-        showNotice(String.join("  ", errors.values()));
+        showNotice(Inputs.notice(errors));
         if (first != null) {
             first.requestFocus();
         }

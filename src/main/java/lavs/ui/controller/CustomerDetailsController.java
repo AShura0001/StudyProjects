@@ -9,11 +9,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -31,6 +33,8 @@ import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
+import lavs.ui.component.Choices;
+import lavs.ui.component.Inputs;
 import lavs.ui.component.NotesPaper;
 import lavs.ui.service.CustomerDirectory;
 import lavs.ui.service.NotSupportedYetException;
@@ -55,6 +59,7 @@ public class CustomerDetailsController {
     @FXML private Label customerIdLabel;
     @FXML private TextField firstNameField;
     @FXML private TextField lastNameField;
+    @FXML private ComboBox<String> phoneCodeBox;
     @FXML private TextField phoneField;
     @FXML private TextField emailField;
     @FXML private TextField addressLine1Field;
@@ -80,10 +85,19 @@ public class CustomerDetailsController {
     private byte[] savedPhoto;
     private byte[] pendingPhoto;
     private boolean busy;
+    /** Lets the phone field show a stored number exactly, even one the edit filter would refuse. */
+    private boolean settingPhone;
+
+    private static final java.util.regex.Pattern PHONE_DIGITS = java.util.regex.Pattern.compile("[0-9 ()-]{0,20}");
 
     @FXML
     private void initialize() {
         NotesPaper.attach(notesArea);
+        Inputs.shortChoices(phoneCodeBox, Choices.COUNTRY_CODES, Choices::codeLabel);
+        // In edit mode the code comes from the drop-down, so the number box only takes digits and spacing.
+        phoneField.setTextFormatter(new TextFormatter<String>(change -> settingPhone || !editing
+                || PHONE_DIGITS.matcher(change.getControlNewText()).matches() ? change : null));
+        Inputs.onEdit(phoneCodeBox, () -> phoneField.getStyleClass().remove("field-error"));
         setShown(noticeLabel, false);
         setShown(progress, false);
         applyMode(false);
@@ -134,7 +148,7 @@ public class CustomerDetailsController {
     private void revert() {
         firstNameField.setText(details.firstName());
         lastNameField.setText(details.lastName());
-        phoneField.setText(details.phone());
+        showPhone();
         emailField.setText(details.email());
         addressLine1Field.setText(details.addressLine1());
         addressLine2Field.setText(details.addressLine2());
@@ -154,7 +168,7 @@ public class CustomerDetailsController {
     private CustomerDirectory.Details readForm() {
         return new CustomerDirectory.Details(details.customerNumber(),
                 firstNameField.getText().trim(), lastNameField.getText().trim(),
-                phoneField.getText().trim(), emailField.getText().trim(),
+                phoneText(), emailField.getText().trim(),
                 addressLine1Field.getText().trim(), addressLine2Field.getText().trim(),
                 notesArea.getText(), List.copyOf(workingEmployers), details.loans());
     }
@@ -252,6 +266,9 @@ public class CustomerDetailsController {
         }
         notesArea.setEditable(edit);
         notesArea.setFocusTraversable(edit);
+        setShown(phoneCodeBox, edit);
+        phoneCodeBox.setFocusTraversable(edit);
+        showPhone();
 
         toggleStyle(content, "editing", edit);
         toggleStyle(viewModeButton, "mode-selected", !edit);
@@ -265,6 +282,44 @@ public class CustomerDetailsController {
         if (edit) {
             Platform.runLater(firstNameField::requestFocus);
         }
+    }
+
+    /**
+     * View mode shows the whole number, e.g. "+64 21 555 0100". Edit mode splits it:
+     * the country code goes in the drop-down and the rest in the number box.
+     */
+    private void showPhone() {
+        String phone = details == null ? "" : details.phone();
+        settingPhone = true;
+        try {
+            if (!editing) {
+                phoneField.setText(phone);
+                return;
+            }
+            String code = "+64";
+            String number = phone;
+            if (phone.startsWith("+")) {
+                int space = phone.indexOf(' ');
+                code = space < 0 ? phone : phone.substring(0, space);
+                number = space < 0 ? "" : phone.substring(space + 1).trim();
+            } else if (!phone.isBlank()) {
+                code = null;
+            }
+            Inputs.setValue(phoneCodeBox, code);
+            phoneField.setText(number);
+        } finally {
+            settingPhone = false;
+        }
+    }
+
+    /** The phone as the services take it: "+64 21 555 0100", or just the number when no code is picked. */
+    private String phoneText() {
+        String number = phoneField.getText().trim();
+        if (!editing) {
+            return number;
+        }
+        String code = phoneCodeBox.getValue();
+        return number.isEmpty() || code == null ? number : code + " " + number;
     }
 
     private static void toggleStyle(Node node, String styleClass, boolean on) {

@@ -44,11 +44,11 @@ public class LavsApp extends Application {
         CustomerDirectory customers = stubs ? new StubCustomerService() : new MainframeCustomerDirectory(connection);
         LoanRecords loans = stubs ? new StubLoanService() : new MainframeLoanRecords(connection);
         context = new AppContext(connection, new AuthService(new AuthAdapter(connection)), customers, loans);
-        // -Dlavs.sync=sent|sending|waiting|attention previews the sync indicator before the services are started.
+        // -Dlavs.sync=sent|sending|waiting|attention keeps the sync indicator on one state, even after login.
         String preview = System.getProperty("lavs.sync");
         if (preview != null) {
             SyncState previewState = SyncState.valueOf(preview.toUpperCase());
-            context.syncStatus().set(previewState, previewState == SyncState.WAITING ? 2 : 1);
+            context.previewSync(previewState, previewState == SyncState.WAITING ? 2 : 1);
         }
 
         Navigator.init(stage, type -> {

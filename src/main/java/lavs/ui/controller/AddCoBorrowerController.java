@@ -7,6 +7,8 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
@@ -16,6 +18,8 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 
 import lavs.ui.LavsApp;
+import lavs.ui.component.Choices;
+import lavs.ui.component.Inputs;
 import lavs.ui.Navigator;
 import lavs.ui.service.LoanRecords;
 import lavs.ui.service.NotSupportedYetException;
@@ -30,7 +34,7 @@ public class AddCoBorrowerController {
     @FXML private Node content;
     @FXML private ProgressIndicator progress;
     @FXML private TextField coBorrowerNumberField;
-    @FXML private TextField typeField;
+    @FXML private ComboBox<String> typeField;
     @FXML private Label noticeLabel;
 
     private final LoanRecords loanService = LavsApp.context().loans();
@@ -41,10 +45,11 @@ public class AddCoBorrowerController {
 
     @FXML
     private void initialize() {
+        Inputs.choices(typeField, Choices.CO_BORROWER_TYPES, Choices::label);
         setShown(noticeLabel, false);
         setShown(progress, false);
-        for (TextField field : new TextField[] {coBorrowerNumberField, typeField}) {
-            field.textProperty().addListener((obs, old, now) -> field.getStyleClass().remove("field-error"));
+        for (Control field : new Control[] {coBorrowerNumberField, typeField}) {
+            Inputs.onEdit(field, () -> field.getStyleClass().remove("field-error"));
         }
         root.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
@@ -66,7 +71,7 @@ public class AddCoBorrowerController {
     }
 
     private boolean isDirty() {
-        return !coBorrowerNumberField.getText().isBlank() || !typeField.getText().isBlank();
+        return !coBorrowerNumberField.getText().isBlank() || typeField.getValue() != null;
     }
 
     @FXML
@@ -75,7 +80,7 @@ public class AddCoBorrowerController {
             return;
         }
         String number = coBorrowerNumberField.getText().trim().toUpperCase();
-        String type = typeField.getText().trim();
+        String type = Inputs.valueOf(typeField);
         String loan = loanNumber;
 
         Task<Map<String, String>> task = new Task<>() {
@@ -110,10 +115,10 @@ public class AddCoBorrowerController {
     }
 
     private void showFieldErrors(Map<String, String> errors) {
-        Map<String, TextField> byKey = Map.of("coBorrowerNumber", coBorrowerNumberField, "type", typeField);
-        TextField first = null;
+        Map<String, Control> byKey = Map.of("coBorrowerNumber", coBorrowerNumberField, "type", typeField);
+        Control first = null;
         for (String key : errors.keySet()) {
-            TextField field = byKey.get(key);
+            Control field = byKey.get(key);
             if (field != null) {
                 field.getStyleClass().add("field-error");
                 if (first == null) {
@@ -121,7 +126,7 @@ public class AddCoBorrowerController {
                 }
             }
         }
-        showNotice(String.join("  ", errors.values()));
+        showNotice(Inputs.notice(errors));
         if (first != null) {
             first.requestFocus();
         }

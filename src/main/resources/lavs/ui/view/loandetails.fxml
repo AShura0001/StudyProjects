@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ProgressIndicator?>
@@ -101,7 +102,7 @@
                                        focusTraversable="false" maxWidth="220"
                                        GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                             <Label text="Start Date" styleClass="kv-label" GridPane.rowIndex="4"/>
-                            <TextField fx:id="startDateField" styleClass="kv-field" editable="false"
+                            <DatePicker fx:id="startDateField" styleClass="kv-field" editable="true"
                                        focusTraversable="false" maxWidth="220"
                                        GridPane.rowIndex="4" GridPane.columnIndex="1"/>
                             <Label text="Maturity Date" styleClass="kv-label" GridPane.rowIndex="5"/>
