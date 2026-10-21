@@ -80,6 +80,8 @@ public class DraftSyncService {
     private final DraftRepository repository;
     private final DraftUploadGateway gateway;
     private final Clock clock;
+    /** Old sent drafts are cleared once per run of the app, on its first pass, not on every pass. */
+    private boolean cleanedUp;
 
     /**
      * Creates a service that stores drafts in the given repository and sends them
@@ -298,7 +300,10 @@ public class DraftSyncService {
      * @throws lavs.business.repository.DraftStorageException if a draft could not be read or saved
      */
     public SyncResult syncPending() {
-        removeOldSent();
+        if (!cleanedUp) {
+            removeOldSent();
+            cleanedUp = true;
+        }
         int uncertain = settleInterruptedAttempts();
         List<Draft> waiting = new ArrayList<>(repository.findPending());
         int synced = 0;
