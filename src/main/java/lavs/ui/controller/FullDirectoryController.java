@@ -17,7 +17,10 @@ import javafx.scene.layout.VBox;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.CustomerRows;
-import lavs.ui.service.CustomerDirectory;
+import lavs.business.model.Customer;
+import lavs.business.repository.CustomerSearchResult;
+import lavs.business.service.CustomerService;
+import lavs.ui.component.Format;
 
 import java.util.List;
 
@@ -34,7 +37,7 @@ public class FullDirectoryController {
     @FXML private Button nextButton;
     @FXML private Label noticeLabel;
 
-    private final CustomerDirectory customerService = LavsApp.context().customers();
+    private final CustomerService customerService = LavsApp.context().customers();
     private int page;
     private int total;
     private boolean loading;
@@ -71,20 +74,22 @@ public class FullDirectoryController {
         loading = true;
         updatePager();
 
-        Task<List<CustomerDirectory.Match>> task = new Task<>() {
+        Task<List<Customer>> task = new Task<>() {
             @Override
-            protected List<CustomerDirectory.Match> call() {
-                total = customerService.count();
-                return customerService.page(target, PAGE_SIZE);
+            protected List<Customer> call() throws Exception {
+                // The mainframe counts pages from 1; this screen counts from 0.
+                CustomerSearchResult<Customer> result = customerService.search(null, target + 1L, PAGE_SIZE);
+                total = (int) result.getTotal();
+                return result.getList();
             }
         };
 
         task.setOnSucceeded(e -> {
             page = target;
             tableBox.getChildren().setAll(CustomerRows.header());
-            for (CustomerDirectory.Match m : task.getValue()) {
-                tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
-                        () -> openDetails(m.customerNumber())));
+            for (Customer m : task.getValue()) {
+                tableBox.getChildren().add(CustomerRows.customer(Format.name(m), Format.text(m.get_number()),
+                        () -> openDetails(m.get_number())));
             }
             loading = false;
             countLabel.setText(total + " customers registered");
@@ -92,7 +97,7 @@ public class FullDirectoryController {
         });
         task.setOnFailed(e -> {
             loading = false;
-            showNotice("Could not reach the mainframe. Try again.");
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
             updatePager();
         });
 

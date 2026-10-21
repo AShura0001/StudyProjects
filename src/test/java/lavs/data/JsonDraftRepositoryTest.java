@@ -68,7 +68,7 @@ class JsonDraftRepositoryTest {
 
         DraftFile written = mapper.readValue(folder.resolve("abc.json").toFile(), DraftFile.class);
         assertEquals(new DraftFile("abc", "CUSTOMER", "customer text", "PENDING", "2026-10-01T09:30:00Z",
-                null, Map.of(), List.of()), written);
+                null, Map.of(), List.of(), Map.of()), written);
     }
 
     @Test

@@ -61,9 +61,9 @@
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
 
-            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS">
+            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" maxWidth="1280">
 
-                <HBox fx:id="content" spacing="72">
+                <HBox fx:id="content" spacing="56">
                     <padding>
                         <Insets top="24" right="30" bottom="20" left="46"/>
                     </padding>
@@ -95,31 +95,43 @@
                                    prefHeight="49" minHeight="49" maxHeight="49"/>
                         </StackPane>
 
-                        <VBox styleClass="notes-box" prefHeight="126" minHeight="126" maxHeight="126">
-                            <Label text="NOTES" styleClass="notes-title" maxWidth="Infinity"/>
+                        <VBox styleClass="notes-box" prefHeight="126" minHeight="126" maxHeight="420" VBox.vgrow="ALWAYS">
+                            <StackPane>
+                                <Label text="NOTES" styleClass="notes-title" maxWidth="Infinity"/>
+                                <Hyperlink text="Add note" styleClass="notes-add" onAction="#onAddNote"
+                                           StackPane.alignment="CENTER_RIGHT"/>
+                            </StackPane>
                             <TextArea fx:id="notesArea" styleClass="notes-area" editable="false"
                                       wrapText="true" VBox.vgrow="ALWAYS" focusTraversable="false"/>
+                            <ScrollPane fx:id="notesList" styleClass="panel-scroll" fitToWidth="true"
+                                        hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS"
+                                        focusTraversable="false" visible="false" managed="false">
+                                <VBox fx:id="notesBox"/>
+                            </ScrollPane>
                         </VBox>
                     </VBox>
 
-                    <StackPane HBox.hgrow="ALWAYS" alignment="TOP_LEFT" maxWidth="456">
+                    <StackPane HBox.hgrow="ALWAYS" alignment="TOP_LEFT">
                         <VBox spacing="6">
                             <padding>
                                 <Insets top="14"/>
                             </padding>
 
                             <HBox spacing="42">
-                                <VBox spacing="4">
+                                <padding>
+                                    <Insets right="150"/>
+                                </padding>
+                                <VBox spacing="4" HBox.hgrow="ALWAYS" minWidth="106" maxWidth="260">
                                     <Label text="First Name" styleClass="field-label"/>
                                     <TextField fx:id="firstNameField" styleClass="data-field"
                                                editable="false" focusTraversable="false"
-                                               prefWidth="106" maxWidth="106"/>
+                                               prefWidth="106" maxWidth="Infinity"/>
                                 </VBox>
-                                <VBox spacing="4">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS" minWidth="150" maxWidth="320">
                                     <Label text="Last Name" styleClass="field-label"/>
                                     <TextField fx:id="lastNameField" styleClass="data-field"
                                                editable="false" focusTraversable="false"
-                                               prefWidth="150" maxWidth="150"/>
+                                               prefWidth="150" maxWidth="Infinity"/>
                                 </VBox>
                             </HBox>
 
@@ -142,25 +154,29 @@
                                 </VBox>
                             </HBox>
 
-                            <VBox spacing="4">
-                                <Label text="Address Line 1" styleClass="field-label"/>
-                                <TextField fx:id="addressLine1Field" styleClass="data-field"
-                                           editable="false" focusTraversable="false"/>
+                            <VBox spacing="4" VBox.vgrow="ALWAYS" maxHeight="270">
+                                <HBox alignment="CENTER_LEFT">
+                                    <Label text="Addresses" styleClass="field-label"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Hyperlink text="Add address" styleClass="link-add" onAction="#onAddAddress"/>
+                                </HBox>
+                                <VBox styleClass="address-panel" prefHeight="76" minHeight="76" maxHeight="240"
+                                      VBox.vgrow="ALWAYS">
+                                    <ScrollPane styleClass="panel-scroll" fitToWidth="true"
+                                                hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                                VBox.vgrow="ALWAYS" focusTraversable="false">
+                                        <VBox fx:id="addressesBox"/>
+                                    </ScrollPane>
+                                </VBox>
                             </VBox>
 
-                            <VBox spacing="4">
-                                <Label text="Address Line 2" styleClass="field-label"/>
-                                <TextField fx:id="addressLine2Field" styleClass="data-field"
-                                           editable="false" focusTraversable="false"/>
-                            </VBox>
-
-                            <HBox spacing="61" VBox.vgrow="ALWAYS">
+                            <HBox spacing="40" VBox.vgrow="ALWAYS">
                                 <VBox.margin>
                                     <Insets top="16"/>
                                 </VBox.margin>
 
                                 <VBox styleClass="info-panel" prefWidth="194" minWidth="194"
-                                      maxWidth="194" prefHeight="176" minHeight="176" HBox.hgrow="NEVER">
+                                      maxWidth="Infinity" prefHeight="176" minHeight="176" HBox.hgrow="ALWAYS">
                                     <HBox.margin>
                                         <Insets bottom="22"/>
                                     </HBox.margin>
@@ -172,9 +188,9 @@
                                     </ScrollPane>
                                 </VBox>
 
-                                <VBox spacing="4" HBox.hgrow="NEVER">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
                                     <VBox styleClass="info-panel" prefWidth="192" minWidth="192"
-                                          maxWidth="192" prefHeight="176" minHeight="176" VBox.vgrow="ALWAYS">
+                                          maxWidth="Infinity" prefHeight="176" minHeight="176" VBox.vgrow="ALWAYS">
                                         <Label text="LOANS" styleClass="panel-title" maxWidth="Infinity"/>
                                         <ScrollPane styleClass="panel-scroll" fitToWidth="true"
                                                     hbarPolicy="NEVER" vbarPolicy="ALWAYS"

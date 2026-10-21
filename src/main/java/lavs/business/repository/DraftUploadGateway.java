@@ -47,4 +47,16 @@ public interface DraftUploadGateway {
      *                                       whether the mainframe saved it
      */
     String upload(Draft draft, List<String> parentNumbers);
+
+    /**
+     * Sends a draft that may take several steps. After each step that reaches the
+     * mainframe the uploader records a checkpoint on the draft and calls
+     * {@code saveProgress}, so a retry can carry on where the last attempt stopped.
+     * Uploaders whose drafts take a single step can leave this as it is.
+     *
+     * @param saveProgress saves the draft, with its new checkpoints, before the next step
+     */
+    default String upload(Draft draft, List<String> parentNumbers, Runnable saveProgress) {
+        return upload(draft, parentNumbers);
+    }
 }

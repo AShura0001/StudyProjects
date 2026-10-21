@@ -52,9 +52,6 @@ import java.util.Objects;
  */
 public class MainframeDraftUploader implements DraftUploadGateway {
 
-    /** The reason given when a customer draft is sent. */
-    public static final String CUSTOMER_NOT_SUPPORTED_MESSAGE =
-            "Sending a new customer to the mainframe is not supported yet.";
 
     /** The reason given when the text saved in a draft cannot be read. */
     public static final String UNREADABLE_DRAFT_MESSAGE =
@@ -82,14 +79,23 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         this.connection = Objects.requireNonNull(connection, "connection must not be null");
     }
 
+    /** The checkpoint holding a new customer's number once customer.create has succeeded. */
+    public static final String CUSTOMER_STEP = "customer";
+
     @Override
     public String upload(Draft draft, List<String> parentNumbers) {
+        return upload(draft, parentNumbers, () -> { });
+    }
+
+    @Override
+    public String upload(Draft draft, List<String> parentNumbers, Runnable saveProgress) {
         Objects.requireNonNull(draft, "draft must not be null");
         Objects.requireNonNull(parentNumbers, "parentNumbers must not be null");
+        Objects.requireNonNull(saveProgress, "saveProgress must not be null");
         return switch (draft.getType()) {
             case LOAN -> uploadLoan(draft, parentNumbers);
             case COBORROWER -> uploadCoBorrower(draft, parentNumbers);
-            case CUSTOMER -> uploadCustomer(draft);
+            case CUSTOMER -> uploadCustomer(draft, saveProgress);
         };
     }
 
@@ -128,38 +134,75 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         return requireNumber(String.valueOf(message.getId()));
     }
 
-    private String uploadCustomer(Draft draft) {
+    /**
+     * A new customer takes several messages: customer.create, then one per address,
+     * phone, email and employer. Each one that succeeds is recorded as a checkpoint and
+     * saved before the next is sent, so a retry after a lost connection carries on from
+     * there instead of creating the customer a second time.
+     */
+    private String uploadCustomer(Draft draft, Runnable saveProgress) {
         CustomerContent content;
         try {
             content = CustomerPayloads.readCustomer(draft.getPayload());
         } catch (IllegalArgumentException e) {
             throw refused(UNREADABLE_DRAFT_MESSAGE);
         }
-        Customer customer = content.customer();
-        mainframe.client.messages.customer.Create create = new mainframe.client.messages.customer.Create(
-            customer.get_dateOfBirth(), customer.get_familyName(),
-            customer.get_firstName(), customer.get_nationality(), customer.getOrganisation(),
-            customer.get_title());
-        send(create);
-        String customerNumber = requireNumber(create.getNumber());
-
+        String customerNumber = draft.checkpoint(CUSTOMER_STEP).orElse(null);
+        if (customerNumber == null) {
+            Customer customer = content.customer();
+            mainframe.client.messages.customer.Create create = new mainframe.client.messages.customer.Create(
+                    customer.get_dateOfBirth(), customer.get_familyName(),
+                    customer.get_firstName(), customer.get_nationality(), customer.getOrganisation(),
+                    customer.get_title());
+            send(create);
+            customerNumber = requireNumber(create.getNumber());
+            done(draft, saveProgress, CUSTOMER_STEP, customerNumber);
+        }
+        String number = customerNumber;
+        int i = 0;
         for (Address a : content.addresses()) {
-            send(new AddAddress(a.getCity(), a.getCountry(), customerNumber, a.getIsMailing(), a.getIsPrimary(),
-                    a.getLine1(), a.getLine2(), a.getOtherType(), a.getPostCode(), a.getSuburb(), a.getType()));
+            sendOnce(draft, saveProgress, "address." + i++, number, "address " + i, () -> new AddAddress(
+                    a.getCity(), a.getCountry(), number, a.getIsMailing(), a.getIsPrimary(), a.getLine1(),
+                    a.getLine2(), a.getOtherType(), a.getPostCode(), a.getSuburb(), a.getType()));
         }
+        i = 0;
         for (PhoneNumber p : content.phoneNumbers()) {
-            send(new AddPhoneNumber(p.is_canTxt(), p.get_countryCode(), customerNumber, p.is_isPrimary(),
-                    p.get_number(), p.get_otherType(), p.get_type()));
+            sendOnce(draft, saveProgress, "phone." + i++, number, "phone number " + i, () -> new AddPhoneNumber(
+                    p.is_canTxt(), p.get_countryCode(), number, p.is_isPrimary(), p.get_number(),
+                    p.get_otherType(), p.get_type()));
         }
+        i = 0;
         for (Email e : content.emails()) {
-            send(new AddEmail(e.getAddress(), customerNumber, e.isPrimary(), e.getOtherType(), e.getType()));
+            sendOnce(draft, saveProgress, "email." + i++, number, "email " + i, () -> new AddEmail(
+                    e.getAddress(), number, e.isPrimary(), e.getOtherType(), e.getType()));
         }
+        i = 0;
         for (Employer emp : content.employers()) {
-            send(new AddEmployer(customerNumber, emp.get_name(), emp.get_position(), emp.get_salary(),
-                    emp.get_type()));
+            sendOnce(draft, saveProgress, "employer." + i++, number, "employer " + i, () -> new AddEmployer(
+                    number, emp.get_name(), emp.get_position(), emp.get_salary(), emp.get_type()));
         }
-
         return customerNumber;
+    }
+
+    /** Sends one part of a new customer unless an earlier attempt already did. */
+    private void sendOnce(Draft draft, Runnable saveProgress, String step, String customerNumber, String what,
+                          java.util.function.Supplier<Message> message) {
+        if (draft.checkpoint(step).isPresent()) {
+            return;
+        }
+        try {
+            send(message.get());
+        } catch (RecordRejectedException e) {
+            String reason = e.getMessage() == null || e.getMessage().isBlank() ? "no reason given" : e.getMessage();
+            throw new RecordRejectedException("Customer " + customerNumber + " was created, but the mainframe refused "
+                    + what + ": " + reason, e.getFieldErrors());
+        }
+        done(draft, saveProgress, step, "sent");
+    }
+
+    private static void done(Draft draft, Runnable saveProgress, String step, String value) {
+        draft.recordCheckpoint(step, value);
+        saveProgress.run();
     }
 
     private static String numberOf(CustomerReference customer, List<String> parentNumbers, int position) {

@@ -2,6 +2,7 @@ package lavs.ui.component;
 
 import javafx.application.Platform;
 import javafx.event.EventHandler;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.DateCell;
@@ -178,6 +179,9 @@ public final class Inputs {
         if (control instanceof ComboBox<?> box) {
             return box.getValue() == null ? "" : box.getValue().toString();
         }
+        if (control instanceof CheckBox tick) {
+            return String.valueOf(tick.isSelected());
+        }
         throw new IllegalArgumentException("Unsupported control: " + control);
     }
 
@@ -197,6 +201,8 @@ public final class Inputs {
                 box.getItems().add(text);
             }
             box.setValue(text.isEmpty() ? null : text);
+        } else if (control instanceof CheckBox tick) {
+            tick.setSelected(Boolean.parseBoolean(text));
         } else {
             throw new IllegalArgumentException("Unsupported control: " + control);
         }
@@ -211,6 +217,8 @@ public final class Inputs {
             picker.getEditor().textProperty().addListener((obs, old, now) -> action.run());
         } else if (control instanceof ComboBox<?> box) {
             box.valueProperty().addListener((obs, old, now) -> action.run());
+        } else if (control instanceof CheckBox tick) {
+            tick.selectedProperty().addListener((obs, old, now) -> action.run());
         }
     }
 

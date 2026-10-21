@@ -91,7 +91,7 @@
             <Label fx:id="noticeLabel" styleClass="message-muted" wrapText="true"
                    textAlignment="CENTER" visible="false" managed="false"/>
 
-            <VBox styleClass="results-card" VBox.vgrow="ALWAYS" spacing="0">
+            <VBox styleClass="results-card" VBox.vgrow="ALWAYS" spacing="0" maxWidth="1280">
                 <VBox.margin>
                     <Insets top="18"/>
                 </VBox.margin>

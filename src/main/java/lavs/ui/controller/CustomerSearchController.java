@@ -18,7 +18,9 @@ import javafx.scene.layout.BorderPane;
 
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
-import lavs.ui.service.CustomerDirectory;
+import lavs.business.model.Customer;
+import lavs.business.service.CustomerService;
+import lavs.ui.component.Format;
 
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +42,7 @@ public class CustomerSearchController {
     @FXML private Node notFoundInfo;
     @FXML private Label noticeLabel;
 
-    private final CustomerDirectory customerService = LavsApp.context().customers();
+    private final CustomerService customerService = LavsApp.context().customers();
 
     @FXML
     private void initialize() {
@@ -79,16 +81,16 @@ public class CustomerSearchController {
             return;
         }
 
-        Task<List<CustomerDirectory.Match>> task = new Task<>() {
+        Task<List<Customer>> task = new Task<>() {
             @Override
-            protected List<CustomerDirectory.Match> call() {
-                return customerService.search(term);
+            protected List<Customer> call() throws Exception {
+                return customerService.searchAll(term, SearchResultsController.MAX_SEARCH_PAGES);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            List<CustomerDirectory.Match> matches = task.getValue();
+            List<Customer> matches = task.getValue();
             if (matches.isEmpty()) {
                 showNotFound();
             } else {
@@ -97,7 +99,7 @@ public class CustomerSearchController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Try again.");
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
         });
 
         setBusy(true);

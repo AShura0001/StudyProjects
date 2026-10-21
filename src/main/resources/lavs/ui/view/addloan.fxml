@@ -52,7 +52,7 @@
     </top>
 
     <center>
-        <VBox styleClass="page-fill" alignment="TOP_CENTER">
+        <VBox styleClass="page-fill" alignment="CENTER">
             <padding>
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
@@ -64,7 +64,7 @@
                         <Insets top="26" right="46" bottom="22" left="46"/>
                     </padding>
 
-                    <Label text="Add a loan" styleClass="form-title"/>
+                    <Label fx:id="titleLabel" text="Add a loan" styleClass="form-title"/>
                     <Label text="The loan number is assigned once the loan is created."
                            styleClass="form-hint"/>
 
@@ -115,7 +115,7 @@
                         <Button text="cancel" styleClass="btn-action, btn-action-cancel" onAction="#onBack">
                             <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>
                         </Button>
-                        <Button text="add loan" styleClass="btn-action, btn-action-save"
+                        <Button fx:id="submitButton" text="add loan" styleClass="btn-action, btn-action-save"
                                 onAction="#onSubmit">
                             <tooltip><Tooltip text="Add loan (Ctrl+S)"/></tooltip>
                         </Button>
