@@ -304,9 +304,22 @@ class AppServicesTest {
     }
 
     @Test
+    void forMainframe_withoutProfiles_buildsAReferenceDataServiceThatAsksTheMainframe() {
+        ScriptedConnection connection = new ScriptedConnection();
+        try (AppServices app = AppServices.forMainframe(connection, folder, new BasicLoanValidator(), listener)) {
+            connection.replySuccess("page", "1", "total", "1", "items", "1", "1:id", "7", "1:name", "CustomerAddressType");
+            connection.replySuccess("page", "1", "total", "1", "items", "1", "1:name", "Residential", "1:order", "1");
+
+            assertEquals(List.of("Residential"), app.referenceData().orElseThrow().getValues("CustomerAddressType"));
+            assertEquals("constantCategory.list", connection.requests().get(0).getRequestType());
+        }
+    }
+
+    @Test
     void start_withGivenProfiles_hasNoCustomerService() {
         try (AppServices app = start()) {
             assertTrue(app.customers().isEmpty());
+            assertTrue(app.referenceData().isEmpty());
         }
     }
 

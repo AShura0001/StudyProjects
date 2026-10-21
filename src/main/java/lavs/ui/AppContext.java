@@ -6,6 +6,7 @@ import lavs.business.service.BasicLoanValidator;
 import lavs.business.service.CustomerService;
 import lavs.business.service.LoanAccountService;
 import lavs.business.service.LoanService;
+import lavs.business.service.ReferenceDataService;
 import lavs.business.service.SyncListener;
 import lavs.ui.sync.SyncState;
 import lavs.ui.sync.SyncStatus;
@@ -46,6 +47,11 @@ public final class AppContext implements AutoCloseable {
     /** Loans already on the mainframe. Available once logged in. */
     public LoanAccountService loanAccounts() {
         return started().loanAccounts().orElseThrow(() -> new IllegalStateException("loan account service not built"));
+    }
+
+    /** The mainframe's constant values, such as address types, for the drop-down lists. Available once logged in. */
+    public ReferenceDataService referenceData() {
+        return started().referenceData().orElseThrow(() -> new IllegalStateException("reference data service not built"));
     }
 
     private AppServices started() {
