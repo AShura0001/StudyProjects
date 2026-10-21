@@ -44,4 +44,13 @@ public interface SyncListener {
      */
     default void onSyncFailed(RuntimeException error) {
     }
+
+    /**
+     * Told after every pass how many saved drafts, old or new, are uncertain or refused
+     * and so wait for a person. Called after onSyncFinished or onConnectionLost.
+     *
+     * @param count the number of drafts that need checking
+     */
+    default void onNeedsChecking(int count) {
+    }
 }

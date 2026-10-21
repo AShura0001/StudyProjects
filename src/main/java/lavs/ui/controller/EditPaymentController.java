@@ -5,20 +5,23 @@ import javafx.scene.control.Label;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextField;
 
-import lavs.ui.LavsApp;
 import lavs.ui.component.Inputs;
-import lavs.ui.service.LoanRecords;
 
-/** Edit one repayment of a loan; on save the loan's page reopens. */
+import java.util.Map;
+
+/**
+ * One repayment of a loan's schedule. The mainframe works every repayment out from
+ * the loan's terms and cannot change one on its own, so Save explains that and points
+ * to Edit schedule; there is no business service behind this form.
+ */
 public class EditPaymentController extends FormController {
+
+    static final String NOT_POSSIBLE = "The mainframe works each repayment out from the loan's terms, "
+            + "so one repayment cannot be changed on its own. Use Edit schedule to change the terms.";
 
     @FXML private Label titleLabel;
     @FXML private DatePicker dateField;
     @FXML private TextField amountField;
-
-    private final LoanRecords loanService = LavsApp.context().loans();
-    private String loanNumber;
-    private int paymentNumber;
 
     @FXML
     private void initialize() {
@@ -36,11 +39,9 @@ public class EditPaymentController extends FormController {
      * @param back what Back does; {@code done} runs after a successful save
      */
     public void open(String loanNumber, int paymentNumber, String date, String amount, Runnable back, Runnable done) {
-        this.loanNumber = loanNumber;
-        this.paymentNumber = paymentNumber;
         this.onBack = back;
         this.onDone = done;
-        titleLabel.setText("Edit payment " + paymentNumber);
+        titleLabel.setText("Payment " + paymentNumber + " of " + loanNumber);
         Inputs.setValue(dateField, date);
         amountField.setText(amount.replace("$", "").replace(",", ""));
         markClean();
@@ -48,9 +49,7 @@ public class EditPaymentController extends FormController {
 
     @Override
     protected void submitForm() {
-        LoanRecords.PaymentDetails edited = new LoanRecords.PaymentDetails(paymentNumber,
-                Inputs.valueOf(dateField), Inputs.valueOf(amountField));
-        save(() -> loanService.savePayment(loanNumber, edited));
+        save(() -> Map.of("form", NOT_POSSIBLE));
     }
 
     @Override

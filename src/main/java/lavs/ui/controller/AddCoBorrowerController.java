@@ -21,8 +21,11 @@ import lavs.ui.LavsApp;
 import lavs.ui.component.Choices;
 import lavs.ui.component.Inputs;
 import lavs.ui.Navigator;
-import lavs.ui.service.LoanRecords;
-import lavs.ui.service.NotSupportedYetException;
+import lavs.business.model.CoBorrowerType;
+import lavs.business.service.LoanAccountService;
+import lavs.business.service.LoanService;
+import lavs.ui.component.Format;
+import mainframe.client.messages.loan.AddCoborrower;
 
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +40,7 @@ public class AddCoBorrowerController {
     @FXML private ComboBox<String> typeField;
     @FXML private Label noticeLabel;
 
-    private final LoanRecords loanService = LavsApp.context().loans();
+    private final LoanAccountService loanAccounts = LavsApp.context().loanAccounts();
     private String loanNumber;
     private Runnable onBack = () -> Navigator.show("customersearch");
     private Runnable onDone = onBack;
@@ -80,31 +83,41 @@ public class AddCoBorrowerController {
             return;
         }
         String number = coBorrowerNumberField.getText().trim().toUpperCase();
-        String type = Inputs.valueOf(typeField);
+        String typeValue = Inputs.valueOf(typeField);
+        Map<String, String> missing = new java.util.LinkedHashMap<>();
+        if (number.isEmpty()) {
+            missing.put("coBorrowerNumber", "Customer ID is required.");
+        }
+        if (typeValue.isEmpty()) {
+            missing.put("type", "Choose Co-borrower or Guarantor.");
+        }
+        if (!missing.isEmpty()) {
+            showFieldErrors(missing);
+            return;
+        }
+        CoBorrowerType type = AddCoborrower.TYPE_GUARANTOR.equals(typeValue)
+                ? CoBorrowerType.GUARANTOR : CoBorrowerType.COBORROWER;
         String loan = loanNumber;
 
-        Task<Map<String, String>> task = new Task<>() {
+        Task<lavs.business.model.CoBorrower> task = new Task<>() {
             @Override
-            protected Map<String, String> call() {
-                return loanService.addCoBorrower(loan, number, type);
+            protected lavs.business.model.CoBorrower call() {
+                return loanAccounts.addCoBorrower(loan, number, type);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            Map<String, String> errors = task.getValue();
-            if (errors.isEmpty()) {
-                onDone.run();
-            } else {
-                showFieldErrors(errors);
-            }
+            onDone.run();
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            Throwable cause = task.getException();
-            showNotice(cause instanceof NotSupportedYetException
-                    ? cause.getMessage()
-                    : "Could not reach the mainframe. Your details are still on screen.");
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, Map.of(LoanService.CO_BORROWER_FIELD, "coBorrowerNumber")));
+            } else {
+                showNotice(Format.problem(error, "Could not reach the mainframe. Your details are still on screen."));
+            }
         });
 
         showNotice("");

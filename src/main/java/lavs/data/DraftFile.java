@@ -23,6 +23,8 @@ import java.util.Map;
  * @param dependsOn the local IDs of the drafts this one depends on; may be missing
  *                  in files saved before dependencies were stored, which is read
  *                  as no dependencies
+ * @param checkpoints the steps of an earlier send that reached the mainframe; may be
+ *                    missing in older files, which is read as none
  */
 public record DraftFile(
         String localId,
@@ -32,5 +34,6 @@ public record DraftFile(
         String createdAt,
         String serverNumber,
         Map<String, String> errors,
-        List<String> dependsOn) {
+        List<String> dependsOn,
+        Map<String, String> checkpoints) {
 }

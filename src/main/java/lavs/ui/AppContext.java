@@ -3,9 +3,10 @@ package lavs.ui;
 import lavs.app.AppServices;
 import lavs.business.service.AuthService;
 import lavs.business.service.BasicLoanValidator;
+import lavs.business.service.CustomerService;
+import lavs.business.service.LoanAccountService;
+import lavs.business.service.LoanService;
 import lavs.business.service.SyncListener;
-import lavs.ui.service.CustomerDirectory;
-import lavs.ui.service.LoanRecords;
 import lavs.ui.sync.SyncState;
 import lavs.ui.sync.SyncStatus;
 import lavs.ui.sync.SyncStatusListener;
@@ -18,25 +19,41 @@ import java.util.Optional;
 public final class AppContext implements AutoCloseable {
     private final Connection connection;
     private final AuthService auth;
-    private final CustomerDirectory customers;
-    private final LoanRecords loans;
     private final SyncStatus syncStatus = new SyncStatus();
     private volatile boolean syncPreview;
     private volatile AppServices services;
 
-    public AppContext(Connection connection, AuthService auth, CustomerDirectory customers, LoanRecords loans) {
+    public AppContext(Connection connection, AuthService auth) {
         this.connection = Objects.requireNonNull(connection, "connection must not be null");
         this.auth = Objects.requireNonNull(auth, "auth must not be null");
-        this.customers = Objects.requireNonNull(customers, "customers must not be null");
-        this.loans = Objects.requireNonNull(loans, "loans must not be null");
     }
 
-    public CustomerDirectory customers() {
-        return customers;
+    /** Customers on the mainframe, and new customers saved as drafts. Available once logged in. */
+    public CustomerService customers() {
+        return started().customers().orElseThrow(() -> new IllegalStateException("customer service not built"));
     }
 
-    public LoanRecords loans() {
-        return loans;
+    /** Starting new loans, which are saved as drafts and sent in the background. Available once logged in. */
+    public LoanService loans() {
+        return started().loans();
+    }
+
+    /** The saved drafts and their background sending. Available once logged in. */
+    public lavs.business.service.BackgroundSync drafts() {
+        return started().sync();
+    }
+
+    /** Loans already on the mainframe. Available once logged in. */
+    public LoanAccountService loanAccounts() {
+        return started().loanAccounts().orElseThrow(() -> new IllegalStateException("loan account service not built"));
+    }
+
+    private AppServices started() {
+        AppServices running = services;
+        if (running == null) {
+            throw new IllegalStateException("Log in first: the services start after login.");
+        }
+        return running;
     }
 
     /** What the sync indicator on every screen shows; feed it with a SyncStatusListener. */
@@ -70,7 +87,10 @@ public final class AppContext implements AutoCloseable {
     public synchronized void onLoggedIn() {
         stopServices();
         SyncListener listener = syncPreview ? new SyncListener() { } : new SyncStatusListener(syncStatus);
-        services = AppServices.forMainframe(connection, AppServices.defaultDraftsFolder(),
+        String employee = auth.currentSession()
+                .orElseThrow(() -> new IllegalStateException("onLoggedIn called without a session"))
+                .username();
+        services = AppServices.forMainframe(connection, AppServices.draftsFolderFor(employee),
                 new BasicLoanValidator(), listener);
     }
 

@@ -36,6 +36,7 @@ class CustomerServiceTest {
     private CustomerPhoneNumberGateway phoneGateway;
     private CustomerEmailGateway emailGateway;
     private CustomerEmployerGateway employerGateway;
+    private lavs.business.repository.CustomerNoteGateway noteGateway;
     private FakeDraftRepository drafts;
     private BackgroundSync sync;
     private CustomerService service;
@@ -47,11 +48,12 @@ class CustomerServiceTest {
         phoneGateway = mock(CustomerPhoneNumberGateway.class);
         emailGateway = mock(CustomerEmailGateway.class);
         employerGateway = mock(CustomerEmployerGateway.class);
+        noteGateway = mock(lavs.business.repository.CustomerNoteGateway.class);
         drafts = new FakeDraftRepository();
         sync = new BackgroundSync(new DraftSyncService(drafts, new FakeDraftUploadGateway()),
                 new ManualScheduler(), RetryPolicy.standard());
         service = new CustomerService(customerGateway, addressGateway, phoneGateway,
-                emailGateway, employerGateway, new ValidationService(), drafts, sync);
+                emailGateway, employerGateway, noteGateway, new ValidationService(), drafts, sync);
     }
 
     // ---- profileOf: ExistingCustomer ----
@@ -191,7 +193,9 @@ class CustomerServiceTest {
     void addAddress_markedPrimary_clearsPreviousPrimaryAddress() throws IOException {
         Address existingPrimary = mailingAddress();
         existingPrimary.setIsPrimary(true);
+        existingPrimary.setId(5L);
         onePageOf(addressGateway, existingPrimary);
+        when(addressGateway.findAddressByCustomerNumberAndId(5L, "CUS-1")).thenReturn(Optional.of(existingPrimary));
         when(addressGateway.updateCustomerAddress(any())).thenReturn(Optional.of(existingPrimary));
 
         Address newAddress = mailingAddress();

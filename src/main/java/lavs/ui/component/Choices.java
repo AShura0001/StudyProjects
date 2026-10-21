@@ -32,6 +32,9 @@ public final class Choices {
             Create.PAYMENTFREQUENCY_WEEKLY, Create.PAYMENTFREQUENCY_FORTNIGHTLY, Create.PAYMENTFREQUENCY_MONTHLY,
             Create.PAYMENTFREQUENCY_YEARLY, Create.PAYMENTFREQUENCY_ONRENEWAL);
 
+    /** The mainframe's address types (its customer.addAddress message spells them this way). */
+    public static final List<String> ADDRESS_TYPES = List.of("Residential", "Postal", "Forwarding", "Delegated", "Other");
+
     public static final List<String> CO_BORROWER_TYPES = List.of(
             AddCoborrower.TYPE_COBORROWER, AddCoborrower.TYPE_GUARANTOR);
 

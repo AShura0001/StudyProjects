@@ -17,8 +17,8 @@ import javafx.scene.layout.BorderPane;
 
 import lavs.ui.LavsApp;
 import lavs.ui.Navigator;
+import lavs.ui.component.Format;
 import lavs.ui.component.Inputs;
-import lavs.ui.service.NotSupportedYetException;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -102,13 +102,26 @@ public abstract class FormController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice(failureText(task.getException(), "Could not reach the mainframe. Try again."));
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
         });
         setBusy(true);
         start(task, what() + "-load");
     }
 
-    /** Runs a blocking save; an empty error map means it worked and the form closes. */
+    /**
+     * How the business layer's field names map to this form's keys. By default a
+     * business field matches the form key of the same name.
+     */
+    protected Map<String, String> businessFields() {
+        Map<String, String> same = new HashMap<>();
+        fields.keySet().forEach(key -> same.put(key, key));
+        return same;
+    }
+
+    /**
+     * Runs a blocking save. An empty error map means it worked and the form closes;
+     * a business rule or validation error is shown on the matching fields.
+     */
     protected final void save(Callable<Map<String, String>> work) {
         Task<Map<String, String>> task = new Task<>() {
             @Override
@@ -127,16 +140,16 @@ public abstract class FormController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice(failureText(task.getException(),
-                    "Could not reach the mainframe. Your changes are still on screen."));
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, businessFields()));
+            } else {
+                showNotice(Format.problem(error, "Could not reach the mainframe. Your changes are still on screen."));
+            }
         });
         showNotice("");
         setBusy(true);
         start(task, what() + "-save");
-    }
-
-    private static String failureText(Throwable cause, String fallback) {
-        return cause instanceof NotSupportedYetException ? cause.getMessage() : fallback;
     }
 
     private static void start(Task<?> task, String name) {

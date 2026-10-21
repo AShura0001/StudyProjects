@@ -54,6 +54,11 @@ public class Draft {
     private DraftStatus status;
     private String serverNumber;
     private Map<String, String> errors;
+    /**
+     * Steps of a send that are known to have reached the mainframe, such as the number
+     * a new customer was given. A retry skips them, so it never repeats a step.
+     */
+    private final Map<String, String> checkpoints;
 
     /**
      * Creates a brand new draft that does not depend on any other draft, with a
@@ -127,6 +132,16 @@ public class Draft {
      */
     public Draft(String localId, DraftType type, String payload, DraftStatus status, Instant createdAt,
                  String serverNumber, Map<String, String> errors, List<String> dependsOn) {
+        this(localId, type, payload, status, createdAt, serverNumber, errors, dependsOn, Map.of());
+    }
+
+    /**
+     * Rebuilds a saved draft, including the steps of an earlier send that already reached the mainframe.
+     */
+    public Draft(String localId, DraftType type, String payload, DraftStatus status, Instant createdAt,
+                 String serverNumber, Map<String, String> errors, List<String> dependsOn,
+                 Map<String, String> checkpoints) {
+        this.checkpoints = new LinkedHashMap<>(Objects.requireNonNull(checkpoints, "checkpoints must not be null"));
         this.localId = Objects.requireNonNull(localId, "localId must not be null");
         this.type = Objects.requireNonNull(type, "type must not be null");
         this.payload = Objects.requireNonNull(payload, "payload must not be null");
@@ -209,6 +224,29 @@ public class Draft {
      */
     public Map<String, String> getErrors() {
         return errors;
+    }
+
+    /** @return the steps already done, by name; empty for a draft never partly sent */
+    public Map<String, String> getCheckpoints() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(checkpoints));
+    }
+
+    /** @return the value recorded for a finished step, or empty if it has not been done */
+    public Optional<String> checkpoint(String step) {
+        return Optional.ofNullable(checkpoints.get(step));
+    }
+
+    /**
+     * Records that one step of the send reached the mainframe. Only allowed while the
+     * draft is waiting or being sent.
+     *
+     * @throws IllegalStateException if the draft is uncertain, refused or already sent
+     */
+    public void recordCheckpoint(String step, String value) {
+        requireStatus("given a checkpoint", DraftStatus.PENDING, DraftStatus.SENDING);
+        requireNotBlank(step, "step");
+        Objects.requireNonNull(value, "value must not be null");
+        checkpoints.put(step, value);
     }
 
     /**
