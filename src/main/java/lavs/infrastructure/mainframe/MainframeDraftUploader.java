@@ -45,9 +45,9 @@ import java.util.Objects;
  * answer, the record may have been saved, and that is reported as an unknown
  * outcome. When the mainframe says no, the draft is refused with its reason.
  *
- * <p>Loan and co-borrower drafts are supported. Customer drafts are refused with a
- * clear message, because nothing has defined what a saved customer looks like yet.
- * A draft that cannot be read, or that came without the numbers it needs, is also
+ * <p>Customer, loan and co-borrower drafts are supported. A customer is sent as the
+ * customer itself followed by its addresses, phone numbers, emails and employers.
+ * A draft that cannot be read, or that came without the numbers it needs, is
  * refused, without contacting the mainframe.
  */
 public class MainframeDraftUploader implements DraftUploadGateway {
