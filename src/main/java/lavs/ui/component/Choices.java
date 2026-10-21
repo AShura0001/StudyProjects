@@ -35,6 +35,9 @@ public final class Choices {
     /** The mainframe's address types (its customer.addAddress message spells them this way). */
     public static final List<String> ADDRESS_TYPES = List.of("Residential", "Postal", "Forwarding", "Delegated", "Other");
 
+    /** The mainframe's employer types (its customer.addEmployer message spells them this way). */
+    public static final List<String> EMPLOYER_TYPES = List.of("Primary", "Secondary");
+
     public static final List<String> CO_BORROWER_TYPES = List.of(
             AddCoborrower.TYPE_COBORROWER, AddCoborrower.TYPE_GUARANTOR);
 

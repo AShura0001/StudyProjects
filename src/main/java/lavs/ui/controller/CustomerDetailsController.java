@@ -76,7 +76,8 @@ public class CustomerDetailsController {
     private record NoteRow(long id, String title, String added, String text) {
     }
 
-    private record EmployerRow(long id, String name) {
+    /** One employer: its name and whether it is the customer's primary or secondary employer. */
+    private record EmployerRow(long id, String name, String type) {
     }
 
     /** One address: its street line, the rest of it, its type, and its flags. */
@@ -190,7 +191,9 @@ public class CustomerDetailsController {
                 .map(CustomerDetailsController::addressRow)
                 .toList();
         List<EmployerRow> employers = customers.listEmployers(customerNumber).stream()
-                .map(e -> new EmployerRow(e.get_id(), e.get_name() == null || e.get_name().isBlank() ? "Employer" : e.get_name()))
+                .map(e -> new EmployerRow(e.get_id(),
+                        e.get_name() == null || e.get_name().isBlank() ? "Employer" : e.get_name(),
+                        Format.text(e.get_type())))
                 .toList();
         List<NoteRow> notes = customers.listNotes(customerNumber).stream()
                 .map(n -> new NoteRow(n.get_id(),
@@ -485,7 +488,14 @@ public class CustomerDetailsController {
         Runnable reopen = () -> Navigator.<CustomerDetailsController>show("customerdetails",
                 c -> c.open(customerNumber, backFromCustomer));
         Navigator.<EditEmployerController>show("editemployer",
-                e -> e.open(customerNumber, String.valueOf(employer.id()), reopen, reopen));
+                e -> e.open(customerNumber, employer == null ? null : String.valueOf(employer.id()), reopen, reopen));
+    }
+
+    @FXML
+    private void onAddEmployer() {
+        if (details != null) {
+            openEmployerEditor(null);
+        }
     }
 
     private VBox listItem(String title, String subtitle) {
@@ -501,7 +511,7 @@ public class CustomerDetailsController {
 
     /** In edit mode each employer row gains a remove and an Edit button. */
     private Node employerItem(EmployerRow employer) {
-        VBox text = listItem(employer.name(), String.valueOf(employer.id()));
+        VBox text = listItem(employer.name(), employer.type().isEmpty() ? "Employer" : employer.type() + " employer");
         if (!editing) {
             return text;
         }

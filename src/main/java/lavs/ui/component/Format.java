@@ -59,7 +59,8 @@ public final class Format {
         Map<String, String> errors = new LinkedHashMap<>();
         if (error instanceof ValidationException invalid) {
             for (ValidationError e : invalid.getErrors()) {
-                errors.putIfAbsent(fieldNames.getOrDefault(e.getField(), "form"), sentence(e.getMessage()));
+                errors.putIfAbsent(fieldNames.getOrDefault(e.getField(), "form"),
+                        sentence(labelled(e.getField(), e.getMessage())));
             }
         } else if (error instanceof RuleViolationException broken) {
             broken.getProblems().forEach((field, message) ->
@@ -87,6 +88,19 @@ public final class Format {
             return error.getMessage();
         }
         return fallback;
+    }
+
+    /**
+     * Validators word some messages without the field ("Is required"); this names it:
+     * field "postCode" with "Is required" reads "Post code is required".
+     */
+    static String labelled(String field, String message) {
+        if (field == null || field.isBlank() || !(message.startsWith("Is ") || message.startsWith("Must "))) {
+            return message;
+        }
+        String words = field.replaceAll("([a-z])([A-Z0-9])", "$1 $2").toLowerCase(Locale.ROOT);
+        String label = Character.toUpperCase(words.charAt(0)) + words.substring(1);
+        return label + " " + Character.toLowerCase(message.charAt(0)) + message.substring(1);
     }
 
     private static String sentence(String message) {

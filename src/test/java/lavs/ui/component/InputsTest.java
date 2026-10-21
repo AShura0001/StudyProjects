@@ -141,4 +141,12 @@ class InputsTest {
         errors.put("c", "Amount is required.");
         assertEquals("Enter dates as DD/MM/YYYY.  Amount is required.", Inputs.notice(errors));
     }
+
+    @Test
+    void validatorMessagesWithoutAFieldName_getOne() {
+        assertEquals("Name is required", Format.labelled("name", "Is required"));
+        assertEquals("Post code must be a number", Format.labelled("postCode", "Must be a number"));
+        assertEquals("Line 1 is required", Format.labelled("line1", "Is required"));
+        assertEquals("Title is required", Format.labelled("title", "Title is required"), "already named");
+    }
 }
