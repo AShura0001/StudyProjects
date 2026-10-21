@@ -5,6 +5,8 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -73,14 +75,14 @@
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Payment Frequency" styleClass="field-label"/>
-                            <TextField fx:id="paymentFrequencyField" styleClass="data-field" promptText="Weekly, Monthly…" maxWidth="Infinity"/>
+                            <ComboBox fx:id="paymentFrequencyField" styleClass="data-field" promptText="Choose…" maxWidth="Infinity"/>
                         </VBox>
                     </HBox>
 
                     <HBox spacing="20">
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Renewal Date" styleClass="field-label"/>
-                            <TextField fx:id="renewalDateField" styleClass="data-field" promptText="YYYY-MM-DD" maxWidth="Infinity"/>
+                            <DatePicker fx:id="renewalDateField" styleClass="data-field" maxWidth="Infinity"/>
                         </VBox>
                     </HBox>
 

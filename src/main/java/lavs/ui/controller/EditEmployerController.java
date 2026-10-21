@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 
 import lavs.ui.LavsApp;
+import lavs.ui.component.Inputs;
 import lavs.ui.service.CustomerDirectory;
 
 /** Edit one of a customer's employers; on save the customer's page reopens. */
@@ -19,6 +20,7 @@ public class EditEmployerController extends FormController {
 
     @FXML
     private void initialize() {
+        Inputs.number(salaryField, 2);
         register("name", nameField);
         register("position", positionField);
         register("salary", salaryField);
