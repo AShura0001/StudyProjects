@@ -344,7 +344,7 @@ public class CustomerDetailsController {
     private void showFieldErrors(Map<String, String> errors) {
         Map<String, TextField> fields = Map.of(
                 "firstName", firstNameField, "lastName", lastNameField, "phone", phoneField,
-                "email", emailField, "addressLine1", addressLine1Field);
+                "email", emailField, "addressLine1", addressLine1Field, "addressLine2", addressLine2Field);
         for (String key : errors.keySet()) {
             TextField field = fields.get(key);
             if (field != null) {
