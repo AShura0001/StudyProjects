@@ -423,4 +423,44 @@ class CustomerServiceContactTest {
 
         verify(noteGateway).updateCustomerNote(note);
     }
+
+    // ---- Employers ----
+
+    private static lavs.business.model.Employer employer(String name, String type) {
+        lavs.business.model.Employer e = new lavs.business.model.Employer();
+        e.set_customerNumber(NUMBER);
+        e.set_name(name);
+        e.set_type(type);
+        e.set_position("Analyst");
+        e.set_salary(85000);
+        return e;
+    }
+
+    @Test
+    void addEmployer_needsANameAndType_andNothingIsSentOtherwise() throws IOException {
+        ValidationException invalid = assertThrows(ValidationException.class,
+                () -> service.addEmployer(employer("", "")));
+        assertEquals(Set.of("name", "type"),
+                invalid.getErrors().stream().map(ValidationError::getField).collect(Collectors.toSet()));
+        verify(employers, never()).addCustomerEmployer(any());
+    }
+
+    @Test
+    void addEmployer_sendsIt_andARefusalIsReportedReadably() throws IOException {
+        when(employers.addCustomerEmployer(any())).thenAnswer(a -> Optional.of(a.getArgument(0)));
+        assertEquals("Acme", service.addEmployer(employer("Acme", "Primary")).get_name());
+
+        doReturn(Optional.empty()).when(employers).addCustomerEmployer(any());
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class,
+                () -> service.addEmployer(employer("Globex", "Secondary")));
+        assertTrue(refused.getMessage().contains("new employer"));
+    }
+
+    @Test
+    void updateEmployer_refused_isReportedReadably() throws IOException {
+        when(employers.updateCustomerEmployer(any())).thenReturn(Optional.empty());
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class,
+                () -> service.updateEmployer(employer("Acme", "Primary")));
+        assertTrue(refused.getMessage().contains("employer change"));
+    }
 }

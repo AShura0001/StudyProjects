@@ -180,7 +180,11 @@
                                     <HBox.margin>
                                         <Insets bottom="22"/>
                                     </HBox.margin>
-                                    <Label text="EMPLOYERS" styleClass="panel-title" maxWidth="Infinity"/>
+                                    <StackPane>
+                                        <Label text="EMPLOYERS" styleClass="panel-title" maxWidth="Infinity"/>
+                                        <Hyperlink text="Add" styleClass="notes-add" onAction="#onAddEmployer"
+                                                   StackPane.alignment="CENTER_RIGHT"/>
+                                    </StackPane>
                                     <ScrollPane styleClass="panel-scroll" fitToWidth="true"
                                                 hbarPolicy="NEVER" vbarPolicy="ALWAYS"
                                                 VBox.vgrow="ALWAYS" focusTraversable="false">

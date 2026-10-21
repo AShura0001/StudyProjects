@@ -678,14 +678,28 @@ public class CustomerService implements CustomerProfileSource {
         return fetchAllPages(page -> employerGateway.ListCustomerEmployers(page, customerNumber, PAGE_SIZE));
     }
 
+    /**
+     * Adds an employer to the customer.
+     *
+     * @throws ValidationException if a field breaks a rule (name and type are required)
+     * @throws RecordRejectedException if the mainframe refused the employer
+     */
     public Employer addEmployer(Employer employer) throws IOException {
         validateOrThrow(validationService.validateEmployer(employer));
-        return employerGateway.addCustomerEmployer(employer).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the new employer"));
+        return employerGateway.addCustomerEmployer(employer)
+                .orElseThrow(() -> new RecordRejectedException("The mainframe did not accept the new employer.", Map.of()));
     }
 
+    /**
+     * Saves changes to an employer.
+     *
+     * @throws ValidationException if a field breaks a rule (name and type are required)
+     * @throws RecordRejectedException if the mainframe refused the change
+     */
     public Employer updateEmployer(Employer employer) throws IOException {
         validateOrThrow(validationService.validateEmployer(employer));
-        return employerGateway.updateCustomerEmployer(employer).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the employer update"));
+        return employerGateway.updateCustomerEmployer(employer)
+                .orElseThrow(() -> new RecordRejectedException("The mainframe did not accept the employer change.", Map.of()));
     }
 
     public boolean deleteEmployer(String customerNumber, long employerId) throws IOException {
