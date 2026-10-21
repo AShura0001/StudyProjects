@@ -229,6 +229,8 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         } catch (IOException | RuntimeException e) {
             throw new UploadOutcomeUnknownException(UNREADABLE_REPLY_MESSAGE, e);
         }
+        // The mainframe turned the session away before doing anything, so the draft is safely unsent.
+        MainframeCalls.requireSession(status);
         if (status.getWasSuccessful()) {
             return;
         }

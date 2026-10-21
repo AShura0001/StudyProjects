@@ -207,11 +207,14 @@ public class LoanAdapter implements LoanGateway {
     }
 
     private Status send(Message message) {
+        Status status;
         try {
-            return message.send(connection);
+            status = message.send(connection);
         } catch (IOException | RuntimeException e) {
             throw new MainframeUnavailableException(UNAVAILABLE_MESSAGE, e);
         }
+        MainframeCalls.requireSession(status);
+        return status;
     }
 
     /** Passes quietly when the mainframe simply said no, and fails when something else went wrong. */

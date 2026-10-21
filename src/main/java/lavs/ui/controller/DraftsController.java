@@ -77,6 +77,13 @@ public class DraftsController {
      *
      * @return false when nobody is logged in, so there are no drafts to show
      */
+    /** Closes the window if it is open, for example when the session ends. */
+    public static void closeWindow() {
+        if (openWindow != null) {
+            openWindow.close();
+        }
+    }
+
     public static boolean openWindow(Stage owner) {
         if (LavsApp.context() == null || LavsApp.context().services().isEmpty()) {
             return false;

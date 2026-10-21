@@ -8,7 +8,7 @@ import lavs.business.service.AuthService;
 import lavs.infrastructure.mainframe.AuthAdapter;
 import lavs.ui.controller.*;
 import lavs.ui.sync.SyncState;
-import mainframe.client.Connection;
+import lavs.infrastructure.mainframe.SessionWatchingConnection;
 import mainframe.client.HttpConnection;
 
 import java.io.IOException;
@@ -31,8 +31,11 @@ public class LavsApp extends Application {
 
         String url = System.getProperty("lavs.mainframe.url",
                 System.getenv().getOrDefault("LAVS_MAINFRAME_URL", "https://animating-eraser-arrogance.ngrok-free.dev/"));
-        Connection connection = new HttpConnection(url);
+        SessionWatchingConnection connection = new SessionWatchingConnection(new HttpConnection(url));
         context = new AppContext(connection, new AuthService(new AuthAdapter(connection)));
+        // When the mainframe stops accepting the session, log out cleanly and say why,
+        // instead of every screen reporting that the mainframe cannot be reached.
+        connection.onSessionLost(() -> javafx.application.Platform.runLater(LavsApp::sessionEnded));
         // -Dlavs.sync=sent|sending|waiting|attention keeps the sync indicator on one state, even after login.
         String preview = System.getProperty("lavs.sync");
         if (preview != null) {
@@ -100,6 +103,21 @@ public class LavsApp extends Application {
         if (context != null) {
             context.close();
         }
+    }
+
+    /**
+     * The mainframe no longer accepts this login session. Ends it here too (which stops
+     * the background sync; unsent drafts stay saved for the next login) and returns to the
+     * login screen with the reason.
+     */
+    static void sessionEnded() {
+        if (context == null || !context.auth().isLoggedIn()) {
+            return;
+        }
+        DraftsController.closeWindow();
+        context.logout();
+        Navigator.<LoginController>show("login",
+                c -> c.showNotice(lavs.business.repository.SessionExpiredException.MESSAGE));
     }
 
     /** For screens that need to log out. */

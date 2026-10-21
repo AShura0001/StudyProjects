@@ -94,6 +94,7 @@ public class ReferenceDataAdapter implements ReferenceDataGateway {
         } catch (IOException | RuntimeException e) {
             throw new MainframeUnavailableException(UNAVAILABLE_MESSAGE, e);
         }
+        MainframeCalls.requireSession(status);
         if (!status.getWasSuccessful()) {
             throw new MainframeUnavailableException(UNAVAILABLE_MESSAGE);
         }

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Shared helpers for adapters that report mainframe problems with the business
@@ -37,10 +38,23 @@ final class MainframeCalls {
         } catch (IOException e) {
             throw new MainframeUnavailableException(UNREACHABLE_MESSAGE, e);
         }
+        requireSession(status);
         if (isNetworkFailure(status)) {
             throw new MainframeUnavailableException(UNREACHABLE_MESSAGE);
         }
         return status;
+    }
+
+    /**
+     * Fails when the mainframe no longer accepts this login session, so callers never
+     * mistake it for a refused record or an unknown outcome.
+     *
+     * @throws lavs.business.repository.SessionExpiredException if the session has ended
+     */
+    static void requireSession(Status status) {
+        if (Objects.equals(status.getErrorCode(), mainframe.client.StatusMessage.SESSION_EXPIRED.getCode())) {
+            throw new lavs.business.repository.SessionExpiredException();
+        }
     }
 
     /**
