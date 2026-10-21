@@ -4,31 +4,19 @@ import lavs.business.model.CustomerType;
 
 import java.util.List;
 
-public class CustomerSearchResult<T extends CustomerType> {
-
-    private final List<T> items;
-    private final long total;
-    private final long page;
+/**
+ * One page of customer records. Kept so existing customer code does not need to
+ * change; new code can use {@link PageResult} directly.
+ *
+ * @param <T> the kind of customer record on the page
+ */
+public class CustomerSearchResult<T extends CustomerType> extends PageResult<T> {
 
     public CustomerSearchResult(
             List<T> items,
             long total,
             long page
     ) {
-        this.items = List.copyOf(items);
-        this.total = total;
-        this.page = page;
-    }
-
-    public List<T> getList() {
-        return items;
-    }
-
-    public long getTotal() {
-        return total;
-    }
-
-    public long getPage() {
-        return page;
+        super(items, total, page);
     }
 }

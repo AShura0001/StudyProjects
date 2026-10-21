@@ -2,16 +2,19 @@ package lavs.infrastructure.mainframe;
 
 import lavs.business.model.Email;
 import lavs.business.repository.CustomerEmailGateway;
+import lavs.business.repository.CustomerSearchResult;
 import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.messages.customer.AddEmail;
 import mainframe.client.messages.customer.DeleteEmail;
 import mainframe.client.messages.customer.UpdateEmail;
+import mainframe.client.messages.customerEmail.List;
 import mainframe.client.messages.customerEmail.Retrieve;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class CustomerEmailAdapter implements CustomerEmailGateway {
@@ -23,7 +26,7 @@ public class CustomerEmailAdapter implements CustomerEmailGateway {
 
     @Override
     public Optional<Email> findEmailByCustomerNumberAndId(Long id, String customerNumber) throws IOException {
-        Retrieve retrieve = new Retrieve();
+        Retrieve retrieve = new Retrieve(id, customerNumber);
         if (!retrieve.send(connection).getWasSuccessful()) {
             return Optional.empty();
         }
@@ -35,7 +38,7 @@ public class CustomerEmailAdapter implements CustomerEmailGateway {
     public Optional<Email> updateCustomerEmail(Email email) throws IOException {
         UpdateEmail updateEmail = new UpdateEmail(
                 email.getAddress(),
-                email.getCustomerName(),
+                email.getCustomerNumber(),
                 email.getId(),
                 email.isPrimary(),
                 email.getOtherType(),
@@ -67,10 +70,45 @@ public class CustomerEmailAdapter implements CustomerEmailGateway {
                 email.getType()
         );
         if(addEmail.send(connection).getWasSuccessful()) {
-            Retrieve retrieve = new Retrieve(addEmail.getId(), addEmail.getCustomer());
-            return mapMessageToEmail(retrieve);
+            Retrieve retrieve = new Retrieve(addEmail.getId(), email.getCustomerNumber());
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToEmail(retrieve);
+            }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public CustomerSearchResult<Email> ListCustomerEmails(long page, String customerNumber, long page_size) throws IOException {
+        List list = new List(customerNumber, page, page_size);
+        if (!list.send(connection).getWasSuccessful()) {
+            return new CustomerSearchResult<>(
+                    java.util.List.of(),
+                    0,
+                    page
+            );
+        }
+
+        return new CustomerSearchResult<>(
+                mapItemsToEmailList(list),
+                list.getTotal(),
+                list.getPage()
+        );
+    }
+
+    private ArrayList<Email> mapItemsToEmailList(List list) {
+        ArrayList<Email> items = new ArrayList<>();
+        for (List.Item item : list.getItems()) {
+            Email email = new Email();
+            email.setId(item.getId());
+            email.setAddress(item.getAddress());
+            email.setPrimary("y".equalsIgnoreCase(item.getIsPrimary()));
+            email.setType(item.getType());
+            email.setCustomerNumber(list.getCustomerNumber());
+            email.setCustomerName(list.getCustomerName());
+            items.add(email);
+        }
+        return items;
     }
 
     private Optional<Email> mapMessageToEmail(Message message) throws IOException {

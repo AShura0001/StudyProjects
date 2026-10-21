@@ -8,6 +8,7 @@ import mainframe.client.Message;
 import mainframe.client.messages.customer.Create;
 import mainframe.client.messages.customer.Retrieve;
 import mainframe.client.messages.customer.Search;
+import mainframe.client.messages.customer.Update;
 import mainframe.client.messages.customer.UpdateStatus;
 
 import java.io.IOException;
@@ -53,6 +54,25 @@ public class CustomerAdapter implements CustomerGateway {
         );
         if (create.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(create.getNumber());
+            retrieve.send(connection);
+            return mapMessageToCustomer(retrieve);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Customer> updateCustomer(Customer customer) throws IOException {
+        Update update = new Update(
+                customer.get_dateOfBirth(),
+                customer.get_familyName(),
+                customer.get_firstName(),
+                customer.get_nationality(),
+                customer.get_number(),
+                customer.get_title()
+        );
+        if (update.send(connection).getWasSuccessful()) {
+            Retrieve retrieve = new Retrieve(customer.get_number());
+            retrieve.send(connection);
             return mapMessageToCustomer(retrieve);
         }
         return Optional.empty();

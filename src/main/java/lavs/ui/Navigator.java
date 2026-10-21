@@ -4,6 +4,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.Callback;
+
+import lavs.ui.component.SyncIndicator;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,12 +18,23 @@ import java.util.function.Consumer;
 public final class Navigator {
 
     private static Stage stage;
+    private static Callback<Class<?>, Object> controllerFactory = Navigator::defaultController;
+
+    /** Builds a controller the normal way, for screens that take no services yet. */
+    public static Object defaultController(Class<?> type) {
+        try {
+            return type.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Cannot create controller " + type.getName(), e);
+        }
+    }
 
     private Navigator() {
     }
 
-    public static void init(Stage primaryStage) {
+    public static void init(Stage primaryStage, Callback<Class<?>, Object> factory) {
         stage = primaryStage;
+        controllerFactory = Objects.requireNonNull(factory);
     }
 
     /** @param view file name under /lavs/ui/view without the extension, e.g. "login" */
@@ -37,11 +51,17 @@ public final class Navigator {
         URL url = Objects.requireNonNull(Navigator.class.getResource(path), "Missing FXML: " + path);
         try {
             FXMLLoader loader = new FXMLLoader(url);
+            loader.setControllerFactory(controllerFactory);
             Parent root = loader.load();
             init.accept(loader.getController());
+            if (LavsApp.context() != null) {
+                SyncIndicator.addTo(root, LavsApp.context().syncStatus());
+            }
             if (stage.getScene() == null) {
                 stage.setScene(new Scene(root));
             } else {
+                // Shortcuts belong to the screen that registered them, not to the shared scene.
+                stage.getScene().getAccelerators().clear();
                 stage.getScene().setRoot(root);
             }
         } catch (IOException e) {

@@ -1,5 +1,7 @@
 package lavs.ui.stub;
 
+import lavs.ui.service.LoanRecords;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -13,23 +15,7 @@ import java.util.Map;
  * purpose so callers must keep it off the JavaFX thread. The schedule is a
  * real amortisation of the sample loan so the numbers add up.
  */
-public class StubLoanService {
-
-    public record CoBorrower(String name, String customerNumber) {
-    }
-
-    public record ScheduleEntry(int number, String dueDate, String principal, String interest,
-                                String total, String status) {
-    }
-
-    public record LoanDetails(String loanNumber, String loanName, String loanAmount,
-                              String interestRate, String loanTerm, String startDate,
-                              String maturityDate, String monthlyPayment, String outstandingBalance,
-                              String statusText, int paymentsMade, int paymentsTotal,
-                              String totalPaid, String principalPaid, String interestPaid,
-                              String remainingBalance, String nextPaymentDue,
-                              List<CoBorrower> coBorrowers, List<ScheduleEntry> schedule) {
-    }
+public class StubLoanService implements LoanRecords {
 
     private record Sample(String loanNumber, String name, double amount, double rate, int months,
                           LocalDate start, List<CoBorrower> coBorrowers) {
@@ -100,6 +86,94 @@ public class StubLoanService {
         }
         if (!(number(loan.monthlyPayment()) > 0)) {
             errors.put("monthlyPayment", "Monthly payment must be greater than zero.");
+        }
+        return errors;
+    }
+
+    @Override
+    public Map<String, String> addCoBorrower(String loanNumber, String coBorrowerNumber, String type) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!coBorrowerNumber.matches("CUS-[0-9]+")) {
+            errors.put("coBorrowerNumber", "Customer ID must look like CUS-20481.");
+        }
+        if (!type.equalsIgnoreCase("Coborrower") && !type.equalsIgnoreCase("Co-borrower")
+                && !type.equalsIgnoreCase("Guarantor")) {
+            errors.put("type", "Type must be Co-borrower or Guarantor.");
+        }
+        return errors;
+    }
+
+    @Override
+    public Created createLoan(String customerNumber, NewLoan loan) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!(number(loan.principal()) > 0)) {
+            errors.put("principal", "Loan amount must be greater than zero.");
+        }
+        if (loan.rateType().isBlank()) {
+            errors.put("rateType", "Rate type is required.");
+        }
+        double rate = number(loan.rateAmount());
+        if (Double.isNaN(rate) || rate < 0 || rate > 100) {
+            errors.put("rateAmount", "Interest rate must be between 0 and 100.");
+        }
+        if (loan.rateFrequency().isBlank()) {
+            errors.put("rateFrequency", "Rate frequency is required.");
+        }
+        if (!(number(loan.paymentAmount()) > 0)) {
+            errors.put("paymentAmount", "Payment amount must be greater than zero.");
+        }
+        if (loan.paymentFrequency().isBlank()) {
+            errors.put("paymentFrequency", "Payment frequency is required.");
+        }
+        LocalDate start = date(loan.startDate());
+        LocalDate renewal = date(loan.renewalDate());
+        if (start == null) {
+            errors.put("startDate", "Start date must look like 2025-01-02.");
+        }
+        if (renewal == null) {
+            errors.put("renewalDate", "Renewal date must look like 2030-01-02.");
+        } else if (start != null && !renewal.isAfter(start)) {
+            errors.put("renewalDate", "Renewal date must be after the start date.");
+        }
+        return new Created(errors.isEmpty() ? "LN-5005" : null, errors);
+    }
+
+    @Override
+    public Map<String, String> savePayment(String loanNumber, PaymentDetails payment) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (date(payment.date()) == null) {
+            errors.put("date", "Due date must look like 2025-01-09.");
+        }
+        if (!(number(payment.amount()) > 0)) {
+            errors.put("amount", "Amount must be greater than zero.");
+        }
+        return errors;
+    }
+
+    @Override
+    public ScheduleTerms scheduleTerms(String loanNumber) {
+        LoanDetails loan = details(loanNumber);
+        if (loan == null) {
+            return null;
+        }
+        return new ScheduleTerms(loan.monthlyPayment().replace("$", "").replace(",", ""), "Monthly", loan.maturityDate());
+    }
+
+    @Override
+    public Map<String, String> saveScheduleTerms(String loanNumber, ScheduleTerms terms) {
+        pause();
+        Map<String, String> errors = new LinkedHashMap<>();
+        if (!(number(terms.paymentAmount()) > 0)) {
+            errors.put("paymentAmount", "Payment amount must be greater than zero.");
+        }
+        if (terms.paymentFrequency().isBlank()) {
+            errors.put("paymentFrequency", "Payment frequency is required.");
+        }
+        if (date(terms.renewalDate()) == null) {
+            errors.put("renewalDate", "Renewal date must look like 2030-01-02.");
         }
         return errors;
     }

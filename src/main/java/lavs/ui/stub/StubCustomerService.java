@@ -1,5 +1,7 @@
 package lavs.ui.stub;
 
+import lavs.ui.service.CustomerDirectory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -8,10 +10,7 @@ import java.util.Locale;
  * Temporary stand-in for the business layer's CustomerService. Blocking on
  * purpose so callers must keep it off the JavaFX thread.
  */
-public class StubCustomerService {
-
-    public record Match(String name, String customerNumber) {
-    }
+public class StubCustomerService implements CustomerDirectory {
 
     public static final int TOTAL_CUSTOMERS = 6767;
 
@@ -60,17 +59,6 @@ public class StubCustomerService {
         return DIRECTORY.subList(from, to);
     }
 
-    public record Employer(String name, String id) {
-    }
-
-    public record Loan(String name, String date, String loanNumber) {
-    }
-
-    public record Details(String customerNumber, String firstName, String lastName, String phone,
-                          String email, String addressLine1, String addressLine2, String notes,
-                          List<Employer> employers, List<Loan> loans) {
-    }
-
     /** Returns sample details for any customer number found in the directory, or null. */
     public Details details(String customerNumber) {
         if (!pause()) {
@@ -90,11 +78,11 @@ public class StubCustomerService {
         return new Details(match.customerNumber(), first, last, "+64 21 555 0142",
                 handle + "@example.com", "14 Karaka Street", "Newmarket, Auckland 1023",
                 "Prefers contact by email. Mortgage review due in March.",
-                List.of(new Employer("Sarah Jenkins", "CMP-1001"),
-                        new Employer("Michael Torres", "CMP-1002"),
-                        new Employer("Priya Sharma", "CMP-1003"),
-                        new Employer("David Kim", "CMP-1004"),
-                        new Employer("Emily Chen", "CMP-1005")),
+                List.of(employerRow(customerNumber, "Sarah Jenkins", "CMP-1001"),
+                        employerRow(customerNumber, "Michael Torres", "CMP-1002"),
+                        employerRow(customerNumber, "Priya Sharma", "CMP-1003"),
+                        employerRow(customerNumber, "David Kim", "CMP-1004"),
+                        employerRow(customerNumber, "Emily Chen", "CMP-1005")),
                 List.of(new Loan("Home Mortgage", "2023-01-15", "LN-5001"),
                         new Loan("Auto Loan", "2024-03-22", "LN-5002"),
                         new Loan("Personal Loan", "2024-08-10", "LN-5003"),
@@ -124,6 +112,88 @@ public class StubCustomerService {
             errors.put("addressLine1", "Address line 1 is required.");
         }
         return errors;
+    }
+
+    @Override
+    public Registration register(NewCustomer form) {
+        pause();
+        java.util.Map<String, String> errors = new java.util.LinkedHashMap<>();
+        if (form.title().isBlank()) {
+            errors.put("title", "Title is required.");
+        }
+        if (form.firstName().isBlank()) {
+            errors.put("firstName", "First name is required.");
+        }
+        if (form.lastName().isBlank()) {
+            errors.put("lastName", "Last name is required.");
+        }
+        try {
+            if (java.time.LocalDate.parse(form.dateOfBirth()).isAfter(java.time.LocalDate.now())) {
+                errors.put("dateOfBirth", "Date of birth cannot be in the future.");
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            errors.put("dateOfBirth", "Date of birth must look like 1990-04-23.");
+        }
+        if (form.nationality().isBlank()) {
+            errors.put("nationality", "Nationality is required.");
+        }
+        return new Registration(errors.isEmpty() ? "CUS-" + (20481 + TOTAL_CUSTOMERS) : null, errors);
+    }
+
+    private static Employer employerRow(String customerNumber, String name, String id) {
+        EmployerDetails edited = EDITED_EMPLOYERS.get(customerNumber + "/" + id);
+        return new Employer(edited == null ? name : edited.name(), id);
+    }
+
+    private static final java.util.Map<String, EmployerDetails> EDITED_EMPLOYERS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<String, byte[]> PHOTOS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @Override
+    public EmployerDetails employer(String customerNumber, String employerId) {
+        pause();
+        EmployerDetails edited = EDITED_EMPLOYERS.get(customerNumber + "/" + employerId);
+        if (edited != null) {
+            return edited;
+        }
+        Details sample = details(customerNumber);
+        if (sample == null) {
+            return null;
+        }
+        return sample.employers().stream().filter(e -> e.id().equals(employerId)).findFirst()
+                .map(e -> new EmployerDetails(e.id(), e.name(), "Senior Analyst", "85000.00"))
+                .orElse(null);
+    }
+
+    @Override
+    public java.util.Map<String, String> saveEmployer(String customerNumber, EmployerDetails employer) {
+        pause();
+        java.util.Map<String, String> errors = new java.util.LinkedHashMap<>();
+        if (employer.name().isBlank()) {
+            errors.put("name", "Employer name is required.");
+        }
+        try {
+            if (!employer.salary().isBlank() && Double.parseDouble(employer.salary().replace(",", "")) < 0) {
+                errors.put("salary", "Salary cannot be negative.");
+            }
+        } catch (NumberFormatException e) {
+            errors.put("salary", "Salary must be a number such as 85000.00.");
+        }
+        if (errors.isEmpty()) {
+            EDITED_EMPLOYERS.put(customerNumber + "/" + employer.id(), employer);
+        }
+        return errors;
+    }
+
+    @Override
+    public byte[] photo(String customerNumber) {
+        pause();
+        return PHOTOS.get(customerNumber);
+    }
+
+    @Override
+    public void savePhoto(String customerNumber, byte[] image) {
+        pause();
+        PHOTOS.put(customerNumber, image);
     }
 
     private boolean pause() {

@@ -10,11 +10,14 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Control;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -28,7 +31,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
-import lavs.ui.stub.StubLoanService;
+import lavs.ui.LavsApp;
+import lavs.ui.component.Inputs;
+import lavs.ui.service.LoanRecords;
+import lavs.ui.service.NotSupportedYetException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -53,7 +59,7 @@ public class LoanDetailsController {
     @FXML private TextField loanAmountField;
     @FXML private TextField interestRateField;
     @FXML private TextField loanTermField;
-    @FXML private TextField startDateField;
+    @FXML private DatePicker startDateField;
     @FXML private TextField maturityDateField;
     @FXML private TextField monthlyPaymentField;
     @FXML private TextField outstandingBalanceField;
@@ -75,13 +81,16 @@ public class LoanDetailsController {
     @FXML private Node editActions;
     @FXML private Label noticeLabel;
 
-    private final StubLoanService loanService = new StubLoanService();
-    private final Map<String, TextField> fields = new LinkedHashMap<>();
+    private final LoanRecords loanService = LavsApp.context().loans();
+    private final Map<String, Control> fields = new LinkedHashMap<>();
+    /** The only fields typed into; the rest are worked out from the loan and stay read-only. */
+    private static final java.util.Set<String> EDITABLE = java.util.Set.of("loanName", "loanAmount", "startDate");
     private Runnable onBack = () -> Navigator.show("customersearch");
 
-    private StubLoanService.LoanDetails details;
-    private List<StubLoanService.CoBorrower> workingCoBorrowers = new ArrayList<>();
+    private LoanRecords.LoanDetails details;
+    private List<LoanRecords.CoBorrower> workingCoBorrowers = new ArrayList<>();
     private boolean editing;
+    private boolean busy;
 
     @FXML
     private void initialize() {
@@ -98,6 +107,16 @@ public class LoanDetailsController {
         fields.put("interestPaid", interestPaidField);
         fields.put("remainingBalance", remainingBalanceField);
         fields.put("nextPaymentDue", nextPaymentDueField);
+
+        Inputs.number(loanAmountField, 2);
+        Inputs.date(startDateField);
+        Tooltip scheduleTip = new Tooltip("Change this with Edit schedule.");
+        Tooltip workedOutTip = new Tooltip("Worked out from the loan's figures.");
+        fields.forEach((key, field) -> {
+            if (!EDITABLE.contains(key)) {
+                field.setTooltip(key.equals("maturityDate") || key.equals("monthlyPayment") ? scheduleTip : workedOutTip);
+            }
+        });
 
         setShown(noticeLabel, false);
         setShown(progress, false);
@@ -120,9 +139,9 @@ public class LoanDetailsController {
         loanIdLabel.setText(loanNumber);
         setBusy(true);
 
-        Task<StubLoanService.LoanDetails> task = new Task<>() {
+        Task<LoanRecords.LoanDetails> task = new Task<>() {
             @Override
-            protected StubLoanService.LoanDetails call() {
+            protected LoanRecords.LoanDetails call() {
                 return loanService.details(loanNumber);
             }
         };
@@ -146,19 +165,19 @@ public class LoanDetailsController {
 
     /** Puts the form, schedule and co-borrowers back to the last saved values. */
     private void revert() {
-        loanNameField.setText(details.loanName());
-        loanAmountField.setText(details.loanAmount());
-        interestRateField.setText(details.interestRate());
-        loanTermField.setText(details.loanTerm());
-        startDateField.setText(details.startDate());
-        maturityDateField.setText(details.maturityDate());
-        monthlyPaymentField.setText(details.monthlyPayment());
-        outstandingBalanceField.setText(details.outstandingBalance());
-        totalPaidField.setText(details.totalPaid());
-        principalPaidField.setText(details.principalPaid());
-        interestPaidField.setText(details.interestPaid());
-        remainingBalanceField.setText(details.remainingBalance());
-        nextPaymentDueField.setText(details.nextPaymentDue());
+        Inputs.setValue(loanNameField, details.loanName());
+        Inputs.setValue(loanAmountField, details.loanAmount());
+        Inputs.setValue(interestRateField, details.interestRate());
+        Inputs.setValue(loanTermField, details.loanTerm());
+        Inputs.setValue(startDateField, details.startDate());
+        Inputs.setValue(maturityDateField, details.maturityDate());
+        Inputs.setValue(monthlyPaymentField, details.monthlyPayment());
+        Inputs.setValue(outstandingBalanceField, details.outstandingBalance());
+        Inputs.setValue(totalPaidField, details.totalPaid());
+        Inputs.setValue(principalPaidField, details.principalPaid());
+        Inputs.setValue(interestPaidField, details.interestPaid());
+        Inputs.setValue(remainingBalanceField, details.remainingBalance());
+        Inputs.setValue(nextPaymentDueField, details.nextPaymentDue());
 
         statusLabel.setText(details.statusText());
         int percent = details.paymentsTotal() == 0 ? 0
@@ -178,8 +197,8 @@ public class LoanDetailsController {
         return details != null && !details.equals(readForm());
     }
 
-    private StubLoanService.LoanDetails readForm() {
-        return new StubLoanService.LoanDetails(details.loanNumber(),
+    private LoanRecords.LoanDetails readForm() {
+        return new LoanRecords.LoanDetails(details.loanNumber(),
                 text(loanNameField), text(loanAmountField), text(interestRateField),
                 text(loanTermField), text(startDateField), text(maturityDateField),
                 text(monthlyPaymentField), text(outstandingBalanceField),
@@ -189,8 +208,8 @@ public class LoanDetailsController {
                 List.copyOf(workingCoBorrowers), details.schedule());
     }
 
-    private static String text(TextField field) {
-        return field.getText().trim();
+    private static String text(Control field) {
+        return Inputs.valueOf(field);
     }
 
     private void renderSchedule() {
@@ -199,13 +218,13 @@ public class LoanDetailsController {
         if (details == null) {
             return;
         }
-        for (StubLoanService.ScheduleEntry entry : details.schedule()) {
+        for (LoanRecords.ScheduleEntry entry : details.schedule()) {
             scheduleBox.getChildren().add(scheduleRow(entry));
         }
     }
 
     /** A null entry builds the header row. */
-    private GridPane scheduleRow(StubLoanService.ScheduleEntry entry) {
+    private GridPane scheduleRow(LoanRecords.ScheduleEntry entry) {
         boolean header = entry == null;
         GridPane row = new GridPane();
         row.getStyleClass().add(header ? "schedule-header-row" : "schedule-row");
@@ -242,7 +261,7 @@ public class LoanDetailsController {
             } else {
                 Button edit = new Button("Edit");
                 edit.getStyleClass().add("btn-edit-chip");
-                edit.setOnAction(e -> showNotice("Editing a payment has not been built yet."));
+                edit.setOnAction(e -> openPaymentEditor(entry));
                 row.add(edit, values.length, 0);
             }
         }
@@ -257,17 +276,32 @@ public class LoanDetailsController {
         };
     }
 
+    private void openPaymentEditor(LoanRecords.ScheduleEntry entry) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<EditPaymentController>show("editpayment",
+                p -> p.open(loanNumber, entry.number(), entry.dueDate(), entry.total(), reopen, reopen));
+    }
+
+    private Runnable reopenLoan(String loanNumber) {
+        Runnable backFromLoan = onBack;
+        return () -> Navigator.<LoanDetailsController>show("loandetails", l -> l.open(loanNumber, backFromLoan));
+    }
+
     private void renderCoBorrowers() {
         coBorrowersBox.getChildren().clear();
         if (details == null) {
             return;
         }
-        for (StubLoanService.CoBorrower coBorrower : workingCoBorrowers) {
+        for (LoanRecords.CoBorrower coBorrower : workingCoBorrowers) {
             coBorrowersBox.getChildren().add(coBorrowerRow(coBorrower));
         }
     }
 
-    private Node coBorrowerRow(StubLoanService.CoBorrower coBorrower) {
+    private Node coBorrowerRow(LoanRecords.CoBorrower coBorrower) {
         Label name = new Label(coBorrower.name());
         name.getStyleClass().add("cb-name");
         name.setMinWidth(82);
@@ -306,7 +340,7 @@ public class LoanDetailsController {
         return row;
     }
 
-    private void openCoBorrower(StubLoanService.CoBorrower coBorrower) {
+    private void openCoBorrower(LoanRecords.CoBorrower coBorrower) {
         if (!confirmDiscard()) {
             return;
         }
@@ -319,10 +353,11 @@ public class LoanDetailsController {
     /** Switches every editable part of the screen between view and edit mode. */
     private void applyMode(boolean edit) {
         editing = edit;
-        for (TextField field : fields.values()) {
-            field.setEditable(edit);
-            field.setFocusTraversable(edit);
-        }
+        fields.forEach((key, field) -> {
+            boolean editable = edit && EDITABLE.contains(key);
+            Inputs.setLocked(field, !editable);
+            toggleStyle(field, "derived", edit && !editable);
+        });
 
         toggleStyle(content, "editing", edit);
         toggleStyle(viewModeButton, "mode-selected", !edit);
@@ -349,7 +384,7 @@ public class LoanDetailsController {
 
     @FXML
     private void onEditMode() {
-        if (details != null && !editing) {
+        if (!busy && details != null && !editing) {
             showNotice("");
             applyMode(true);
         }
@@ -357,7 +392,7 @@ public class LoanDetailsController {
 
     @FXML
     private void onViewMode() {
-        if (editing && confirmDiscard()) {
+        if (!busy && editing && confirmDiscard()) {
             revert();
             applyMode(false);
         }
@@ -370,10 +405,15 @@ public class LoanDetailsController {
 
     @FXML
     private void onSave() {
-        if (!editing || details == null) {
+        if (busy || !editing || details == null) {
             return;
         }
-        StubLoanService.LoanDetails edited = readForm();
+        Map<String, String> badDates = Inputs.badDates(fields);
+        if (!badDates.isEmpty()) {
+            showFieldErrors(badDates);
+            return;
+        }
+        LoanRecords.LoanDetails edited = readForm();
         clearFieldErrors();
         setBusy(true);
 
@@ -398,16 +438,18 @@ public class LoanDetailsController {
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Your changes are still on screen.");
+            showNotice(e.getSource().getException() instanceof NotSupportedYetException
+                    ? e.getSource().getException().getMessage()
+                    : "Could not reach the mainframe. Your changes are still on screen.");
         });
 
         startWorker(task, "loan-save");
     }
 
     private void showFieldErrors(Map<String, String> errors) {
-        TextField first = null;
+        Control first = null;
         for (String key : errors.keySet()) {
-            TextField field = fields.get(key);
+            Control field = fields.get(key);
             if (field != null) {
                 toggleStyle(field, "field-error", true);
                 if (first == null) {
@@ -415,26 +457,38 @@ public class LoanDetailsController {
                 }
             }
         }
-        showNotice(String.join("  ", errors.values()));
+        showNotice(Inputs.notice(errors));
         if (first != null) {
             first.requestFocus();
         }
     }
 
     private void clearFieldErrors() {
-        for (TextField field : fields.values()) {
+        for (Control field : fields.values()) {
             toggleStyle(field, "field-error", false);
         }
     }
 
     @FXML
     private void onScheduleEdit() {
-        showNotice("Editing the repayment schedule has not been built yet.");
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<EditScheduleController>show("editschedule", s -> s.open(loanNumber, reopen, reopen));
     }
 
     @FXML
     private void onAddCoBorrower() {
-        showNotice("Adding a co-borrower has not been built yet.");
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable backFromLoan = onBack;
+        Runnable reopen = () -> Navigator.<LoanDetailsController>show("loandetails",
+                l -> l.open(loanNumber, backFromLoan));
+        Navigator.<AddCoBorrowerController>show("addcoborrower", a -> a.open(loanNumber, reopen, reopen));
     }
 
     @FXML
@@ -447,6 +501,7 @@ public class LoanDetailsController {
     @FXML
     private void onLogout() {
         if (confirmDiscard()) {
+            LavsApp.context().logout();
             Navigator.show("loggedout");
         }
     }
@@ -484,6 +539,7 @@ public class LoanDetailsController {
     }
 
     private void setBusy(boolean busy) {
+        this.busy = busy;
         setShown(progress, busy);
         content.setOpacity(busy ? 0.35 : 1.0);
         content.setDisable(busy);

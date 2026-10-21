@@ -16,8 +16,13 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 
+import lavs.business.model.AuthResult;
+import lavs.business.service.AuthService;
 import lavs.ui.Navigator;
-import lavs.ui.stub.StubAuthService;
+
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controller for the login screen.
@@ -28,6 +33,8 @@ import lavs.ui.stub.StubAuthService;
  */
 public class LoginController {
 
+    private static final Logger LOGGER = Logger.getLogger(LoginController.class.getName());
+
     @FXML private VBox card;
     @FXML private TextField employeeIdField;
     @FXML private PasswordField passwordField;
@@ -35,7 +42,13 @@ public class LoginController {
     @FXML private ProgressIndicator progress;
     @FXML private Label messageLabel;
 
-    private final StubAuthService authService = new StubAuthService();
+    private final AuthService authService;
+    private final Runnable onLoggedIn;
+
+    public LoginController(AuthService authService, Runnable onLoggedIn) {
+        this.authService = Objects.requireNonNull(authService, "authService must not be null");
+        this.onLoggedIn = Objects.requireNonNull(onLoggedIn, "onLoggedIn must not be null");
+    }
 
     @FXML
     private void initialize() {
@@ -79,17 +92,18 @@ public class LoginController {
             return;
         }
 
-        Task<StubAuthService.Result> task = new Task<>() {
+        Task<AuthResult> task = new Task<>() {
             @Override
-            protected StubAuthService.Result call() {
+            protected AuthResult call() {
                 return authService.login(employeeId, password);
             }
         };
 
         task.setOnSucceeded(event -> {
             setBusy(false);
-            StubAuthService.Result result = task.getValue();
+            AuthResult result = task.getValue();
             if (result.success()) {
+                onLoggedIn.run();
                 Navigator.show("customersearch");
             } else {
                 showMessage(result.message(), true);
@@ -100,6 +114,7 @@ public class LoginController {
 
         task.setOnFailed(event -> {
             setBusy(false);
+            LOGGER.log(Level.SEVERE, "Login failed unexpectedly", task.getException());
             showMessage("Could not reach the mainframe. Try again.", true);
         });
 

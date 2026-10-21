@@ -18,8 +18,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 
 import lavs.ui.Navigator;
+import lavs.ui.LavsApp;
 import lavs.ui.component.CustomerRows;
-import lavs.ui.stub.StubCustomerService;
+import lavs.ui.service.CustomerDirectory;
 
 import java.util.List;
 import java.util.Locale;
@@ -39,8 +40,8 @@ public class SearchResultsController {
     @FXML private Button nextButton;
     @FXML private Label noticeLabel;
 
-    private final StubCustomerService customerService = new StubCustomerService();
-    private List<StubCustomerService.Match> matches = List.of();
+    private final CustomerDirectory customerService = LavsApp.context().customers();
+    private List<CustomerDirectory.Match> matches = List.of();
     private int page;
 
     @FXML
@@ -61,11 +62,11 @@ public class SearchResultsController {
     }
 
     /** Called by the previous screen before this one is displayed. */
-    public void show(String term, List<StubCustomerService.Match> results) {
+    public void show(String term, List<CustomerDirectory.Match> results) {
         show(term, results, 0);
     }
 
-    public void show(String term, List<StubCustomerService.Match> results, int pageIndex) {
+    public void show(String term, List<CustomerDirectory.Match> results, int pageIndex) {
         searchField.setText(term);
         matches = results;
         page = pageIndex;
@@ -74,7 +75,7 @@ public class SearchResultsController {
 
     private void openDetails(String customerNumber) {
         String term = searchField.getText();
-        List<StubCustomerService.Match> shown = matches;
+        List<CustomerDirectory.Match> shown = matches;
         int returnPage = page;
         Navigator.<CustomerDetailsController>show("customerdetails", c -> c.open(customerNumber,
                 () -> Navigator.<SearchResultsController>show("searchresults", r -> r.show(term, shown, returnPage))));
@@ -100,7 +101,7 @@ public class SearchResultsController {
         tableBox.getChildren().setAll(CustomerRows.header());
         int from = page * PAGE_SIZE;
         int to = Math.min(from + PAGE_SIZE, total);
-        for (StubCustomerService.Match m : matches.subList(from, to)) {
+        for (CustomerDirectory.Match m : matches.subList(from, to)) {
             tableBox.getChildren().add(CustomerRows.customer(m.name(), m.customerNumber(),
                     () -> openDetails(m.customerNumber())));
         }
@@ -116,16 +117,16 @@ public class SearchResultsController {
             return;
         }
 
-        Task<List<StubCustomerService.Match>> task = new Task<>() {
+        Task<List<CustomerDirectory.Match>> task = new Task<>() {
             @Override
-            protected List<StubCustomerService.Match> call() {
+            protected List<CustomerDirectory.Match> call() {
                 return customerService.search(term);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            List<StubCustomerService.Match> found = task.getValue();
+            List<CustomerDirectory.Match> found = task.getValue();
             if (found.isEmpty()) {
                 Navigator.<CustomerSearchController>show("customersearch", c -> c.showNotFoundFor(term));
             } else {
@@ -169,12 +170,13 @@ public class SearchResultsController {
 
     @FXML
     private void onLogout() {
+        LavsApp.context().logout();
         Navigator.show("loggedout");
     }
 
     @FXML
     private void onRegister() {
-        showNotice("Customer registration has not been built yet.");
+        Navigator.show("registercustomer");
     }
 
     private void showNotice(String text) {

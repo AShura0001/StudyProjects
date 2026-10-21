@@ -1,13 +1,20 @@
 package lavs.infrastructure.mainframe;
 
+import lavs.business.model.Address;
 import lavs.business.model.CoBorrowerType;
+import lavs.business.model.Customer;
+import lavs.business.model.CustomerPayloads;
+import lavs.business.model.CustomerPayloads.CustomerContent;
 import lavs.business.model.CustomerReference;
 import lavs.business.model.CustomerReference.ExistingCustomer;
 import lavs.business.model.Draft;
+import lavs.business.model.Email;
+import lavs.business.model.Employer;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanPayloads;
 import lavs.business.model.LoanPayloads.CoBorrowerContent;
 import lavs.business.model.LoanPayloads.LoanContent;
+import lavs.business.model.PhoneNumber;
 import lavs.business.repository.DraftUploadGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.RecordRejectedException;
@@ -16,6 +23,10 @@ import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.StatusMessage;
+import mainframe.client.messages.customer.AddAddress;
+import mainframe.client.messages.customer.AddEmail;
+import mainframe.client.messages.customer.AddEmployer;
+import mainframe.client.messages.customer.AddPhoneNumber;
 import mainframe.client.messages.loan.AddCoborrower;
 import mainframe.client.messages.loan.Create;
 
@@ -78,7 +89,7 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         return switch (draft.getType()) {
             case LOAN -> uploadLoan(draft, parentNumbers);
             case COBORROWER -> uploadCoBorrower(draft, parentNumbers);
-            case CUSTOMER -> throw refused(CUSTOMER_NOT_SUPPORTED_MESSAGE);
+            case CUSTOMER -> uploadCustomer(draft);
         };
     }
 
@@ -91,7 +102,7 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         }
         String customerNumber = numberOf(content.customer(), parentNumbers, 0);
         LoanDetails details = content.details();
-        Create message = new Create(customerNumber,
+        mainframe.client.messages.loan.Create message = new mainframe.client.messages.loan.Create(customerNumber,
                 details.paymentAmount().doubleValue(), details.paymentFrequency(),
                 details.principal().doubleValue(), details.rateAmount().doubleValue(),
                 details.rateFrequency(), details.rateType(),
@@ -115,6 +126,40 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         AddCoborrower message = new AddCoborrower(coBorrowerNumber, loanNumber, typeName(content.type()));
         send(message);
         return requireNumber(String.valueOf(message.getId()));
+    }
+
+    private String uploadCustomer(Draft draft) {
+        CustomerContent content;
+        try {
+            content = CustomerPayloads.readCustomer(draft.getPayload());
+        } catch (IllegalArgumentException e) {
+            throw refused(UNREADABLE_DRAFT_MESSAGE);
+        }
+        Customer customer = content.customer();
+        mainframe.client.messages.customer.Create create = new mainframe.client.messages.customer.Create(
+            customer.get_dateOfBirth(), customer.get_familyName(),
+            customer.get_firstName(), customer.get_nationality(), customer.getOrganisation(),
+            customer.get_title());
+        send(create);
+        String customerNumber = requireNumber(create.getNumber());
+
+        for (Address a : content.addresses()) {
+            send(new AddAddress(a.getCity(), a.getCountry(), customerNumber, a.getIsMailing(), a.getIsPrimary(),
+                    a.getLine1(), a.getLine2(), a.getOtherType(), a.getPostCode(), a.getSuburb(), a.getType()));
+        }
+        for (PhoneNumber p : content.phoneNumbers()) {
+            send(new AddPhoneNumber(p.is_canTxt(), p.get_countryCode(), customerNumber, p.is_isPrimary(),
+                    p.get_number(), p.get_otherType(), p.get_type()));
+        }
+        for (Email e : content.emails()) {
+            send(new AddEmail(e.getAddress(), customerNumber, e.isPrimary(), e.getOtherType(), e.getType()));
+        }
+        for (Employer emp : content.employers()) {
+            send(new AddEmployer(customerNumber, emp.get_name(), emp.get_position(), emp.get_salary(),
+                    emp.get_type()));
+        }
+
+        return customerNumber;
     }
 
     private static String numberOf(CustomerReference customer, List<String> parentNumbers, int position) {

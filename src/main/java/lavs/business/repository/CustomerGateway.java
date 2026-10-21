@@ -35,6 +35,16 @@ public interface CustomerGateway {
     Optional<Customer> createCustomer(Customer customer) throws IOException;
 
     /**
+     * Updates an existing customer's own details (title, first name, surname,
+     * date of birth, nationality).
+     *
+     * @param customer the customer with updated fields, identified by its number
+     * @return An Optional wrap of a Customer if successful otherwise the Optional is empty
+     * @throws IOException
+     */
+    Optional<Customer> updateCustomer(Customer customer) throws IOException;
+
+    /**
      *
      * @param page  The current page of Customers to retrieve
      * @param searchTerm String search term
@@ -43,6 +53,8 @@ public interface CustomerGateway {
      * @throws IOException
      */
     CustomerSearchResult searchCustomer(long page, String searchTerm, long page_size) throws IOException;
+
+
 
 
 }
