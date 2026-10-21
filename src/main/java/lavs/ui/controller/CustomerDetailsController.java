@@ -22,36 +22,60 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.shape.Rectangle;
-import javafx.stage.FileChooser;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
+import lavs.business.model.Address;
+import lavs.business.model.ContactChanges;
+import lavs.business.model.Customer;
+import lavs.business.model.Email;
+import lavs.business.model.LoanListing;
+import lavs.business.model.Note;
+import lavs.business.model.PhoneNumber;
+import lavs.business.service.CustomerService;
+import lavs.business.service.LoanAccountService;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.Choices;
+import lavs.ui.component.Format;
 import lavs.ui.component.Inputs;
 import lavs.ui.component.NotesPaper;
-import lavs.ui.service.CustomerDirectory;
-import lavs.ui.service.NotSupportedYetException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Customer Details with a view mode and an edit mode. Edit changes are held in
- * the form until Save; Cancel (or leaving) discards them after confirmation.
+ * Customer Details with a view mode and an edit mode. Reads through CustomerService
+ * and LoanAccountService and saves through CustomerService.saveContactChanges.
+ * Edit changes are held in the form until Save; Cancel (or leaving) discards them
+ * after confirmation. Every address is listed; addresses are added and changed on
+ * their own form, and removed here in edit mode (applied on Save). Notes are shown
+ * but cannot be changed here yet.
  */
 public class CustomerDetailsController {
+
+    /** What the screen shows, taken from the business models. */
+    private record Details(String customerNumber, String firstName, String lastName,
+                           String phoneCode, String phoneNumber, String email, String notes,
+                           List<AddressRow> addresses, List<EmployerRow> employers, List<LoanListing> loans) {
+    }
+
+    private record EmployerRow(long id, String name) {
+    }
+
+    /** One address: its street line, the rest of it, its type, and its flags. */
+    private record AddressRow(long id, String street, String place, String type, boolean primary, boolean mailing) {
+    }
+
+    private static final String DEFAULT_PHONE_CODE = "+64";
+    private static final java.util.regex.Pattern PHONE_DIGITS = java.util.regex.Pattern.compile("[0-9 ()-]{0,20}");
 
     @FXML private BorderPane root;
     @FXML private Node content;
@@ -62,8 +86,7 @@ public class CustomerDetailsController {
     @FXML private ComboBox<String> phoneCodeBox;
     @FXML private TextField phoneField;
     @FXML private TextField emailField;
-    @FXML private TextField addressLine1Field;
-    @FXML private TextField addressLine2Field;
+    @FXML private VBox addressesBox;
     @FXML private TextArea notesArea;
     @FXML private VBox employersBox;
     @FXML private VBox loansBox;
@@ -75,20 +98,17 @@ public class CustomerDetailsController {
     @FXML private StackPane photoCard;
     @FXML private StackPane avatarBox;
 
-    private final CustomerDirectory customerService = LavsApp.context().customers();
+    private final CustomerService customers = LavsApp.context().customers();
+    private final LoanAccountService loanAccounts = LavsApp.context().loanAccounts();
     private Runnable onBack = () -> Navigator.show("customersearch");
 
-    private CustomerDirectory.Details details;
-    private List<CustomerDirectory.Employer> workingEmployers = new ArrayList<>();
+    private Details details;
+    private List<EmployerRow> workingEmployers = new ArrayList<>();
+    private List<AddressRow> workingAddresses = new ArrayList<>();
     private boolean editing;
-    private ImageView photoView;
-    private byte[] savedPhoto;
-    private byte[] pendingPhoto;
     private boolean busy;
     /** Lets the phone field show a stored number exactly, even one the edit filter would refuse. */
     private boolean settingPhone;
-
-    private static final java.util.regex.Pattern PHONE_DIGITS = java.util.regex.Pattern.compile("[0-9 ()-]{0,20}");
 
     @FXML
     private void initialize() {
@@ -117,15 +137,17 @@ public class CustomerDetailsController {
     public void open(String customerNumber, Runnable back) {
         onBack = back;
         customerIdLabel.setText(customerNumber);
-        setBusy(true);
+        load(customerNumber, "");
+    }
 
-        Task<CustomerDirectory.Details> task = new Task<>() {
+    private void load(String customerNumber, String noticeWhenDone) {
+        setBusy(true);
+        Task<Details> task = new Task<>() {
             @Override
-            protected CustomerDirectory.Details call() {
-                return customerService.details(customerNumber);
+            protected Details call() throws Exception {
+                return read(customerNumber);
             }
         };
-
         task.setOnSucceeded(e -> {
             setBusy(false);
             details = task.getValue();
@@ -133,77 +155,208 @@ public class CustomerDetailsController {
                 showNotice("Could not find customer " + customerNumber + ".");
             } else {
                 revert();
-                loadPhoto(customerNumber);
+                showNotice(noticeWhenDone);
             }
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Try again.");
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
         });
-
         startWorker(task, "customer-details");
     }
 
-    /** Puts the form, notes and employer list back to the last saved values. */
+    /** Runs off the JavaFX thread: everything the screen shows, from the business services. */
+    private Details read(String customerNumber) throws Exception {
+        Optional<Customer> found = customers.getCustomer(customerNumber);
+        if (found.isEmpty()) {
+            return null;
+        }
+        Customer customer = found.get();
+        PhoneNumber phone = customers.primaryPhone(customerNumber).orElse(null);
+        Email email = customers.primaryEmail(customerNumber).orElse(null);
+        List<AddressRow> addresses = customers.listAddressesInFull(customerNumber).stream()
+                .map(CustomerDetailsController::addressRow)
+                .toList();
+        List<EmployerRow> employers = customers.listEmployers(customerNumber).stream()
+                .map(e -> new EmployerRow(e.get_id(), e.get_name() == null || e.get_name().isBlank() ? "Employer" : e.get_name()))
+                .toList();
+        String notes = customers.listNotes(customerNumber).stream()
+                .map(Note::get_lines)
+                .filter(Objects::nonNull)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.joining("\n"));
+        return new Details(customerNumber, Format.text(customer.get_firstName()), Format.text(customer.get_familyName()),
+                phone == null ? "" : Format.text(phone.get_countryCode()),
+                phone == null ? "" : Format.text(phone.get_number()),
+                email == null ? "" : Format.text(email.getAddress()),
+                notes, addresses, employers, loanAccounts.loansOf(customerNumber));
+    }
+
+    private static AddressRow addressRow(Address address) {
+        String street = joined(", ", address.getLine1(), address.getLine2());
+        String place = joined(", ", address.getSuburb(), joined(" ", address.getCity(), address.getPostCode()),
+                address.getCountry());
+        String type = Format.text(address.getType());
+        if ("Other".equalsIgnoreCase(type) && !Format.text(address.getOtherType()).isEmpty()) {
+            type = Format.text(address.getOtherType());
+        }
+        return new AddressRow(address.getId(), street.isEmpty() ? "(no street line)" : street, place, type,
+                Boolean.TRUE.equals(address.getIsPrimary()), Boolean.TRUE.equals(address.getIsMailing()));
+    }
+
+    private static String joined(String separator, String... parts) {
+        return Stream.of(parts)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(p -> !p.isEmpty())
+                .collect(Collectors.joining(separator));
+    }
+
+    /** Puts the form, notes and employer list back to the last loaded values. */
     private void revert() {
         firstNameField.setText(details.firstName());
         lastNameField.setText(details.lastName());
         showPhone();
         emailField.setText(details.email());
-        addressLine1Field.setText(details.addressLine1());
-        addressLine2Field.setText(details.addressLine2());
         notesArea.setText(details.notes());
         workingEmployers = new ArrayList<>(details.employers());
+        workingAddresses = new ArrayList<>(details.addresses());
         clearFieldErrors();
+        renderAddresses();
         renderEmployers();
         renderLoans();
-        pendingPhoto = null;
-        showPhoto(savedPhoto);
     }
 
     private boolean isDirty() {
-        return details != null && (pendingPhoto != null || !details.equals(readForm()));
+        return details != null && !details.equals(readForm());
     }
 
-    private CustomerDirectory.Details readForm() {
-        return new CustomerDirectory.Details(details.customerNumber(),
+    private Details readForm() {
+        String code = editing ? phoneCodeBox.getValue() : details.phoneCode();
+        String number = editing ? phoneField.getText().trim() : details.phoneNumber();
+        if (editing && details.phoneNumber().isEmpty() && number.isEmpty()) {
+            code = details.phoneCode();
+        }
+        return new Details(details.customerNumber(),
                 firstNameField.getText().trim(), lastNameField.getText().trim(),
-                phoneText(), emailField.getText().trim(),
-                addressLine1Field.getText().trim(), addressLine2Field.getText().trim(),
-                notesArea.getText(), List.copyOf(workingEmployers), details.loans());
+                code == null ? "" : code, number, emailField.getText().trim(), details.notes(),
+                List.copyOf(workingAddresses), List.copyOf(workingEmployers), details.loans());
+    }
+
+    private void renderAddresses() {
+        addressesBox.getChildren().clear();
+        if (workingAddresses.isEmpty()) {
+            Label none = new Label("No addresses yet.");
+            none.getStyleClass().add("list-item-sub");
+            addressesBox.getChildren().add(none);
+        }
+        for (AddressRow address : workingAddresses) {
+            addressesBox.getChildren().add(addressItem(address));
+        }
+    }
+
+    /** Street line, then place and type with Primary / Mailing tags; in edit mode, remove and Edit. */
+    private Node addressItem(AddressRow address) {
+        Label street = new Label(address.street());
+        street.getStyleClass().add("list-item-title");
+        HBox tags = new HBox(4);
+        tags.setAlignment(Pos.CENTER_LEFT);
+        Label place = new Label(joined("  •  ", address.place(), address.type()));
+        place.getStyleClass().add("list-item-sub");
+        tags.getChildren().add(place);
+        if (address.primary()) {
+            tags.getChildren().add(tag("PRIMARY", "address-tag"));
+        }
+        if (address.mailing()) {
+            tags.getChildren().add(tag("MAILING", "address-tag-mailing"));
+        }
+        VBox text = new VBox(1, street, tags);
+        text.getStyleClass().add("list-item");
+        if (!editing) {
+            return text;
+        }
+
+        Button remove = new Button();
+        remove.getStyleClass().add("btn-remove");
+        SVGPath cross = new SVGPath();
+        cross.setContent("M5 5 L19 19 M19 5 L5 19");
+        cross.getStyleClass().add("remove-icon");
+        remove.setGraphic(cross);
+        remove.setOnAction(e -> {
+            workingAddresses.remove(address);
+            renderAddresses();
+        });
+
+        Button edit = new Button("Edit");
+        edit.getStyleClass().add("btn-edit-chip");
+        edit.setOnAction(e -> openAddressEditor(address.id()));
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox row = new HBox(6, text, spacer, remove, edit);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("list-row");
+        return row;
+    }
+
+    private static Label tag(String text, String style) {
+        Label tag = new Label(text);
+        tag.getStyleClass().addAll("address-tag", style);
+        return tag;
+    }
+
+    @FXML
+    private void onAddAddress() {
+        if (details != null) {
+            openAddressEditor(null);
+        }
+    }
+
+    /** @param addressId the address to change, or null to add one */
+    private void openAddressEditor(Long addressId) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Runnable reopen = () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                c -> c.open(customerNumber, backFromCustomer));
+        Navigator.<EditAddressController>show("editaddress",
+                a -> a.open(customerNumber, addressId, reopen, reopen));
     }
 
     private void renderEmployers() {
         employersBox.getChildren().clear();
-        for (CustomerDirectory.Employer employer : workingEmployers) {
+        for (EmployerRow employer : workingEmployers) {
             employersBox.getChildren().add(employerItem(employer));
         }
     }
 
     private void renderLoans() {
         loansBox.getChildren().clear();
-        for (CustomerDirectory.Loan loan : details.loans()) {
-            VBox item = listItem(loan.name(), loan.date() + "  •  " + loan.loanNumber());
+        for (LoanListing loan : details.loans()) {
+            VBox item = listItem(Format.loanName(loan.loanNumber()),
+                    Format.date(loan.startDate()) + "  •  " + loan.loanNumber());
             Hyperlink link = new Hyperlink("Click here for further details");
             link.getStyleClass().add("list-item-link");
-            link.setOnAction(e -> openLoan(loan));
+            link.setOnAction(e -> openLoan(loan.loanNumber()));
             item.getChildren().add(link);
             loansBox.getChildren().add(item);
         }
     }
 
-    private void openLoan(CustomerDirectory.Loan loan) {
+    private void openLoan(String loanNumber) {
         if (!confirmDiscard()) {
             return;
         }
         String customerNumber = details.customerNumber();
         Runnable backFromCustomer = onBack;
-        Navigator.<LoanDetailsController>show("loandetails", l -> l.open(loan.loanNumber(),
+        Navigator.<LoanDetailsController>show("loandetails", l -> l.open(loanNumber,
                 () -> Navigator.<CustomerDetailsController>show("customerdetails",
                         c -> c.open(customerNumber, backFromCustomer))));
     }
 
-    private void openEmployerEditor(CustomerDirectory.Employer employer) {
+    private void openEmployerEditor(EmployerRow employer) {
         if (!confirmDiscard()) {
             return;
         }
@@ -212,7 +365,7 @@ public class CustomerDetailsController {
         Runnable reopen = () -> Navigator.<CustomerDetailsController>show("customerdetails",
                 c -> c.open(customerNumber, backFromCustomer));
         Navigator.<EditEmployerController>show("editemployer",
-                e -> e.open(customerNumber, employer.id(), reopen, reopen));
+                e -> e.open(customerNumber, String.valueOf(employer.id()), reopen, reopen));
     }
 
     private VBox listItem(String title, String subtitle) {
@@ -227,8 +380,8 @@ public class CustomerDetailsController {
     }
 
     /** In edit mode each employer row gains a remove and an Edit button. */
-    private Node employerItem(CustomerDirectory.Employer employer) {
-        VBox text = listItem(employer.name(), employer.id());
+    private Node employerItem(EmployerRow employer) {
+        VBox text = listItem(employer.name(), String.valueOf(employer.id()));
         if (!editing) {
             return text;
         }
@@ -259,13 +412,13 @@ public class CustomerDetailsController {
     /** Switches every editable part of the screen between view and edit mode. */
     private void applyMode(boolean edit) {
         editing = edit;
-        for (TextField field : List.of(firstNameField, lastNameField, phoneField, emailField,
-                addressLine1Field, addressLine2Field)) {
+        for (TextField field : List.of(firstNameField, lastNameField, phoneField, emailField)) {
             field.setEditable(edit);
             field.setFocusTraversable(edit);
         }
-        notesArea.setEditable(edit);
-        notesArea.setFocusTraversable(edit);
+        // Notes cannot be saved through the business layer yet.
+        notesArea.setEditable(false);
+        notesArea.setFocusTraversable(false);
         setShown(phoneCodeBox, edit);
         phoneCodeBox.setFocusTraversable(edit);
         showPhone();
@@ -273,10 +426,12 @@ public class CustomerDetailsController {
         toggleStyle(content, "editing", edit);
         toggleStyle(viewModeButton, "mode-selected", !edit);
         toggleStyle(editModeButton, "mode-selected", edit);
-        setShown(photoEditButton, edit);
+        // Photos have no business service behind them yet.
+        setShown(photoEditButton, false);
         setShown(editActions, edit);
         clearFieldErrors();
         if (details != null) {
+            renderAddresses();
             renderEmployers();
         }
         if (edit) {
@@ -289,37 +444,26 @@ public class CustomerDetailsController {
      * the country code goes in the drop-down and the rest in the number box.
      */
     private void showPhone() {
-        String phone = details == null ? "" : details.phone();
         settingPhone = true;
         try {
-            if (!editing) {
-                phoneField.setText(phone);
+            if (details == null) {
+                phoneField.setText("");
                 return;
             }
-            String code = "+64";
-            String number = phone;
-            if (phone.startsWith("+")) {
-                int space = phone.indexOf(' ');
-                code = space < 0 ? phone : phone.substring(0, space);
-                number = space < 0 ? "" : phone.substring(space + 1).trim();
-            } else if (!phone.isBlank()) {
-                code = null;
+            if (!editing) {
+                String code = details.phoneCode();
+                phoneField.setText(code.isEmpty() || details.phoneNumber().isEmpty()
+                        ? details.phoneNumber() : code + " " + details.phoneNumber());
+                return;
             }
+            String code = details.phoneCode().isEmpty()
+                    ? (details.phoneNumber().isEmpty() ? DEFAULT_PHONE_CODE : null)
+                    : details.phoneCode();
             Inputs.setValue(phoneCodeBox, code);
-            phoneField.setText(number);
+            phoneField.setText(details.phoneNumber());
         } finally {
             settingPhone = false;
         }
-    }
-
-    /** The phone as the services take it: "+64 21 555 0100", or just the number when no code is picked. */
-    private String phoneText() {
-        String number = phoneField.getText().trim();
-        if (!editing) {
-            return number;
-        }
-        String code = phoneCodeBox.getValue();
-        return number.isEmpty() || code == null ? number : code + " " + number;
     }
 
     private static void toggleStyle(Node node, String styleClass, boolean on) {
@@ -355,42 +499,43 @@ public class CustomerDetailsController {
         if (busy || !editing || details == null) {
             return;
         }
-        CustomerDirectory.Details edited = readForm();
-        byte[] photoToSave = pendingPhoto;
+        Details edited = readForm();
+        List<Long> removed = details.employers().stream()
+                .filter(e -> !edited.employers().contains(e))
+                .map(EmployerRow::id)
+                .toList();
+        List<Long> removedAddresses = details.addresses().stream()
+                .filter(a -> !edited.addresses().contains(a))
+                .map(AddressRow::id)
+                .toList();
+        ContactChanges changes = new ContactChanges(edited.customerNumber(), edited.firstName(), edited.lastName(),
+                edited.phoneCode(), edited.phoneNumber(), edited.email(), removed, removedAddresses);
         clearFieldErrors();
         setBusy(true);
 
-        Task<Map<String, String>> task = new Task<>() {
+        Task<Void> task = new Task<>() {
             @Override
-            protected Map<String, String> call() {
-                Map<String, String> errors = customerService.save(edited);
-                if (errors.isEmpty() && photoToSave != null) {
-                    customerService.savePhoto(edited.customerNumber(), photoToSave);
-                }
-                return errors;
+            protected Void call() throws Exception {
+                customers.saveContactChanges(changes);
+                return null;
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            Map<String, String> errors = task.getValue();
-            if (errors.isEmpty()) {
-                details = edited;
-                if (photoToSave != null) {
-                    savedPhoto = photoToSave;
-                }
-                revert();
-                applyMode(false);
-                showNotice("Changes saved.");
-            } else {
-                showFieldErrors(errors);
-            }
+            applyMode(false);
+            // Read back what the mainframe now holds.
+            load(edited.customerNumber(), "Changes saved.");
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice(e.getSource().getException() instanceof NotSupportedYetException
-                    ? e.getSource().getException().getMessage()
-                    : "Could not reach the mainframe. Your changes are still on screen.");
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, Map.of("firstName", "firstName", "familyName", "lastName",
+                        "phone", "phone", "email", "email", "addresses", "addresses")));
+            } else {
+                showNotice(Format.problem(error, "Could not reach the mainframe. Your changes are still on screen."));
+            }
         });
 
         startWorker(task, "customer-save");
@@ -399,93 +544,28 @@ public class CustomerDetailsController {
     private void showFieldErrors(Map<String, String> errors) {
         Map<String, TextField> fields = Map.of(
                 "firstName", firstNameField, "lastName", lastNameField, "phone", phoneField,
-                "email", emailField, "addressLine1", addressLine1Field, "addressLine2", addressLine2Field);
+                "email", emailField);
         for (String key : errors.keySet()) {
             TextField field = fields.get(key);
             if (field != null) {
                 toggleStyle(field, "field-error", true);
             }
         }
-        showNotice(String.join("  ", errors.values()));
-        errors.keySet().stream().map(fields::get).filter(java.util.Objects::nonNull).findFirst()
+        showNotice(Inputs.notice(errors));
+        errors.keySet().stream().map(fields::get).filter(Objects::nonNull).findFirst()
                 .ifPresent(TextField::requestFocus);
     }
 
     private void clearFieldErrors() {
-        for (TextField field : List.of(firstNameField, lastNameField, phoneField, emailField,
-                addressLine1Field, addressLine2Field)) {
+        for (TextField field : List.of(firstNameField, lastNameField, phoneField, emailField)) {
             toggleStyle(field, "field-error", false);
         }
     }
 
+    /** The photo button stays hidden: no business service stores photos yet. */
     @FXML
     private void onPhotoEdit() {
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("Choose a photo");
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp"));
-        java.io.File file = chooser.showOpenDialog(root.getScene().getWindow());
-        if (file == null) {
-            return;
-        }
-        try {
-            if (file.length() > 5_000_000) {
-                showNotice("That photo is larger than 5 MB. Choose a smaller one.");
-                return;
-            }
-            byte[] bytes = Files.readAllBytes(file.toPath());
-            if (new Image(new ByteArrayInputStream(bytes)).isError()) {
-                showNotice("That file could not be read as an image.");
-                return;
-            }
-            showNotice("");
-            pendingPhoto = bytes;
-            showPhoto(bytes);
-        } catch (IOException e) {
-            showNotice("That file could not be read.");
-        }
-    }
-
-    /** Shows the given image in the photo card, or the placeholder person when there is none. */
-    private void showPhoto(byte[] bytes) {
-        if (bytes == null) {
-            if (photoView != null) {
-                photoView.setVisible(false);
-            }
-            avatarBox.setVisible(true);
-            return;
-        }
-        if (photoView == null) {
-            photoView = new ImageView();
-            photoView.setPreserveRatio(true);
-            photoView.setFitWidth(150);
-            photoView.setFitHeight(150);
-            photoView.setMouseTransparent(true);
-            photoCard.getChildren().add(1, photoView);
-        }
-        Image image = new Image(new ByteArrayInputStream(bytes), 150, 150, true, true);
-        photoView.setImage(image);
-        Rectangle round = new Rectangle(image.getWidth(), image.getHeight());
-        round.setArcWidth(16);
-        round.setArcHeight(16);
-        photoView.setClip(round);
-        photoView.setVisible(true);
-        avatarBox.setVisible(false);
-    }
-
-    private void loadPhoto(String customerNumber) {
-        Task<byte[]> task = new Task<>() {
-            @Override
-            protected byte[] call() {
-                return customerService.photo(customerNumber);
-            }
-        };
-        task.setOnSucceeded(e -> {
-            savedPhoto = task.getValue();
-            if (pendingPhoto == null) {
-                showPhoto(savedPhoto);
-            }
-        });
-        startWorker(task, "customer-photo");
+        showNotice("Photos cannot be stored on the mainframe yet.");
     }
 
     @FXML

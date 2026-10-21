@@ -64,7 +64,7 @@
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
 
-            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" alignment="TOP_LEFT">
+            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" alignment="TOP_LEFT" maxWidth="1280">
 
                 <HBox fx:id="content" spacing="24">
                     <padding>
@@ -206,7 +206,7 @@
                                 <Insets top="18"/>
                             </VBox.margin>
                         </Label>
-                        <VBox styleClass="info-card" prefHeight="132" minHeight="132" maxHeight="132">
+                        <VBox styleClass="info-card" prefHeight="132" minHeight="132" maxHeight="360" VBox.vgrow="ALWAYS">
                             <VBox.margin>
                                 <Insets top="6"/>
                             </VBox.margin>

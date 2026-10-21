@@ -52,7 +52,7 @@
     </top>
 
     <center>
-        <VBox styleClass="page-fill" alignment="TOP_CENTER">
+        <VBox styleClass="page-fill" alignment="CENTER">
             <padding>
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>

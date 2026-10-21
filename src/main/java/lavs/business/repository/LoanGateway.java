@@ -1,5 +1,8 @@
 package lavs.business.repository;
 
+import lavs.business.model.LoanDetails;
+import lavs.business.model.LoanListing;
+import lavs.business.model.LoanRecord;
 import lavs.business.model.LoanSummary;
 import lavs.business.model.RepaymentEntry;
 
@@ -48,4 +51,33 @@ public interface LoanGateway {
      * @throws MainframeUnavailableException if the mainframe could not be reached
      */
     void submitForChecking(String loanNumber);
+
+    /**
+     * Lists every loan a customer owns.
+     *
+     * @param customerNumber the customer's number
+     * @return the loans, oldest page first; empty if the customer has none or does not exist
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     */
+    List<LoanListing> listLoans(String customerNumber);
+
+    /**
+     * Gets a loan's owner, status and terms.
+     *
+     * @param loanNumber the mainframe's number for the loan
+     * @return the loan, or empty if there is no such loan
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     */
+    Optional<LoanRecord> findLoan(String loanNumber);
+
+    /**
+     * Replaces a loan's terms.
+     *
+     * @param loanNumber the mainframe's number for the loan
+     * @param customerNumber the number of the customer who owns the loan
+     * @param terms the new terms
+     * @throws RecordRejectedException if the mainframe refused the change
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     */
+    void updateLoan(String loanNumber, String customerNumber, LoanDetails terms);
 }

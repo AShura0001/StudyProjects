@@ -8,6 +8,7 @@ import lavs.business.repository.LoanGateway;
 import lavs.business.service.BackgroundSync;
 import lavs.business.service.CustomerProfileSource;
 import lavs.business.service.CustomerRelationshipService;
+import lavs.business.service.LoanAccountService;
 import lavs.business.service.CustomerService;
 import lavs.business.service.DraftSyncService;
 import lavs.business.service.LoanService;
@@ -22,6 +23,9 @@ import lavs.infrastructure.mainframe.CustomerAdapter;
 import lavs.infrastructure.mainframe.CustomerAddressAdapter;
 import lavs.infrastructure.mainframe.CustomerEmailAdapter;
 import lavs.infrastructure.mainframe.CustomerEmployerAdapter;
+import lavs.infrastructure.mainframe.CustomerNoteAdapter;
+import lavs.infrastructure.mainframe.LoanCoBorrowerAdapter;
+import lavs.infrastructure.mainframe.LoanPaymentAdapter;
 import lavs.infrastructure.mainframe.CustomerPhoneNumberAdapter;
 import lavs.infrastructure.mainframe.CustomerRelationshipAdapter;
 import lavs.infrastructure.mainframe.LoanAdapter;
@@ -77,6 +81,7 @@ public final class AppServices implements AutoCloseable {
     private final LoanService loans;
     private final CustomerRelationshipService relationships;
     private final CustomerService customers;
+    private LoanAccountService loanAccounts;
 
     private AppServices(BackgroundSync sync, LoanService loans, CustomerRelationshipService relationships,
                         CustomerService customers) {
@@ -130,11 +135,14 @@ public final class AppServices implements AutoCloseable {
     public static AppServices forMainframe(Connection connection, Path draftsFolder, LoanValidator validator,
                                            SyncListener listener) {
         Gateways gateways = mainframeGateways(connection);
-        return start(draftsFolder, gateways, (repository, sync) -> new CustomerService(gateways.customers(),
+        AppServices services = start(draftsFolder, gateways, (repository, sync) -> new CustomerService(gateways.customers(),
                         new CustomerAddressAdapter(connection), new CustomerPhoneNumberAdapter(connection),
                         new CustomerEmailAdapter(connection), new CustomerEmployerAdapter(connection),
-                        new ValidationService(), repository, sync),
+                        new CustomerNoteAdapter(connection), new ValidationService(), repository, sync),
                 validator, listener, new ExecutorScheduler(), RetryPolicy.standard());
+        services.loanAccounts = new LoanAccountService(gateways.loans(), new LoanCoBorrowerAdapter(connection),
+                new LoanPaymentAdapter(connection), validator);
+        return services;
     }
 
     /**
@@ -245,6 +253,16 @@ public final class AppServices implements AutoCloseable {
      */
     public Optional<CustomerService> customers() {
         return Optional.ofNullable(customers);
+    }
+
+    /**
+     * Gets the service for loans already on the mainframe. It is built by
+     * {@link #forMainframe(Connection, Path, LoanValidator, SyncListener)}.
+     *
+     * @return the service, or empty when these services were started another way
+     */
+    public Optional<LoanAccountService> loanAccounts() {
+        return Optional.ofNullable(loanAccounts);
     }
 
     /** Stops the background work. Drafts already saved stay on disk. */

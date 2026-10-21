@@ -22,7 +22,9 @@ import lavs.ui.LavsApp;
 import lavs.ui.component.Choices;
 import lavs.ui.component.Inputs;
 import lavs.ui.Navigator;
-import lavs.ui.service.CustomerDirectory;
+import lavs.business.model.Customer;
+import lavs.business.service.CustomerService;
+import lavs.ui.component.Format;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,7 +43,7 @@ public class RegisterCustomerController {
     @FXML private ComboBox<String> nationalityField;
     @FXML private Label noticeLabel;
 
-    private final CustomerDirectory customerService = LavsApp.context().customers();
+    private final CustomerService customerService = LavsApp.context().customers();
     private boolean busy;
 
     @FXML
@@ -87,31 +89,35 @@ public class RegisterCustomerController {
             showFieldErrors(badDates);
             return;
         }
-        CustomerDirectory.NewCustomer form = new CustomerDirectory.NewCustomer(
-                Inputs.valueOf(titleField), Inputs.valueOf(firstNameField),
-                Inputs.valueOf(lastNameField), Inputs.valueOf(dateOfBirthField),
-                Inputs.valueOf(nationalityField));
+        Customer form = new Customer();
+        form.set_title(Inputs.valueOf(titleField));
+        form.set_firstName(Inputs.valueOf(firstNameField));
+        form.set_familyName(Inputs.valueOf(lastNameField));
+        form.set_dateOfBirth(Inputs.valueOf(dateOfBirthField));
+        form.set_nationality(Inputs.valueOf(nationalityField));
 
-        Task<CustomerDirectory.Registration> task = new Task<>() {
+        Task<Customer> task = new Task<>() {
             @Override
-            protected CustomerDirectory.Registration call() {
-                return customerService.register(form);
+            protected Customer call() throws Exception {
+                return customerService.registerCustomer(form);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            CustomerDirectory.Registration result = task.getValue();
-            if (result.errors().isEmpty()) {
-                Navigator.<CustomerDetailsController>show("customerdetails",
-                        c -> c.open(result.customerNumber(), () -> Navigator.show("customersearch")));
-            } else {
-                showFieldErrors(result.errors());
-            }
+            String number = task.getValue().get_number();
+            Navigator.<CustomerDetailsController>show("customerdetails",
+                    c -> c.open(number, () -> Navigator.show("customersearch")));
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Your details are still on screen.");
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, Map.of("title", "title", "firstName", "firstName",
+                        "familyName", "lastName", "dateOfBirth", "dateOfBirth", "nationality", "nationality")));
+            } else {
+                showNotice(Format.problem(error, "Could not reach the mainframe. Your details are still on screen."));
+            }
         });
 
         showNotice("");

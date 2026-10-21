@@ -22,8 +22,10 @@ import lavs.ui.LavsApp;
 import lavs.ui.component.Choices;
 import lavs.ui.component.Inputs;
 import lavs.ui.Navigator;
-import lavs.ui.service.LoanRecords;
-import lavs.ui.service.NotSupportedYetException;
+import lavs.business.model.CustomerReference;
+import lavs.business.model.LoanDetails;
+import lavs.business.service.LoanService;
+import lavs.ui.component.Format;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,7 +47,7 @@ public class AddLoanController {
     @FXML private ComboBox<String> paymentFrequencyField;
     @FXML private Label noticeLabel;
 
-    private final LoanRecords loanService = LavsApp.context().loans();
+    private final LoanService loanService = LavsApp.context().loans();
     private final Map<String, Control> byKey = new LinkedHashMap<>();
     private String customerNumber;
     private Runnable onBack = () -> Navigator.show("customersearch");
@@ -104,37 +106,53 @@ public class AddLoanController {
             showFieldErrors(badDates);
             return;
         }
-        LoanRecords.NewLoan form = new LoanRecords.NewLoan(
-                Inputs.valueOf(principalField), Inputs.valueOf(rateTypeField),
-                Inputs.valueOf(rateAmountField), Inputs.valueOf(rateFrequencyField),
-                Inputs.valueOf(paymentAmountField), Inputs.valueOf(paymentFrequencyField),
-                Inputs.valueOf(startDateField), Inputs.valueOf(renewalDateField));
-        String customer = customerNumber;
+        Map<String, String> missing = new LinkedHashMap<>();
+        requireValue(missing, "principal", "Loan amount is required.");
+        requireValue(missing, "startDate", "Start date is required.");
+        requireValue(missing, "renewalDate", "Renewal date is required.");
+        requireValue(missing, "rateType", "Choose a rate type.");
+        requireValue(missing, "rateAmount", "Interest rate is required.");
+        requireValue(missing, "rateFrequency", "Choose a rate frequency.");
+        requireValue(missing, "paymentAmount", "Payment amount is required.");
+        requireValue(missing, "paymentFrequency", "Choose a payment frequency.");
+        if (!missing.isEmpty()) {
+            showFieldErrors(missing);
+            return;
+        }
+        LoanDetails details = new LoanDetails(amount(principalField), Inputs.valueOf(rateTypeField),
+                amount(rateAmountField), Inputs.valueOf(rateFrequencyField),
+                amount(paymentAmountField), Inputs.valueOf(paymentFrequencyField),
+                java.time.LocalDate.parse(Inputs.valueOf(startDateField)),
+                java.time.LocalDate.parse(Inputs.valueOf(renewalDateField)));
+        CustomerReference customer = CustomerReference.existing(customerNumber);
 
-        Task<LoanRecords.Created> task = new Task<>() {
+        Task<lavs.business.model.Draft> task = new Task<>() {
             @Override
-            protected LoanRecords.Created call() {
-                return loanService.createLoan(customer, form);
+            protected lavs.business.model.Draft call() {
+                return loanService.createLoan(customer, details);
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            LoanRecords.Created result = task.getValue();
-            if (result.errors().isEmpty()) {
-                Runnable back = () -> Navigator.<CustomerDetailsController>show("customerdetails",
-                        c -> c.open(customer, onBack));
-                Navigator.<LoanDetailsController>show("loandetails", l -> l.open(result.loanNumber(), back));
-            } else {
-                showFieldErrors(result.errors());
-            }
+            Alert saved = new Alert(Alert.AlertType.INFORMATION,
+                    "The loan is saved and will be sent to the mainframe in the background. "
+                            + "The sync dots at the top show when it has been sent.", ButtonType.OK);
+            saved.setTitle("Loan saved");
+            saved.setHeaderText(null);
+            saved.initOwner(root.getScene().getWindow());
+            saved.showAndWait();
+            onBack.run();
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            Throwable cause = task.getException();
-            showNotice(cause instanceof NotSupportedYetException
-                    ? cause.getMessage()
-                    : "Could not reach the mainframe. Your details are still on screen.");
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, Map.of("principal", "principal",
+                        "rateAmount", "rateAmount", "paymentAmount", "paymentAmount", "renewalDate", "renewalDate")));
+            } else {
+                showNotice(Format.problem(error, "The loan could not be saved. Your details are still on screen."));
+            }
         });
 
         showNotice("");
@@ -142,6 +160,16 @@ public class AddLoanController {
         Thread worker = new Thread(task, "loan-create");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    private void requireValue(Map<String, String> missing, String key, String message) {
+        if (Inputs.valueOf(byKey.get(key)).isEmpty()) {
+            missing.put(key, message);
+        }
+    }
+
+    private static java.math.BigDecimal amount(TextField field) {
+        return new java.math.BigDecimal(Inputs.valueOf(field).replace("$", "").replace(",", ""));
     }
 
     private void showFieldErrors(Map<String, String> errors) {

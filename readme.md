@@ -28,13 +28,12 @@ The user interface is JavaFX 21 on Java 21 and starts from `lavs.ui.LavsApp`.
 * In IntelliJ or VS Code, run `lavs.ui.Launcher` (a plain `main` that works on a normal classpath).
 * Log in with the mainframe credentials below. The mainframe address is `https://animating-eraser-arrogance.ngrok-free.dev/`; override it with `-Dlavs.mainframe.url=...` or the `LAVS_MAINFRAME_URL` environment variable.
 * To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `loandetails`, `registercustomer`, `addloan`, `addcoborrower`, `editemployer`, `editpayment`, `editschedule`.
-* Add `-Dlavs.stubs=true` to keep the customer and loan screens on built-in sample data (for example when the tunnel is down). Login still needs the mainframe.
 
 The three dots beside Logout show the sync of saved changes: green when all sent, a white dot moving along while sending, two yellow when changes are waiting for the connection, one red when something needs checking (click it for details). The background sync starts when you log in and stops when you log out; drafts not yet sent are kept in `~/.lavs/drafts` and go at the next login. Preview a state with `-Dlavs.sync=sent|sending|waiting|attention`, which keeps the dots on that state even after login.
 
 Keyboard shortcuts are listed on each screen with F1. Every shortcut is a second way to use a button that is already on screen.
 
-The screens read customers and loans from the mainframe. Saving edits, creating loans and adding co-borrowers show a "not connected yet" message until the matching backend methods exist. The screens are laid out from the Figma mock-ups in the proposal; Register customer, Add loan and Add co-borrower have no mock-up and reuse the Customer Details card.
+Every screen controller works through the business services (`CustomerService`, `LoanService`, `LoanAccountService`), which `AppContext` starts after login; there are no services in the `lavs.ui` package. New loans are saved as drafts and sent in the background. Customer details lists every address; addresses are added and edited on their own form and removed in edit mode. Not available yet: editing a single repayment (the mainframe works repayments out from the loan terms), photos, and changing notes. The screens are laid out from the Figma mock-ups in the proposal; Register customer, Add loan and Add co-borrower have no mock-up and reuse the Customer Details card.
 
 Bundled fonts (Jacquard 12, Red Hat Mono, NATS and Nunito) are open-licence (SIL OFL) fonts.
 

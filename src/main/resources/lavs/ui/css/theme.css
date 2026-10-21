@@ -1081,9 +1081,14 @@
     -fx-opacity: 1;
 }
 
+.date-picker.kv-field:disabled > .text-field,
+.date-picker.data-field:disabled > .text-field {
+    -fx-opacity: 1;
+}
+
 .date-picker.kv-field:disabled > .arrow-button,
 .date-picker.data-field:disabled > .arrow-button {
-    visibility: hidden;
+    -fx-opacity: 0;
 }
 
 /* Loan details edit mode: fields worked out from the loan stay read-only and look it. */
@@ -1091,4 +1096,36 @@
     -fx-background-color: transparent;
     -fx-text-fill: #b9bcc0;
     -fx-padding: 0;
+}
+
+/* ---------- Customer details: addresses list ---------- */
+
+.address-panel {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 2px 4px;
+}
+
+.address-panel .list-row,
+.address-panel .list-item {
+    -fx-padding: 3px 6px;
+}
+
+.address-tag {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 8px;
+    -fx-text-fill: #1b1c1e;
+    -fx-background-color: #a5c3ff;
+    -fx-background-radius: 6px;
+    -fx-padding: 0 5px;
+}
+
+.address-tag-mailing {
+    -fx-background-color: #9fe3b6;
+}
+
+.form-check {
+    -fx-text-fill: #f2f2f4;
+    -fx-font-size: 11px;
+    -fx-padding: 0 0 4px 0;
 }
