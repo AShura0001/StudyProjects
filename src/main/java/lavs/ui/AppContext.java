@@ -8,6 +8,7 @@ import lavs.business.service.LoanAccountService;
 import lavs.business.service.LoanService;
 import lavs.business.service.ReferenceDataService;
 import lavs.business.service.SyncListener;
+import lavs.ui.component.Choices;
 import lavs.ui.sync.SyncState;
 import lavs.ui.sync.SyncStatus;
 import lavs.ui.sync.SyncStatusListener;
@@ -87,8 +88,9 @@ public final class AppContext implements AutoCloseable {
 
     /**
      * Called by the login screen after a successful login. Starts the services,
-     * which also sends any drafts left from last time. Fast: no mainframe call is
-     * made here, so it is safe on the JavaFX thread.
+     * which also sends any drafts left from last time, and fetches the drop-down
+     * lists on a background thread. Fast: no mainframe call is made on the calling
+     * thread, so it is safe on the JavaFX thread.
      */
     public synchronized void onLoggedIn() {
         stopServices();
@@ -98,6 +100,11 @@ public final class AppContext implements AutoCloseable {
                 .username();
         services = AppServices.forMainframe(connection, AppServices.draftsFolderFor(employee),
                 new BasicLoanValidator(), listener);
+        services.referenceData().ifPresent(referenceData -> {
+            Thread loader = new Thread(() -> referenceData.preload(Choices.MAINFRAME_CATEGORIES), "reference-data");
+            loader.setDaemon(true);
+            loader.start();
+        });
     }
 
     /**

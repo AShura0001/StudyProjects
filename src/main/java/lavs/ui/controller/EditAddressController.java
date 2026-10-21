@@ -41,7 +41,7 @@ public class EditAddressController extends FormController {
 
     @FXML
     private void initialize() {
-        Inputs.choices(typeField, Choices.ADDRESS_TYPES, t -> t);
+        Inputs.choices(typeField, Choices.addressTypes(), t -> t);
         Inputs.choices(countryField, Choices.COUNTRIES, c -> c);
         Inputs.number(postCodeField, 0);
         // The description only matters, and can only be typed, for an "Other" address.
@@ -73,7 +73,7 @@ public class EditAddressController extends FormController {
         this.onDone = done;
         if (addressId == null) {
             titleLabel.setText("Add an address");
-            Inputs.setValue(typeField, Choices.ADDRESS_TYPES.get(0));
+            Inputs.setValue(typeField, typeField.getItems().get(0));
             Inputs.setValue(countryField, DEFAULT_COUNTRY);
             markClean();
             return;
