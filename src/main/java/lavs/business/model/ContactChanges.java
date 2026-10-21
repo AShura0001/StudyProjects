@@ -5,8 +5,9 @@ import java.util.Objects;
 
 /**
  * What a staff member wants a customer's main details to be: their name, their
- * primary phone and email, and the employers and addresses to take off their record.
- * Addresses are added and changed one at a time with CustomerService.addAddress/updateAddress.
+ * primary phone and email, and the employers, addresses and notes to take off their record.
+ * Addresses and notes are added and changed one at a time (CustomerService.addAddress,
+ * updateAddress, addNote, updateNote).
  * Blank text means "none"; every value arrives trimmed.
  *
  * @param customerNumber the customer being changed
@@ -17,6 +18,7 @@ import java.util.Objects;
  * @param email the primary email address
  * @param removedEmployerIds the employers to delete
  * @param removedAddressIds the addresses to delete
+ * @param removedNoteIds the notes to delete
  */
 public record ContactChanges(
         String customerNumber,
@@ -26,7 +28,8 @@ public record ContactChanges(
         String phoneNumber,
         String email,
         List<Long> removedEmployerIds,
-        List<Long> removedAddressIds) {
+        List<Long> removedAddressIds,
+        List<Long> removedNoteIds) {
 
     public ContactChanges {
         Objects.requireNonNull(customerNumber, "customerNumber must not be null");
@@ -37,6 +40,7 @@ public record ContactChanges(
         email = trim(email);
         removedEmployerIds = removedEmployerIds == null ? List.of() : List.copyOf(removedEmployerIds);
         removedAddressIds = removedAddressIds == null ? List.of() : List.copyOf(removedAddressIds);
+        removedNoteIds = removedNoteIds == null ? List.of() : List.copyOf(removedNoteIds);
     }
 
     private static String trim(String value) {

@@ -13,6 +13,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
@@ -55,16 +56,24 @@ import java.util.stream.Stream;
  * Customer Details with a view mode and an edit mode. Reads through CustomerService
  * and LoanAccountService and saves through CustomerService.saveContactChanges.
  * Edit changes are held in the form until Save; Cancel (or leaving) discards them
- * after confirmation. Every address is listed; addresses are added and changed on
- * their own form, and removed here in edit mode (applied on Save). Notes are shown
- * but cannot be changed here yet.
+ * after confirmation. Every address and note is listed; they are added and changed on
+ * their own forms, and removed here in edit mode (applied on Save).
  */
 public class CustomerDetailsController {
 
     /** What the screen shows, taken from the business models. */
     private record Details(String customerNumber, String firstName, String lastName,
-                           String phoneCode, String phoneNumber, String email, String notes,
-                           List<AddressRow> addresses, List<EmployerRow> employers, List<LoanListing> loans) {
+                           String phoneCode, String phoneNumber, String email, List<NoteRow> notes,
+                           List<AddressRow> addresses, List<EmployerRow> employers, List<LoanListing> loans,
+                           List<UnsentLoan> unsentLoans) {
+    }
+
+    /** A loan saved here that the mainframe has not confirmed yet. */
+    private record UnsentLoan(String title, String state) {
+    }
+
+    /** One note: its title, the day it was added and who added it, and its text. */
+    private record NoteRow(long id, String title, String added, String text) {
     }
 
     private record EmployerRow(long id, String name) {
@@ -88,6 +97,8 @@ public class CustomerDetailsController {
     @FXML private TextField emailField;
     @FXML private VBox addressesBox;
     @FXML private TextArea notesArea;
+    @FXML private ScrollPane notesList;
+    @FXML private VBox notesBox;
     @FXML private VBox employersBox;
     @FXML private VBox loansBox;
     @FXML private Label noticeLabel;
@@ -105,6 +116,7 @@ public class CustomerDetailsController {
     private Details details;
     private List<EmployerRow> workingEmployers = new ArrayList<>();
     private List<AddressRow> workingAddresses = new ArrayList<>();
+    private List<NoteRow> workingNotes = new ArrayList<>();
     private boolean editing;
     private boolean busy;
     /** Lets the phone field show a stored number exactly, even one the edit filter would refuse. */
@@ -180,16 +192,37 @@ public class CustomerDetailsController {
         List<EmployerRow> employers = customers.listEmployers(customerNumber).stream()
                 .map(e -> new EmployerRow(e.get_id(), e.get_name() == null || e.get_name().isBlank() ? "Employer" : e.get_name()))
                 .toList();
-        String notes = customers.listNotes(customerNumber).stream()
-                .map(Note::get_lines)
-                .filter(Objects::nonNull)
-                .filter(s -> !s.isBlank())
-                .collect(Collectors.joining("\n"));
+        List<NoteRow> notes = customers.listNotes(customerNumber).stream()
+                .map(n -> new NoteRow(n.get_id(),
+                        Format.text(n.get_type()).isEmpty() ? CustomerService.DEFAULT_NOTE_TYPE : Format.text(n.get_type()),
+                        joined(" • ", dateOnly(n.get_dateAdded()), n.get_author()),
+                        n.get_lines() == null ? "" : n.get_lines().strip()))
+                .toList();
         return new Details(customerNumber, Format.text(customer.get_firstName()), Format.text(customer.get_familyName()),
                 phone == null ? "" : Format.text(phone.get_countryCode()),
                 phone == null ? "" : Format.text(phone.get_number()),
                 email == null ? "" : Format.text(email.getAddress()),
-                notes, addresses, employers, loanAccounts.loansOf(customerNumber));
+                notes, addresses, employers, loanAccounts.loansOf(customerNumber), unsentLoans(customerNumber));
+    }
+
+    private List<UnsentLoan> unsentLoans(String customerNumber) {
+        List<UnsentLoan> rows = new ArrayList<>();
+        for (lavs.business.model.Draft draft : LavsApp.context().loans().unsentLoansOf(customerNumber)) {
+            String title = "New loan";
+            try {
+                title = "New loan of " + Format.money(
+                        lavs.business.model.LoanPayloads.readLoan(draft.getPayload()).details().principal());
+            } catch (IllegalArgumentException ignored) {
+                // shown as plain "New loan"
+            }
+            String state = switch (draft.getStatus()) {
+                case UNCERTAIN -> "Needs checking";
+                case REJECTED -> "Refused by the mainframe";
+                default -> "Not sent yet";
+            };
+            rows.add(new UnsentLoan(title, state));
+        }
+        return rows;
     }
 
     private static AddressRow addressRow(Address address) {
@@ -202,6 +235,18 @@ public class CustomerDetailsController {
         }
         return new AddressRow(address.getId(), street.isEmpty() ? "(no street line)" : street, place, type,
                 Boolean.TRUE.equals(address.getIsPrimary()), Boolean.TRUE.equals(address.getIsMailing()));
+    }
+
+    private static String dateOnly(String text) {
+        String t = Format.text(text);
+        return t.length() > 10 ? t.substring(0, 10) : t;
+    }
+
+    /** The notepad shows every note under its own title line. */
+    private static String notepadText(List<NoteRow> notes) {
+        return notes.stream()
+                .map(n -> n.title() + (n.added().isEmpty() ? "" : "  (" + n.added() + ")") + "\n" + n.text())
+                .collect(Collectors.joining("\n\n"));
     }
 
     private static String joined(String separator, String... parts) {
@@ -218,10 +263,12 @@ public class CustomerDetailsController {
         lastNameField.setText(details.lastName());
         showPhone();
         emailField.setText(details.email());
-        notesArea.setText(details.notes());
+        notesArea.setText(notepadText(details.notes()));
         workingEmployers = new ArrayList<>(details.employers());
         workingAddresses = new ArrayList<>(details.addresses());
+        workingNotes = new ArrayList<>(details.notes());
         clearFieldErrors();
+        renderNotes();
         renderAddresses();
         renderEmployers();
         renderLoans();
@@ -239,8 +286,73 @@ public class CustomerDetailsController {
         }
         return new Details(details.customerNumber(),
                 firstNameField.getText().trim(), lastNameField.getText().trim(),
-                code == null ? "" : code, number, emailField.getText().trim(), details.notes(),
-                List.copyOf(workingAddresses), List.copyOf(workingEmployers), details.loans());
+                code == null ? "" : code, number, emailField.getText().trim(), List.copyOf(workingNotes),
+                List.copyOf(workingAddresses), List.copyOf(workingEmployers), details.loans(), details.unsentLoans());
+    }
+
+    /** Edit mode lists the notes one by one, each with remove and Edit. */
+    private void renderNotes() {
+        notesBox.getChildren().clear();
+        if (workingNotes.isEmpty()) {
+            Label none = new Label("No notes yet.");
+            none.getStyleClass().add("note-row-text");
+            none.setPadding(new javafx.geometry.Insets(4, 6, 4, 6));
+            notesBox.getChildren().add(none);
+        }
+        for (NoteRow note : workingNotes) {
+            Label title = new Label(note.title());
+            title.getStyleClass().add("note-row-title");
+            String preview = note.text().replace('\n', ' ');
+            Label text = new Label(preview.length() > 60 ? preview.substring(0, 57) + "…" : preview);
+            text.getStyleClass().add("note-row-text");
+            VBox words = new VBox(1, title, text);
+            HBox.setHgrow(words, Priority.ALWAYS);
+            words.setMinWidth(0);
+
+            Button remove = new Button();
+            remove.getStyleClass().add("btn-remove");
+            SVGPath cross = new SVGPath();
+            cross.setContent("M5 5 L19 19 M19 5 L5 19");
+            cross.getStyleClass().add("remove-icon");
+            remove.setGraphic(cross);
+            remove.setOnAction(e -> {
+                workingNotes.remove(note);
+                renderNotes();
+            });
+            Button edit = new Button("Edit");
+            edit.getStyleClass().add("btn-edit-chip");
+            edit.setOnAction(e -> openNoteEditor(note.id()));
+
+            // The buttons keep their size; the preview gives way and ends in "…".
+            remove.setMinWidth(Region.USE_PREF_SIZE);
+            edit.setMinWidth(Region.USE_PREF_SIZE);
+            text.setMinWidth(0);
+            title.setMinWidth(0);
+            HBox row = new HBox(4, words, remove, edit);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.getStyleClass().add("note-row");
+            notesBox.getChildren().add(row);
+        }
+    }
+
+    @FXML
+    private void onAddNote() {
+        if (details != null) {
+            openNoteEditor(null);
+        }
+    }
+
+    /** @param noteId the note to change, or null to add one */
+    private void openNoteEditor(Long noteId) {
+        if (!confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Runnable reopen = () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                c -> c.open(customerNumber, backFromCustomer));
+        Navigator.<EditNoteController>show("editnote",
+                n -> n.open(customerNumber, noteId, reopen, reopen));
     }
 
     private void renderAddresses() {
@@ -343,6 +455,14 @@ public class CustomerDetailsController {
             item.getChildren().add(link);
             loansBox.getChildren().add(item);
         }
+        for (UnsentLoan loan : details.unsentLoans()) {
+            VBox item = listItem(loan.title(), loan.state());
+            Hyperlink link = new Hyperlink("See saved changes");
+            link.getStyleClass().add("list-item-link");
+            link.setOnAction(e -> DraftsController.openWindow((javafx.stage.Stage) root.getScene().getWindow()));
+            item.getChildren().add(link);
+            loansBox.getChildren().add(item);
+        }
     }
 
     private void openLoan(String loanNumber) {
@@ -416,9 +536,11 @@ public class CustomerDetailsController {
             field.setEditable(edit);
             field.setFocusTraversable(edit);
         }
-        // Notes cannot be saved through the business layer yet.
+        // View mode reads the notes on the notepad; edit mode lists them so each can be changed or removed.
         notesArea.setEditable(false);
         notesArea.setFocusTraversable(false);
+        setShown(notesArea.getParent(), !edit);
+        setShown(notesList, edit);
         setShown(phoneCodeBox, edit);
         phoneCodeBox.setFocusTraversable(edit);
         showPhone();
@@ -431,6 +553,7 @@ public class CustomerDetailsController {
         setShown(editActions, edit);
         clearFieldErrors();
         if (details != null) {
+            renderNotes();
             renderAddresses();
             renderEmployers();
         }
@@ -508,8 +631,12 @@ public class CustomerDetailsController {
                 .filter(a -> !edited.addresses().contains(a))
                 .map(AddressRow::id)
                 .toList();
+        List<Long> removedNotes = details.notes().stream()
+                .filter(n -> !edited.notes().contains(n))
+                .map(NoteRow::id)
+                .toList();
         ContactChanges changes = new ContactChanges(edited.customerNumber(), edited.firstName(), edited.lastName(),
-                edited.phoneCode(), edited.phoneNumber(), edited.email(), removed, removedAddresses);
+                edited.phoneCode(), edited.phoneNumber(), edited.email(), removed, removedAddresses, removedNotes);
         clearFieldErrors();
         setBusy(true);
 

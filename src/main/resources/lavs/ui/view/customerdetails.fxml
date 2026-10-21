@@ -96,9 +96,18 @@
                         </StackPane>
 
                         <VBox styleClass="notes-box" prefHeight="126" minHeight="126" maxHeight="420" VBox.vgrow="ALWAYS">
-                            <Label text="NOTES" styleClass="notes-title" maxWidth="Infinity"/>
+                            <StackPane>
+                                <Label text="NOTES" styleClass="notes-title" maxWidth="Infinity"/>
+                                <Hyperlink text="Add note" styleClass="notes-add" onAction="#onAddNote"
+                                           StackPane.alignment="CENTER_RIGHT"/>
+                            </StackPane>
                             <TextArea fx:id="notesArea" styleClass="notes-area" editable="false"
                                       wrapText="true" VBox.vgrow="ALWAYS" focusTraversable="false"/>
+                            <ScrollPane fx:id="notesList" styleClass="panel-scroll" fitToWidth="true"
+                                        hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS"
+                                        focusTraversable="false" visible="false" managed="false">
+                                <VBox fx:id="notesBox"/>
+                            </ScrollPane>
                         </VBox>
                     </VBox>
 

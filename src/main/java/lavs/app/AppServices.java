@@ -156,6 +156,24 @@ public final class AppServices implements AutoCloseable {
     }
 
     /**
+     * Gets the folder an employee's drafts are kept in: one folder each inside
+     * {@link #defaultDraftsFolder()}, so drafts saved by one employee are only ever
+     * sent while that employee is logged in.
+     *
+     * @param employee the login name of the person logged in
+     * @return the folder
+     * @throws IllegalArgumentException if the name is blank
+     */
+    public static Path draftsFolderFor(String employee) {
+        Objects.requireNonNull(employee, "employee must not be null");
+        String safe = employee.strip().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9._-]", "_");
+        if (safe.isEmpty() || safe.chars().allMatch(c -> c == '.')) {
+            throw new IllegalArgumentException("employee must not be blank");
+        }
+        return defaultDraftsFolder().resolve(safe);
+    }
+
+    /**
      * Starts the services, using a real background worker and the standard retry delays.
      *
      * @param draftsFolder where drafts are kept; created when the first draft is saved

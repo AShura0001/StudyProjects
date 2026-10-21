@@ -54,6 +54,12 @@ public class CustomerService implements CustomerProfileSource {
     /** Organisation new customers are registered under until the team decides where it comes from. */
     public static final long DEFAULT_ORGANISATION = 1;
 
+    /** Title given to a note saved without one. */
+    public static final String DEFAULT_NOTE_TYPE = "General";
+
+    /** Longest note the screens accept, in characters. */
+    public static final int MAX_NOTE_LENGTH = 2000;
+
     /** Types given to a phone or email added without one, as the details screen has no type picker. */
     public static final String NEW_PHONE_TYPE = "Mobile";
     public static final String NEW_EMAIL_TYPE = "Personal";
@@ -204,6 +210,60 @@ public class CustomerService implements CustomerProfileSource {
         return notes;
     }
 
+    public Optional<Note> findNote(String customerNumber, long noteId) throws IOException {
+        Optional<Note> found = noteGateway.findNoteByCustomerNumberAndId(noteId, customerNumber);
+        found.ifPresent(n -> n.set_customerNumber(customerNumber));
+        return found;
+    }
+
+    /**
+     * Adds a note to the customer. A note without a title is called "General".
+     *
+     * @throws ValidationException if the note is empty or too long
+     * @throws RecordRejectedException if the mainframe refused the note
+     */
+    public Note addNote(Note note) throws IOException {
+        validateOrThrow(noteErrors(note));
+        return noteGateway.addCustomerNote(note)
+                .orElseThrow(() -> new RecordRejectedException("The mainframe did not accept the new note.", Map.of()));
+    }
+
+    /**
+     * Saves changes to a note.
+     *
+     * @throws ValidationException if the note is empty or too long
+     * @throws RecordRejectedException if the mainframe refused the change
+     */
+    public Note updateNote(Note note) throws IOException {
+        validateOrThrow(noteErrors(note));
+        return noteGateway.updateCustomerNote(note)
+                .orElseThrow(() -> new RecordRejectedException("The mainframe did not accept the note change.", Map.of()));
+    }
+
+    public boolean deleteNote(String customerNumber, long noteId) throws IOException {
+        return noteGateway.deleteNoteByCustomerNumberAndId(noteId, customerNumber);
+    }
+
+    /** Field names: lines, type. Fills in the default title. */
+    private static List<ValidationError> noteErrors(Note note) {
+        Objects.requireNonNull(note, "note must not be null");
+        List<ValidationError> errors = new ArrayList<>();
+        if (text(note.get_type()).isEmpty()) {
+            note.set_type(DEFAULT_NOTE_TYPE);
+        }
+        String lines = note.get_lines() == null ? "" : note.get_lines().strip();
+        note.set_lines(lines);
+        if (lines.isEmpty()) {
+            errors.add(new ValidationError("lines", "Write something in the note"));
+        } else if (lines.length() > MAX_NOTE_LENGTH) {
+            errors.add(new ValidationError("lines", "A note can be at most " + MAX_NOTE_LENGTH + " characters"));
+        }
+        if (note.get_type().length() > 40) {
+            errors.add(new ValidationError("type", "The title can be at most 40 characters"));
+        }
+        return errors;
+    }
+
     public Optional<Employer> findEmployer(String customerNumber, long employerId) throws IOException {
         return employerGateway.findEmployerByCustomerNumberAndId(employerId, customerNumber);
     }
@@ -216,6 +276,8 @@ public class CustomerService implements CustomerProfileSource {
      *
      * <p>The primary address can only be removed together with every other address;
      * otherwise another address must be made primary first.
+     *
+     * <p>Notes listed in removedNoteIds are deleted last.
      *
      * <p>Error fields: firstName, familyName, phone, email, addresses.
      *
@@ -276,6 +338,11 @@ public class CustomerService implements CustomerProfileSource {
         for (long addressId : changes.removedAddressIds()) {
             if (!deleteAddress(number, addressId)) {
                 throw refused("address removal");
+            }
+        }
+        for (long noteId : changes.removedNoteIds()) {
+            if (!deleteNote(number, noteId)) {
+                throw refused("note removal");
             }
         }
     }

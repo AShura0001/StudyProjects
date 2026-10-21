@@ -33,6 +33,8 @@ public final class SyncIndicator extends HBox {
     private final Tooltip tooltip = new Tooltip();
     private final Timeline blink = new Timeline();
     private int lit;
+    /** Opens the list of saved changes; returns false when it cannot (nobody logged in). */
+    private java.util.function.BooleanSupplier onOpen = () -> false;
 
     public SyncIndicator(SyncStatus status) {
         super(5);
@@ -45,7 +47,12 @@ public final class SyncIndicator extends HBox {
         setPadding(new Insets(0, 8, 0, 8));
         getChildren().addAll(dots);
         Tooltip.install(this, tooltip);
-        setOnMouseClicked(e -> explain());
+        setOnMouseClicked(e -> {
+            if (!onOpen.getAsBoolean()) {
+                explain();
+            }
+        });
+        setCursor(javafx.scene.Cursor.HAND);
 
         blink.setCycleCount(Timeline.INDEFINITE);
         blink.getKeyFrames().add(new KeyFrame(Duration.millis(380), e -> {
@@ -65,6 +72,14 @@ public final class SyncIndicator extends HBox {
      * screens without that top bar, such as Login, are left alone.
      */
     public static void addTo(Parent root, SyncStatus status) {
+        addTo(root, status, () -> false);
+    }
+
+    /**
+     * Adds the indicator to a screen's top bar; clicking it runs {@code onOpen}, and
+     * falls back to a short explanation when that returns false.
+     */
+    public static void addTo(Parent root, SyncStatus status, java.util.function.BooleanSupplier onOpen) {
         if (!(root instanceof BorderPane pane) || !(pane.getTop() instanceof HBox bar)) {
             return;
         }
@@ -72,6 +87,7 @@ public final class SyncIndicator extends HBox {
             Node child = bar.getChildren().get(i);
             if (child.getStyleClass().contains("btn-chip-danger")) {
                 SyncIndicator indicator = new SyncIndicator(status);
+                indicator.onOpen = onOpen;
                 HBox.setMargin(indicator, new Insets(0, 8, 0, 0));
                 bar.getChildren().add(i, indicator);
                 return;
@@ -94,7 +110,7 @@ public final class SyncIndicator extends HBox {
                 }
             }
         }
-        tooltip.setText(summary(state, status.count()));
+        tooltip.setText(summary(state, status.count()) + " Click to see your saved changes.");
     }
 
     private void apply(String[] styles) {

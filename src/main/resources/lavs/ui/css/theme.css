@@ -1129,3 +1129,67 @@
     -fx-font-size: 11px;
     -fx-padding: 0 0 4px 0;
 }
+
+/* ---------- Customer notes ---------- */
+
+.notes-add {
+    -fx-font-size: 9px;
+    -fx-text-fill: #7aa7ff;
+    -fx-padding: 0 6px;
+    -fx-border-width: 0;
+}
+
+.editing .notes-add { -fx-text-fill: #2f5fd0; }
+
+.note-row {
+    -fx-padding: 4px 6px;
+    -fx-border-color: transparent transparent #b5b5b5 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.note-row-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-text-fill: #1b1c1e;
+}
+
+.note-row-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: #3a3d40;
+}
+
+.note-input {
+    -fx-font-size: 12px;
+}
+
+.over-limit {
+    -fx-text-fill: #ff4d4d;
+}
+
+/* ---------- Saved changes (drafts) window ---------- */
+
+.draft-section {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #cfd0d6;
+    -fx-padding: 6px 0 0 0;
+}
+
+.draft-row {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 12px;
+}
+
+.draft-error {
+    -fx-font-size: 10px;
+    -fx-text-fill: #ff8a80;
+}
+
+.draft-tag-waiting {
+    -fx-background-color: #f5d36b;
+}
+
+.draft-tag-attention {
+    -fx-background-color: #ff8a80;
+}

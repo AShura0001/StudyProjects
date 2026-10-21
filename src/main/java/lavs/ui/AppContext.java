@@ -38,6 +38,11 @@ public final class AppContext implements AutoCloseable {
         return started().loans();
     }
 
+    /** The saved drafts and their background sending. Available once logged in. */
+    public lavs.business.service.BackgroundSync drafts() {
+        return started().sync();
+    }
+
     /** Loans already on the mainframe. Available once logged in. */
     public LoanAccountService loanAccounts() {
         return started().loanAccounts().orElseThrow(() -> new IllegalStateException("loan account service not built"));
@@ -82,7 +87,10 @@ public final class AppContext implements AutoCloseable {
     public synchronized void onLoggedIn() {
         stopServices();
         SyncListener listener = syncPreview ? new SyncListener() { } : new SyncStatusListener(syncStatus);
-        services = AppServices.forMainframe(connection, AppServices.defaultDraftsFolder(),
+        String employee = auth.currentSession()
+                .orElseThrow(() -> new IllegalStateException("onLoggedIn called without a session"))
+                .username();
+        services = AppServices.forMainframe(connection, AppServices.draftsFolderFor(employee),
                 new BasicLoanValidator(), listener);
     }
 

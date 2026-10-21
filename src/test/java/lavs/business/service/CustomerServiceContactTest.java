@@ -4,6 +4,7 @@ import lavs.business.model.Address;
 import lavs.business.model.ContactChanges;
 import lavs.business.model.Customer;
 import lavs.business.model.Email;
+import lavs.business.model.Note;
 import lavs.business.model.PhoneNumber;
 import lavs.business.repository.CustomerAddressGateway;
 import lavs.business.repository.CustomerEmailGateway;
@@ -39,6 +40,7 @@ class CustomerServiceContactTest {
     private CustomerPhoneNumberGateway phones;
     private CustomerEmailGateway emails;
     private CustomerEmployerGateway employers;
+    private CustomerNoteGateway noteGateway;
     private CustomerService service;
 
     @BeforeEach
@@ -51,8 +53,9 @@ class CustomerServiceContactTest {
         FakeDraftRepository drafts = new FakeDraftRepository();
         BackgroundSync sync = new BackgroundSync(new DraftSyncService(drafts, new FakeDraftUploadGateway()),
                 new ManualScheduler(), RetryPolicy.standard());
+        noteGateway = mock(CustomerNoteGateway.class);
         service = new CustomerService(customers, addresses, phones, emails, employers,
-                mock(CustomerNoteGateway.class), new ValidationService(), drafts, sync);
+                noteGateway, new ValidationService(), drafts, sync);
 
         Customer jane = new Customer("1990-04-23", "Doe", "Jane", NUMBER, "Active", "Ms");
         jane.set_nationality("NZ");
@@ -106,7 +109,7 @@ class CustomerServiceContactTest {
     }
 
     private static ContactChanges unchanged() {
-        return new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100", "jane@example.com", List.of(), List.of());
+        return new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100", "jane@example.com", List.of(), List.of(), List.of());
     }
 
     private void verifyNoWrites() throws IOException {
@@ -127,7 +130,7 @@ class CustomerServiceContactTest {
     @Test
     void changedValues_areSent_andEverythingElseIsKept() throws IOException {
         service.saveContactChanges(new ContactChanges(NUMBER, "Janet", "Doe-Smith", "+61", "400 111 222",
-                "janet@example.com", List.of(22L), List.of()));
+                "janet@example.com", List.of(22L), List.of(), List.of()));
 
         ArgumentCaptor<Customer> customer = ArgumentCaptor.forClass(Customer.class);
         verify(customers).updateCustomer(customer.capture());
@@ -168,7 +171,7 @@ class CustomerServiceContactTest {
     void removingAnAddressThatIsNotPrimary_deletesIt() throws IOException {
         twoAddresses();
         service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
-                "jane@example.com", List.of(), List.of(14L)));
+                "jane@example.com", List.of(), List.of(14L), List.of()));
         verify(addresses).deleteCustomerAddress(NUMBER, 14L);
         verify(addresses, never()).deleteCustomerAddress(NUMBER, 13L);
     }
@@ -178,7 +181,7 @@ class CustomerServiceContactTest {
         twoAddresses();
         ValidationException invalid = assertThrows(ValidationException.class, () ->
                 service.saveContactChanges(new ContactChanges(NUMBER, "Janet", "Doe", "+64", "21 555 0100",
-                        "jane@example.com", List.of(), List.of(13L))));
+                        "jane@example.com", List.of(), List.of(13L), List.of())));
         assertEquals("addresses", invalid.getErrors().get(0).getField());
         verify(addresses, never()).deleteCustomerAddress(any(), anyLong());
         verify(customers, never()).updateCustomer(any());
@@ -188,7 +191,7 @@ class CustomerServiceContactTest {
     void removingEveryAddress_isAllowed() throws IOException {
         twoAddresses();
         service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
-                "jane@example.com", List.of(), List.of(13L, 14L)));
+                "jane@example.com", List.of(), List.of(13L, 14L), List.of()));
         verify(addresses).deleteCustomerAddress(NUMBER, 13L);
         verify(addresses).deleteCustomerAddress(NUMBER, 14L);
     }
@@ -199,7 +202,7 @@ class CustomerServiceContactTest {
         when(addresses.deleteCustomerAddress(NUMBER, 14L)).thenReturn(false);
         RecordRejectedException refused = assertThrows(RecordRejectedException.class, () ->
                 service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
-                        "jane@example.com", List.of(), List.of(14L))));
+                        "jane@example.com", List.of(), List.of(14L), List.of())));
         assertTrue(refused.getMessage().contains("address removal"));
     }
 
@@ -293,7 +296,7 @@ class CustomerServiceContactTest {
     @Test
     void phoneWithoutACode_keepsTheCurrentCode() throws IOException {
         service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", null, "21 999 0000",
-                "jane@example.com", List.of(), List.of()));
+                "jane@example.com", List.of(), List.of(), List.of()));
 
         ArgumentCaptor<PhoneNumber> phone = ArgumentCaptor.forClass(PhoneNumber.class);
         verify(phones).updateCustomerNumber(phone.capture());
@@ -305,7 +308,7 @@ class CustomerServiceContactTest {
     void invalidValues_areAllReported_andNothingIsSent() throws IOException {
         ValidationException invalid = assertThrows(ValidationException.class, () ->
                 service.saveContactChanges(new ContactChanges(NUMBER, "", "", "+64", "abc",
-                        "not-an-email", List.of(), List.of())));
+                        "not-an-email", List.of(), List.of(), List.of())));
 
         Set<String> fields = invalid.getErrors().stream().map(ValidationError::getField).collect(Collectors.toSet());
         assertEquals(Set.of("firstName", "familyName", "phone", "email"), fields);
@@ -319,11 +322,11 @@ class CustomerServiceContactTest {
 
         ValidationException invalid = assertThrows(ValidationException.class, () ->
                 service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", null, "21 555 0100",
-                        "jane@example.com", List.of(), List.of())));
+                        "jane@example.com", List.of(), List.of(), List.of())));
         assertEquals("phone", invalid.getErrors().get(0).getField());
 
         service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
-                "jane@example.com", List.of(), List.of()));
+                "jane@example.com", List.of(), List.of(), List.of()));
         ArgumentCaptor<PhoneNumber> added = ArgumentCaptor.forClass(PhoneNumber.class);
         verify(phones).addCustomerPhoneNumber(added.capture());
         assertTrue(added.getValue().is_isPrimary());
@@ -336,7 +339,7 @@ class CustomerServiceContactTest {
 
         RecordRejectedException refused = assertThrows(RecordRejectedException.class, () ->
                 service.saveContactChanges(new ContactChanges(NUMBER, "Janet", "Doe", "+64", "21 000 0000",
-                        "jane@example.com", List.of(), List.of())));
+                        "jane@example.com", List.of(), List.of(), List.of())));
 
         assertTrue(refused.getMessage().contains("name"));
         verify(phones, never()).updateCustomerNumber(any());
@@ -354,5 +357,70 @@ class CustomerServiceContactTest {
         sam.set_nationality("New Zealand");
         when(customers.createCustomer(any())).thenAnswer(a -> Optional.of(a.getArgument(0)));
         assertEquals(CustomerService.DEFAULT_ORGANISATION, service.registerCustomer(sam).getOrganisation());
+    }
+
+    // ---- Notes ----
+
+    @Test
+    void removedNotes_areDeletedLast() throws IOException {
+        CustomerNoteGateway notes = noteGateway;
+        when(notes.deleteNoteByCustomerNumberAndId(31L, NUMBER)).thenReturn(true);
+        service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
+                "jane@example.com", List.of(), List.of(), List.of(31L)));
+        verify(notes).deleteNoteByCustomerNumberAndId(31L, NUMBER);
+    }
+
+    @Test
+    void refusedNoteRemoval_isReported() throws IOException {
+        when(noteGateway.deleteNoteByCustomerNumberAndId(31L, NUMBER)).thenReturn(false);
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class, () ->
+                service.saveContactChanges(new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100",
+                        "jane@example.com", List.of(), List.of(), List.of(31L))));
+        assertTrue(refused.getMessage().contains("note removal"));
+    }
+
+    @Test
+    void addNote_withoutATitle_isCalledGeneral_andTrimmed() throws IOException {
+        when(noteGateway.addCustomerNote(any())).thenAnswer(a -> Optional.of(a.getArgument(0)));
+        Note note = new Note();
+        note.set_customerNumber(NUMBER);
+        note.set_lines("  Called about a top-up." + System.lineSeparator() + "  ");
+
+        Note saved = service.addNote(note);
+
+        assertEquals(CustomerService.DEFAULT_NOTE_TYPE, saved.get_type());
+        assertEquals("Called about a top-up.", saved.get_lines());
+    }
+
+    @Test
+    void emptyOrOverlongNotes_areRefused_andNothingIsSent() throws IOException {
+        Note empty = new Note();
+        empty.set_customerNumber(NUMBER);
+        empty.set_lines("   ");
+        assertEquals("lines", assertThrows(ValidationException.class, () -> service.addNote(empty))
+                .getErrors().get(0).getField());
+
+        Note tooLong = new Note();
+        tooLong.set_customerNumber(NUMBER);
+        tooLong.set_id(31);
+        tooLong.set_lines("x".repeat(CustomerService.MAX_NOTE_LENGTH + 1));
+        assertThrows(ValidationException.class, () -> service.updateNote(tooLong));
+
+        verify(noteGateway, never()).addCustomerNote(any());
+        verify(noteGateway, never()).updateCustomerNote(any());
+    }
+
+    @Test
+    void updateNote_sendsTheChange() throws IOException {
+        when(noteGateway.updateCustomerNote(any())).thenAnswer(a -> Optional.of(a.getArgument(0)));
+        Note note = new Note();
+        note.set_customerNumber(NUMBER);
+        note.set_id(31);
+        note.set_type("Call log");
+        note.set_lines("Rang back on Tuesday.");
+
+        service.updateNote(note);
+
+        verify(noteGateway).updateCustomerNote(note);
     }
 }

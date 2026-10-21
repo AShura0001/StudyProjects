@@ -39,6 +39,14 @@ public final class SyncStatusListener implements SyncListener {
         }
     }
 
+    /** Drafts refused or left uncertain earlier still need a person, so they keep the dots showing it. */
+    @Override
+    public void onNeedsChecking(int count) {
+        if (count > 0) {
+            status.set(SyncState.ATTENTION, count);
+        }
+    }
+
     @Override
     public void onSyncFailed(RuntimeException error) {
         status.set(SyncState.ATTENTION, Math.max(1, status.count()));

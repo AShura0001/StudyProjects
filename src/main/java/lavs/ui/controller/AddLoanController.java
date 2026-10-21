@@ -50,6 +50,10 @@ public class AddLoanController {
     private final LoanService loanService = LavsApp.context().loans();
     private final Map<String, Control> byKey = new LinkedHashMap<>();
     private String customerNumber;
+    /** The refused or waiting loan draft being fixed, or null when adding a new loan. */
+    private String fixingDraftId;
+    @FXML private Label titleLabel;
+    @FXML private javafx.scene.control.Button submitButton;
     private Runnable onBack = () -> Navigator.show("customersearch");
     private boolean busy;
 
@@ -92,6 +96,39 @@ public class AddLoanController {
         this.onBack = back;
     }
 
+    /**
+     * Opens a saved loan that was refused (or is still waiting), filled in, so it can be
+     * corrected and sent again. Called from the saved changes window.
+     */
+    public void openToFix(String draftId, Runnable back) {
+        this.fixingDraftId = draftId;
+        this.onBack = back;
+        titleLabel.setText("Fix a saved loan");
+        submitButton.setText("resend");
+        Optional<lavs.business.model.Draft> draft = LavsApp.context().drafts().findById(draftId);
+        if (draft.isEmpty()) {
+            showNotice("That saved loan no longer exists.");
+            return;
+        }
+        lavs.business.model.LoanPayloads.LoanContent loan =
+                lavs.business.model.LoanPayloads.readLoan(draft.get().getPayload());
+        if (loan.customer() instanceof CustomerReference.ExistingCustomer existing) {
+            customerNumber = existing.customerNumber();
+        }
+        LoanDetails d = loan.details();
+        Inputs.setValue(principalField, Format.plain(d.principal()));
+        Inputs.setValue(startDateField, d.startDate().toString());
+        Inputs.setValue(renewalDateField, d.renewalDate().toString());
+        Inputs.setValue(rateTypeField, d.rateType());
+        Inputs.setValue(rateAmountField, d.rateAmount().stripTrailingZeros().toPlainString());
+        Inputs.setValue(rateFrequencyField, d.rateFrequency());
+        Inputs.setValue(paymentAmountField, Format.plain(d.paymentAmount()));
+        Inputs.setValue(paymentFrequencyField, d.paymentFrequency());
+        if (!draft.get().getErrors().isEmpty()) {
+            showNotice("The mainframe refused this loan: " + String.join("  ", draft.get().getErrors().values()));
+        }
+    }
+
     private boolean isDirty() {
         return byKey.values().stream().anyMatch(f -> !Inputs.valueOf(f).isBlank());
     }
@@ -124,12 +161,15 @@ public class AddLoanController {
                 amount(paymentAmountField), Inputs.valueOf(paymentFrequencyField),
                 java.time.LocalDate.parse(Inputs.valueOf(startDateField)),
                 java.time.LocalDate.parse(Inputs.valueOf(renewalDateField)));
-        CustomerReference customer = CustomerReference.existing(customerNumber);
+        String fixing = fixingDraftId;
+        CustomerReference customer = fixing == null ? CustomerReference.existing(customerNumber) : null;
 
         Task<lavs.business.model.Draft> task = new Task<>() {
             @Override
             protected lavs.business.model.Draft call() {
-                return loanService.createLoan(customer, details);
+                return fixing == null
+                        ? loanService.createLoan(customer, details)
+                        : loanService.reviseLoan(fixing, details);
             }
         };
 
