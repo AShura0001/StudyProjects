@@ -36,6 +36,8 @@ import lavs.business.model.CoBorrower;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanRecord;
 import lavs.business.model.RepaymentEntry;
+import lavs.business.model.RepaymentProgress;
+import lavs.business.model.RepaymentStatus;
 import lavs.business.service.LoanAccountService;
 import lavs.ui.component.Format;
 import lavs.ui.component.Inputs;
@@ -200,27 +202,17 @@ public class LoanDetailsController {
     /** Runs off the JavaFX thread: the loan's schedule, payments and co-borrowers, turned into screen text. */
     private View read(LoanRecord loan) {
         String loanNumber = loan.loanNumber();
-        List<RepaymentEntry> schedule = loanAccounts.scheduleOf(loanNumber);
-        int paid = (int) Math.min(schedule.size(), loanAccounts.paymentsMade(loanNumber));
-
-        BigDecimal principalPaid = BigDecimal.ZERO;
-        BigDecimal interestPaid = BigDecimal.ZERO;
+        // Which repayments are paid, and the totals, are worked out by the business layer.
+        RepaymentProgress progress = loanAccounts.progressOf(loan);
         List<ScheduleRow> rows = new ArrayList<>();
-        for (int i = 0; i < schedule.size(); i++) {
-            RepaymentEntry entry = schedule.get(i);
-            String status = i < paid ? "Paid" : i == paid ? "Due" : "Upcoming";
-            if (i < paid) {
-                principalPaid = principalPaid.add(entry.principalAmount());
-                interestPaid = interestPaid.add(entry.interestAmount());
-            }
+        for (RepaymentProgress.Repayment repayment : progress.repayments()) {
+            RepaymentEntry entry = repayment.entry();
             rows.add(new ScheduleRow((int) entry.paymentNumber(), Format.date(entry.date()),
                     Format.money(entry.principalAmount()), Format.money(entry.interestAmount()),
-                    Format.money(entry.amountPaid()), status));
+                    Format.money(entry.amountPaid()), statusLabel(repayment.status())));
         }
-
         BigDecimal principal = loan.principal() == null ? BigDecimal.ZERO : loan.principal();
-        BigDecimal remaining = principal.subtract(principalPaid).max(BigDecimal.ZERO);
-        String nextDue = paid < schedule.size() ? Format.date(schedule.get(paid).date()) : "None";
+        String nextDue = progress.nextDueDate().map(Format::date).orElse("None");
 
         List<CoBorrowerRow> people = loanAccounts.coBorrowersOf(loanNumber).stream()
                 .map(c -> new CoBorrowerRow(c.id(),
@@ -234,10 +226,19 @@ public class LoanDetailsController {
                 : Format.money(loan.paymentAmount()) + " / " + Format.text(loan.paymentFrequency());
         return new View(loanNumber, Format.loanName(loanNumber), Format.money(principal), rate,
                 term(loan.startDate(), loan.renewalDate()), Format.date(loan.startDate()),
-                Format.date(loan.renewalDate()), payment, Format.money(remaining),
-                loan.status() == null ? "Unknown" : loan.status(), paid, schedule.size(),
-                Format.money(principalPaid.add(interestPaid)), Format.money(principalPaid),
-                Format.money(interestPaid), Format.money(remaining), nextDue, people, List.copyOf(rows));
+                Format.date(loan.renewalDate()), payment, Format.money(progress.outstanding()),
+                loan.status() == null ? "Unknown" : loan.status(), progress.paymentsMade(), progress.paymentsTotal(),
+                Format.money(progress.totalPaid()), Format.money(progress.principalPaid()),
+                Format.money(progress.interestPaid()), Format.money(progress.outstanding()), nextDue, people,
+                List.copyOf(rows));
+    }
+
+    private static String statusLabel(RepaymentStatus status) {
+        return switch (status) {
+            case PAID -> "Paid";
+            case DUE -> "Due";
+            case UPCOMING -> "Upcoming";
+        };
     }
 
     private static String term(LocalDate start, LocalDate end) {

@@ -6,12 +6,15 @@ import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanListing;
 import lavs.business.model.LoanRecord;
 import lavs.business.model.RepaymentEntry;
+import lavs.business.model.RepaymentProgress;
+import lavs.business.model.RepaymentStatus;
 import lavs.business.repository.LoanCoBorrowerGateway;
 import lavs.business.repository.LoanGateway;
 import lavs.business.repository.LoanPaymentGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.PageResult;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +67,54 @@ public class LoanAccountService {
     public List<RepaymentEntry> scheduleOf(String loanNumber) {
         requireText(loanNumber, "loanNumber");
         return offline(() -> loans.findRepaymentSchedule(loanNumber));
+    }
+
+    /**
+     * The loan's schedule with each repayment marked paid, due or upcoming, and the totals
+     * worked out from the paid ones. Needs the mainframe: it reads the schedule and how many
+     * payments have been recorded.
+     *
+     * @param loan the loan, as {@link #find} returned it
+     */
+    public RepaymentProgress progressOf(LoanRecord loan) {
+        Objects.requireNonNull(loan, "loan must not be null");
+        List<RepaymentEntry> schedule = scheduleOf(loan.loanNumber());
+        return progress(loan.principal(), schedule, paymentsMade(loan.loanNumber()));
+    }
+
+    /**
+     * Marks the repayments of a schedule and adds up what has been paid.
+     *
+     * <p>The mainframe records payments but does not say which repayment each one was
+     * for, so the first {@code paymentsRecorded} repayments, in schedule order, count as
+     * paid. The next one is due and the rest are upcoming. The amounts and dates of the
+     * payments are not compared with the schedule.
+     *
+     * @param principal the amount borrowed; null counts as zero
+     * @param schedule the repayments in payment order
+     * @param paymentsRecorded how many payments the mainframe has recorded
+     */
+    public static RepaymentProgress progress(BigDecimal principal, List<RepaymentEntry> schedule,
+                                             long paymentsRecorded) {
+        Objects.requireNonNull(schedule, "schedule must not be null");
+        int paid = (int) Math.max(0, Math.min(schedule.size(), paymentsRecorded));
+        BigDecimal principalPaid = BigDecimal.ZERO;
+        BigDecimal interestPaid = BigDecimal.ZERO;
+        List<RepaymentProgress.Repayment> repayments = new ArrayList<>(schedule.size());
+        for (int i = 0; i < schedule.size(); i++) {
+            RepaymentEntry entry = schedule.get(i);
+            RepaymentStatus status = i < paid ? RepaymentStatus.PAID
+                    : i == paid ? RepaymentStatus.DUE : RepaymentStatus.UPCOMING;
+            if (status == RepaymentStatus.PAID) {
+                principalPaid = principalPaid.add(entry.principalAmount());
+                interestPaid = interestPaid.add(entry.interestAmount());
+            }
+            repayments.add(new RepaymentProgress.Repayment(entry, status));
+        }
+        BigDecimal borrowed = principal == null ? BigDecimal.ZERO : principal;
+        BigDecimal outstanding = borrowed.subtract(principalPaid).max(BigDecimal.ZERO);
+        return new RepaymentProgress(repayments, paid, principalPaid, interestPaid, outstanding,
+                paid < schedule.size() ? schedule.get(paid).date() : null);
     }
 
     /** @return how many repayments have been recorded against the loan */
