@@ -10,7 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -170,6 +172,74 @@ class ReferenceDataServiceTest {
 
         verify(gateway, times(2)).listCategories();
         verify(gateway, times(2)).listItems(2);
+    }
+
+    @Test
+    void cachedValues_beforeAnyFetch_isEmptyAndDoesNotAskTheMainframe() {
+        assertEquals(Optional.empty(), service.cachedValues(ADDRESS_TYPE));
+        verify(gateway, never()).listCategories();
+    }
+
+    @Test
+    void cachedValues_afterAFetch_returnsTheValues() {
+        givenCategories();
+        givenAddressTypes();
+        service.getValues(ADDRESS_TYPE);
+
+        assertEquals(Optional.of(List.of("Residential", "Postal", "Other")), service.cachedValues(ADDRESS_TYPE));
+    }
+
+    @Test
+    void cachedValues_afterRefresh_isEmpty() {
+        givenCategories();
+        givenAddressTypes();
+        service.getValues(ADDRESS_TYPE);
+
+        service.refresh();
+
+        assertEquals(Optional.empty(), service.cachedValues(ADDRESS_TYPE));
+    }
+
+    @Test
+    void cachedValues_withNullCategory_isRejected() {
+        assertThrows(NullPointerException.class, () -> service.cachedValues(null));
+    }
+
+    @Test
+    void preload_fetchesEveryCategoryIntoTheCache() {
+        givenCategories();
+        givenAddressTypes();
+        when(gateway.listItems(7)).thenReturn(List.of(new ReferenceItem("Fixed", 1)));
+
+        assertEquals(2, service.preload(List.of(ADDRESS_TYPE, RATE_TYPE)));
+
+        assertEquals(Optional.of(List.of("Fixed")), service.cachedValues(RATE_TYPE));
+        assertEquals(Optional.of(List.of("Residential", "Postal", "Other")), service.cachedValues(ADDRESS_TYPE));
+    }
+
+    @Test
+    void preload_skipsACategoryThatCannotBeFetched() {
+        givenCategories();
+        when(gateway.listItems(2)).thenThrow(new MainframeUnavailableException("dropped"));
+        when(gateway.listItems(7)).thenReturn(List.of(new ReferenceItem("Fixed", 1)));
+
+        assertEquals(1, service.preload(List.of(ADDRESS_TYPE, "NoSuchType", RATE_TYPE)));
+
+        assertEquals(Optional.empty(), service.cachedValues(ADDRESS_TYPE));
+        assertEquals(Optional.of(List.of("Fixed")), service.cachedValues(RATE_TYPE));
+    }
+
+    @Test
+    void preload_whenMainframeUnreachable_cachesNothing() {
+        when(gateway.listCategories()).thenThrow(new MainframeUnavailableException("dropped"));
+
+        assertEquals(0, service.preload(List.of(ADDRESS_TYPE, RATE_TYPE)));
+    }
+
+    @Test
+    void preload_withNullArgument_isRejected() {
+        assertThrows(NullPointerException.class, () -> service.preload(null));
+        assertThrows(NullPointerException.class, () -> service.preload(Arrays.asList(ADDRESS_TYPE, null)));
     }
 
     @Test

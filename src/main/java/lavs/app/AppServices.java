@@ -13,6 +13,7 @@ import lavs.business.service.CustomerService;
 import lavs.business.service.DraftSyncService;
 import lavs.business.service.LoanService;
 import lavs.business.service.LoanValidator;
+import lavs.business.service.ReferenceDataService;
 import lavs.business.service.RetryPolicy;
 import lavs.business.service.Scheduler;
 import lavs.business.service.SyncListener;
@@ -30,6 +31,7 @@ import lavs.infrastructure.mainframe.CustomerPhoneNumberAdapter;
 import lavs.infrastructure.mainframe.CustomerRelationshipAdapter;
 import lavs.infrastructure.mainframe.LoanAdapter;
 import lavs.infrastructure.mainframe.MainframeDraftUploader;
+import lavs.infrastructure.mainframe.ReferenceDataAdapter;
 import mainframe.client.Connection;
 
 import java.nio.file.Path;
@@ -82,6 +84,7 @@ public final class AppServices implements AutoCloseable {
     private final CustomerRelationshipService relationships;
     private final CustomerService customers;
     private LoanAccountService loanAccounts;
+    private ReferenceDataService referenceData;
 
     private AppServices(BackgroundSync sync, LoanService loans, CustomerRelationshipService relationships,
                         CustomerService customers) {
@@ -142,6 +145,7 @@ public final class AppServices implements AutoCloseable {
                 validator, listener, new ExecutorScheduler(), RetryPolicy.standard());
         services.loanAccounts = new LoanAccountService(gateways.loans(), new LoanCoBorrowerAdapter(connection),
                 new LoanPaymentAdapter(connection), validator);
+        services.referenceData = new ReferenceDataService(new ReferenceDataAdapter(connection));
         return services;
     }
 
@@ -281,6 +285,16 @@ public final class AppServices implements AutoCloseable {
      */
     public Optional<LoanAccountService> loanAccounts() {
         return Optional.ofNullable(loanAccounts);
+    }
+
+    /**
+     * Gets the service for the mainframe's constant values, such as address types.
+     * It is built by {@link #forMainframe(Connection, Path, LoanValidator, SyncListener)}.
+     *
+     * @return the service, or empty when these services were started another way
+     */
+    public Optional<ReferenceDataService> referenceData() {
+        return Optional.ofNullable(referenceData);
     }
 
     /** Stops the background work. Drafts already saved stay on disk. */
