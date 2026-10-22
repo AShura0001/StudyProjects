@@ -35,10 +35,12 @@ import lavs.ui.LavsApp;
 import lavs.business.model.CoBorrower;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanRecord;
+import lavs.business.model.LoanSummary;
 import lavs.business.model.RepaymentEntry;
 import lavs.business.model.RepaymentProgress;
 import lavs.business.model.RepaymentStatus;
 import lavs.business.service.LoanAccountService;
+import lavs.business.service.LoanService;
 import lavs.ui.component.Format;
 import lavs.ui.component.Inputs;
 
@@ -111,6 +113,7 @@ public class LoanDetailsController {
     @FXML private Label noticeLabel;
 
     private final LoanAccountService loanAccounts = LavsApp.context().loanAccounts();
+    private final LoanService loanService = LavsApp.context().loans();
     private final Map<String, Control> fields = new LinkedHashMap<>();
     /** The only fields typed into; the rest are worked out from the loan and stay read-only. */
     private static final java.util.Set<String> EDITABLE = java.util.Set.of("loanAmount", "startDate");
@@ -670,6 +673,63 @@ public class LoanDetailsController {
         String loanNumber = details.loanNumber();
         Runnable reopen = reopenLoan(loanNumber);
         Navigator.<LoanNotesController>show("loannotes", n -> n.open(loanNumber, reopen));
+    }
+
+    /** Fetches the mainframe's summary of the whole loan and shows it in a dialog. */
+    @FXML
+    private void onLoanSummary() {
+        if (busy || details == null) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        showNotice("");
+        setBusy(true);
+        Task<Optional<LoanSummary>> task = new Task<>() {
+            @Override
+            protected Optional<LoanSummary> call() {
+                return loanService.summaryOf(loanNumber);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            setBusy(false);
+            Optional<LoanSummary> summary = task.getValue();
+            if (summary.isEmpty()) {
+                showNotice("The mainframe has no summary for loan " + loanNumber + ".");
+            } else {
+                showSummary(summary.get());
+            }
+        });
+        task.setOnFailed(e -> {
+            setBusy(false);
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
+        });
+        startWorker(task, "loan-summary");
+    }
+
+    private void showSummary(LoanSummary summary) {
+        GridPane grid = new GridPane();
+        grid.setHgap(18);
+        grid.setVgap(6);
+        String[][] rows = {
+                {"Customer", Format.text(summary.customerName())},
+                {"Number of payments", String.valueOf(summary.numberOfPayments())},
+                {"Total to repay", Format.money(summary.totalAmountPaid())},
+                {"Total interest", Format.money(summary.totalInterestPaid())},
+                {"Final payment", Format.money(summary.finalPaymentAmount())
+                        + " on " + Format.date(summary.finalPaymentDate())},
+        };
+        for (int i = 0; i < rows.length; i++) {
+            grid.add(new Label(rows[i][0]), 0, i);
+            Label value = new Label(rows[i][1]);
+            value.setStyle("-fx-font-weight: bold;");
+            grid.add(value, 1, i);
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Loan summary");
+        alert.setHeaderText("Loan summary for " + summary.loanNumber());
+        alert.getDialogPane().setContent(grid);
+        alert.initOwner(root.getScene().getWindow());
+        alert.showAndWait();
     }
 
     /** Opens the documents recorded for the loan, where they are added and removed. */
