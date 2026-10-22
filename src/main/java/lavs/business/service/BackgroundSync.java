@@ -26,6 +26,9 @@ public class BackgroundSync {
     private final Scheduler scheduler;
     private final RetryPolicy retryPolicy;
     private final SyncListener listener;
+    /** Longest stop() waits for a pass already under way. */
+    static final Duration STOP_WAIT = Duration.ofSeconds(5);
+
     private final AtomicBoolean passQueued = new AtomicBoolean(false);
     /**
      * Held for a whole sync pass, and by every change a person makes to drafts, so a
@@ -207,6 +210,9 @@ public class BackgroundSync {
     public void stop() {
         stopped = true;
         scheduler.shutdown();
+        // A pass already under way finishes its current step; waiting for it means nothing
+        // touches the drafts folder once stop() returns (logout, closing the app, tests).
+        scheduler.awaitStopped(STOP_WAIT);
     }
 
     private void runPass() {

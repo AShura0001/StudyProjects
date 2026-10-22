@@ -103,8 +103,14 @@ public class HttpConnection implements Connection {
         if (_token != null)  builder.addHeader("Authorization", "Bearer " + _token);
         Request httpRequest = builder.build();
 
+        boolean loggedIn = _token != null;
         try (Response httpResponse = _client.newCall(httpRequest).execute()) {
             int statusCode = httpResponse.code();
+            // While logged in, "unauthorised" or "forbidden" means the server stopped accepting
+            // this session (token expired or replaced, or the request numbers fell out of step).
+            // That is not a network problem: only logging in again fixes it.
+            if (loggedIn && (statusCode == 401 || statusCode == 403))
+                return StatusMessage.SESSION_EXPIRED.generateMessageResponse(_transactionId);
             if (!httpResponse.isSuccessful() && statusCode != 400)
                 throw new IOException("Unexpected code " + httpResponse);
 

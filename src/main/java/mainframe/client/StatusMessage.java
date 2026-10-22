@@ -7,7 +7,8 @@ public enum StatusMessage {
     UNABLE_TO_PARSE(2, "Unable to parse server response"),
     SERVER_FAILURE(3, "The server could not process the message"),
     INTERNAL_FAILURE(4, "An unexpected internal error has occurred"),
-    NETWORK_FAILURE_UNAVAILABLE(10, "The remote host has responded that it is currently unavailable");
+    NETWORK_FAILURE_UNAVAILABLE(10, "The remote host has responded that it is currently unavailable"),
+    SESSION_EXPIRED(11, "The mainframe no longer accepts this login session");
 
     private final String message;
     private final Integer code;

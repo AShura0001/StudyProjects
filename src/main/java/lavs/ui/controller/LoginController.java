@@ -137,6 +137,12 @@ public class LoginController {
         passwordField.setDisable(busy);
     }
 
+    /** Shows why staff are back at the login screen, for example that their session ended. */
+    public void showNotice(String text) {
+        messageLabel.setText(text);
+        messageLabel.getStyleClass().setAll("message-error");
+    }
+
     private void showMessage(String text, boolean isError) {
         messageLabel.setText(text);
         messageLabel.getStyleClass().setAll(isError ? "message-error" : "message-muted");
