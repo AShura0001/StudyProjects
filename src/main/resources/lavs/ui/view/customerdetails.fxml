@@ -153,7 +153,12 @@
                                     </HBox>
                                 </VBox>
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                                    <Label text="Email Address" styleClass="field-label"/>
+                                    <HBox alignment="CENTER_LEFT" spacing="6">
+                                        <Label text="Email Address" styleClass="field-label"/>
+                                        <Hyperlink text="Manage" styleClass="link-add" onAction="#onManageContacts">
+                                            <tooltip><Tooltip text="Every email for this customer"/></tooltip>
+                                        </Hyperlink>
+                                    </HBox>
                                     <TextField fx:id="emailField" styleClass="data-field"
                                                editable="false" focusTraversable="false"/>
                                 </VBox>

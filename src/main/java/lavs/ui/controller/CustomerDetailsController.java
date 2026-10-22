@@ -420,7 +420,7 @@ public class CustomerDetailsController {
         return tag;
     }
 
-    /** Opens every phone number of the customer, where they are added, changed and removed. */
+    /** Opens every phone number and email of the customer, where they are added, changed and removed. */
     @FXML
     private void onManageContacts() {
         if (details == null || busy || !confirmDiscard()) {

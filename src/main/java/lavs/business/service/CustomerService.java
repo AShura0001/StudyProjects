@@ -716,6 +716,23 @@ public class CustomerService implements CustomerProfileSource {
         return emailGateway.updateCustomerEmail(email).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the email update"));
     }
 
+    /**
+     * Removes one email, keeping the single-primary rule: the primary email can only be
+     * removed when it is the last one, so another must be made primary first.
+     *
+     * @throws ValidationException (field emails) if the primary would be removed while others remain
+     * @throws RecordRejectedException if the mainframe refused the removal
+     */
+    public void removeEmail(String customerNumber, long emailId) throws IOException {
+        if (removesPrimaryButNotAll(listEmails(customerNumber), Email::getId, Email::isPrimary, List.of(emailId))) {
+            throw new ValidationException(List.of(new ValidationError("emails",
+                    "Make another email primary before removing the primary email")));
+        }
+        if (!deleteEmail(customerNumber, emailId)) {
+            throw refused("email removal");
+        }
+    }
+
     public boolean deleteEmail(String customerNumber, long emailId) throws IOException {
         return emailGateway.deleteCustomerEmail(customerNumber, emailId);
     }

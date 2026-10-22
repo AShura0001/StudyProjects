@@ -15,7 +15,7 @@
 <?import javafx.scene.shape.SVGPath?>
 
 <!--
-    Every phone number of one customer, each with remove and Edit. No Figma frame;
+    Every phone number and email of one customer, each with remove and Edit. No Figma frame;
     reuses the Register customer card and the Customer Details panels.
 -->
 <BorderPane fx:id="root" styleClass="light-root"
@@ -57,7 +57,7 @@
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
 
-            <StackPane styleClass="profile-card" maxWidth="620" maxHeight="430" VBox.vgrow="ALWAYS">
+            <StackPane styleClass="profile-card" maxWidth="620" maxHeight="470" VBox.vgrow="ALWAYS">
 
                 <VBox fx:id="content" spacing="12">
                     <padding>
@@ -67,7 +67,7 @@
                     <Label text="Contact details" styleClass="form-title"/>
                     <Label fx:id="customerLabel" styleClass="form-hint"/>
 
-                    <VBox styleClass="info-panel" VBox.vgrow="ALWAYS" minHeight="120">
+                    <VBox styleClass="info-panel" VBox.vgrow="ALWAYS" minHeight="100">
                         <StackPane>
                             <Label text="PHONE NUMBERS" styleClass="panel-title" maxWidth="Infinity"/>
                             <Hyperlink text="Add" styleClass="notes-add" onAction="#onAddPhone"
@@ -77,6 +77,19 @@
                                     hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
                                     VBox.vgrow="ALWAYS" focusTraversable="false">
                             <VBox fx:id="phonesBox"/>
+                        </ScrollPane>
+                    </VBox>
+
+                    <VBox styleClass="info-panel" VBox.vgrow="ALWAYS" minHeight="100">
+                        <StackPane>
+                            <Label text="EMAILS" styleClass="panel-title" maxWidth="Infinity"/>
+                            <Hyperlink text="Add" styleClass="notes-add" onAction="#onAddEmail"
+                                       StackPane.alignment="CENTER_RIGHT"/>
+                        </StackPane>
+                        <ScrollPane styleClass="panel-scroll" fitToWidth="true"
+                                    hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                                    VBox.vgrow="ALWAYS" focusTraversable="false">
+                            <VBox fx:id="emailsBox"/>
                         </ScrollPane>
                     </VBox>
                 </VBox>

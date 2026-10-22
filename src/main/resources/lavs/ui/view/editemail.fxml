@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+
+<!--
+    Add or edit one of a customer's emails. No Figma frame; reuses the Register customer card.
+-->
+<BorderPane fx:id="root" styleClass="light-root"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="lavs.ui.controller.EditEmailController"
+            prefWidth="900" prefHeight="600"
+            stylesheets="@../css/theme.css">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" styleClass="page-fill">
+            <padding>
+                <Insets top="10" right="22" bottom="0" left="22"/>
+            </padding>
+
+            <Button styleClass="btn-chip" text="Back" onAction="#onBack">
+                <graphic>
+                    <SVGPath styleClass="chip-icon" content="M20 12 H5 M11 6 L5 12 L11 18"/>
+                </graphic>
+                <tooltip><Tooltip text="Back (Esc)"/></tooltip>
+            </Button>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button styleClass="btn-chip, btn-chip-danger" text="Logout"
+                    contentDisplay="RIGHT" onAction="#onLogout">
+                <graphic>
+                    <SVGPath styleClass="chip-icon"
+                             content="M9 3 H4 V21 H9 M16 7 L21 12 L16 17 M21 12 H9"/>
+                </graphic>
+                <tooltip><Tooltip text="Log out (Ctrl+L)"/></tooltip>
+            </Button>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox styleClass="page-fill" alignment="CENTER">
+            <padding>
+                <Insets top="6" right="40" bottom="18" left="40"/>
+            </padding>
+
+            <StackPane styleClass="profile-card" maxWidth="620" maxHeight="320" VBox.vgrow="ALWAYS">
+
+                <VBox fx:id="content" styleClass="editing" spacing="12">
+                    <padding>
+                        <Insets top="26" right="46" bottom="22" left="46"/>
+                    </padding>
+
+                    <Label fx:id="titleLabel" text="Add an email" styleClass="form-title"/>
+                    <Label text="Making this email primary takes the flag off the customer's other emails."
+                           styleClass="form-hint"/>
+
+                    <HBox spacing="20">
+                        <VBox spacing="4" prefWidth="160" minWidth="160" maxWidth="160">
+                            <Label text="Type" styleClass="field-label"/>
+                            <ComboBox fx:id="typeField" styleClass="data-field" maxWidth="Infinity"/>
+                        </VBox>
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Describe (for Other)" styleClass="field-label"/>
+                            <TextField fx:id="otherTypeField" styleClass="data-field"
+                                       promptText="e.g. Accountant" maxWidth="Infinity"/>
+                        </VBox>
+                    </HBox>
+
+                    <VBox spacing="4">
+                        <Label text="Email Address" styleClass="field-label"/>
+                        <TextField fx:id="addressField" styleClass="data-field"
+                                   promptText="e.g. jane@example.com" maxWidth="Infinity"/>
+                    </VBox>
+
+                    <CheckBox fx:id="primaryField" text="Primary email" styleClass="form-check"/>
+
+                    <Region VBox.vgrow="ALWAYS"/>
+
+                    <HBox spacing="6" alignment="BOTTOM_RIGHT">
+                        <Button text="cancel" styleClass="btn-action, btn-action-cancel" onAction="#onBack">
+                            <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>
+                        </Button>
+                        <Button text="save" styleClass="btn-action, btn-action-save"
+                                onAction="#onSubmit">
+                            <tooltip><Tooltip text="Save (Ctrl+S)"/></tooltip>
+                        </Button>
+                    </HBox>
+                </VBox>
+
+                <ProgressIndicator fx:id="progress" visible="false" managed="false"
+                                   prefWidth="44" prefHeight="44" maxWidth="44" maxHeight="44"/>
+            </StackPane>
+
+            <Label fx:id="noticeLabel" styleClass="message-muted" wrapText="true"
+                   textAlignment="CENTER" visible="false" managed="false">
+                <VBox.margin>
+                    <Insets top="6"/>
+                </VBox.margin>
+            </Label>
+        </VBox>
+    </center>
+
+</BorderPane>

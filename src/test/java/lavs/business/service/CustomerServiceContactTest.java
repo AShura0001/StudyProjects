@@ -630,4 +630,43 @@ class CustomerServiceContactTest {
 
         assertTrue(refused.getMessage().contains("phone number removal"));
     }
+
+    @Test
+    void removeEmail_deletesAnotherEmail() throws IOException {
+        givenTwoEmails();
+
+        service.removeEmail(NUMBER, 22L);
+
+        verify(emails).deleteCustomerEmail(NUMBER, 22L);
+    }
+
+    @Test
+    void removeEmail_ofThePrimaryWhileOthersRemain_isRefused() throws IOException {
+        givenTwoEmails();
+
+        ValidationException invalid = assertThrows(ValidationException.class, () -> service.removeEmail(NUMBER, 12L));
+
+        assertEquals("emails", invalid.getErrors().get(0).getField());
+        verify(emails, never()).deleteCustomerEmail(any(), anyLong());
+    }
+
+    @Test
+    void removeEmail_ofTheLastEmail_isAllowed() throws IOException {
+        when(emails.deleteCustomerEmail(NUMBER, 12L)).thenReturn(true);
+
+        service.removeEmail(NUMBER, 12L);
+
+        verify(emails).deleteCustomerEmail(NUMBER, 12L);
+    }
+
+    @Test
+    void removeEmail_whenTheMainframeRefuses_isReported() throws IOException {
+        givenTwoEmails();
+        when(emails.deleteCustomerEmail(NUMBER, 22L)).thenReturn(false);
+
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class,
+                () -> service.removeEmail(NUMBER, 22L));
+
+        assertTrue(refused.getMessage().contains("email removal"));
+    }
 }

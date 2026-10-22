@@ -21,6 +21,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
+import lavs.business.model.Email;
 import lavs.business.model.PhoneNumber;
 import lavs.business.service.CustomerService;
 import lavs.ui.LavsApp;
@@ -35,20 +36,26 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
- * Every phone number of one customer, read and changed through CustomerService.
- * Numbers are added and changed on their own form; a removal is confirmed and sent at once.
+ * Every phone number and email of one customer, read and changed through CustomerService.
+ * Each is added and changed on its own form; a removal is confirmed and sent at once.
  */
 public class ContactsController {
 
-    /** One phone number: the number with its code, its type, and its flags. */
-    private record PhoneRow(long id, String number, String type, boolean canText, boolean primary) {
+    /** One phone number or email: what is shown on its two lines, and whether it is the primary one. */
+    private record ContactRow(long id, String title, String sub, boolean primary) {
     }
+
+    private record Contacts(List<ContactRow> phones, List<ContactRow> emails) {
+    }
+
+    private static final Comparator<ContactRow> PRIMARY_FIRST = Comparator.comparing(c -> !c.primary());
 
     @FXML private BorderPane root;
     @FXML private Node content;
     @FXML private ProgressIndicator progress;
     @FXML private Label customerLabel;
     @FXML private VBox phonesBox;
+    @FXML private VBox emailsBox;
     @FXML private Label noticeLabel;
 
     private final CustomerService customers = LavsApp.context().customers();
@@ -81,51 +88,64 @@ public class ContactsController {
     }
 
     private void load(String noticeWhenDone) {
-        run(() -> customers.listPhones(customerNumber).stream()
-                .map(ContactsController::phoneRow)
-                .sorted(Comparator.comparing((PhoneRow p) -> !p.primary()))
-                .toList(), phones -> {
-            renderPhones(phones);
+        run(() -> new Contacts(
+                customers.listPhones(customerNumber).stream().map(ContactsController::phoneRow)
+                        .sorted(PRIMARY_FIRST).toList(),
+                customers.listEmails(customerNumber).stream().map(ContactsController::emailRow)
+                        .sorted(PRIMARY_FIRST).toList()), contacts -> {
+            render(phonesBox, contacts.phones(), "No phone numbers yet.", this::removePhone, this::openPhoneEditor);
+            render(emailsBox, contacts.emails(), "No emails yet.", this::removeEmail, this::openEmailEditor);
             showNotice(noticeWhenDone);
         }, "Could not reach the mainframe. Try again.");
     }
 
-    private static PhoneRow phoneRow(PhoneNumber phone) {
-        String type = Format.text(phone.get_type());
-        if ("Other".equalsIgnoreCase(type) && !Format.text(phone.get_otherType()).isEmpty()) {
-            type = Format.text(phone.get_otherType());
-        }
+    private static ContactRow phoneRow(PhoneNumber phone) {
+        String type = typeName(phone.get_type(), phone.get_otherType());
         String number = (Format.text(phone.get_countryCode()) + " " + Format.text(phone.get_number())).trim();
-        return new PhoneRow(phone.get_id(), number.isEmpty() ? "(no number)" : number, type,
-                phone.is_canTxt(), phone.is_isPrimary());
+        return new ContactRow(phone.get_id(), number.isEmpty() ? "(no number)" : number,
+                phone.is_canTxt() ? type + "  •  Can text" : type, phone.is_isPrimary());
     }
 
-    private void renderPhones(List<PhoneRow> phones) {
-        phonesBox.getChildren().clear();
-        if (phones.isEmpty()) {
-            Label none = new Label("No phone numbers yet.");
+    private static ContactRow emailRow(Email email) {
+        String address = Format.text(email.getAddress());
+        return new ContactRow(email.getId(), address.isEmpty() ? "(no address)" : address,
+                typeName(email.getType(), email.getOtherType()), email.isPrimary());
+    }
+
+    /** "Other" reads as its description when there is one. */
+    private static String typeName(String type, String otherType) {
+        String name = Format.text(type);
+        return "Other".equalsIgnoreCase(name) && !Format.text(otherType).isEmpty() ? Format.text(otherType) : name;
+    }
+
+    private void render(VBox box, List<ContactRow> rows, String empty,
+                        java.util.function.Consumer<ContactRow> remove, java.util.function.Consumer<Long> edit) {
+        box.getChildren().clear();
+        if (rows.isEmpty()) {
+            Label none = new Label(empty);
             none.getStyleClass().add("list-item-sub");
-            phonesBox.getChildren().add(none);
+            box.getChildren().add(none);
         }
-        for (PhoneRow phone : phones) {
-            phonesBox.getChildren().add(phoneItem(phone));
+        for (ContactRow row : rows) {
+            box.getChildren().add(contactItem(row, remove, edit));
         }
     }
 
-    /** The number, then its type with a Primary tag, then remove and Edit. */
-    private Node phoneItem(PhoneRow phone) {
-        Label number = new Label(phone.number());
-        number.getStyleClass().add("list-item-title");
-        Label sub = new Label(phone.canText() ? phone.type() + "  •  Can text" : phone.type());
+    /** The number or address, then its type with a Primary tag, then remove and Edit. */
+    private Node contactItem(ContactRow contact, java.util.function.Consumer<ContactRow> onRemove,
+                             java.util.function.Consumer<Long> onEdit) {
+        Label title = new Label(contact.title());
+        title.getStyleClass().add("list-item-title");
+        Label sub = new Label(contact.sub());
         sub.getStyleClass().add("list-item-sub");
         HBox tags = new HBox(4, sub);
         tags.setAlignment(Pos.CENTER_LEFT);
-        if (phone.primary()) {
+        if (contact.primary()) {
             Label tag = new Label("PRIMARY");
             tag.getStyleClass().add("address-tag");
             tags.getChildren().add(tag);
         }
-        VBox text = new VBox(1, number, tags);
+        VBox text = new VBox(1, title, tags);
         text.getStyleClass().add("list-item");
 
         Button remove = new Button();
@@ -134,11 +154,11 @@ public class ContactsController {
         cross.setContent("M5 5 L19 19 M19 5 L5 19");
         cross.getStyleClass().add("remove-icon");
         remove.setGraphic(cross);
-        remove.setOnAction(e -> removePhone(phone));
+        remove.setOnAction(e -> onRemove.accept(contact));
 
         Button edit = new Button("Edit");
         edit.getStyleClass().add("btn-edit-chip");
-        edit.setOnAction(e -> openPhoneEditor(phone.id()));
+        edit.setOnAction(e -> onEdit.accept(contact.id()));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -148,14 +168,39 @@ public class ContactsController {
         return row;
     }
 
-    private void removePhone(PhoneRow phone) {
-        if (busy || !confirm("Remove phone number " + phone.number() + "?")) {
+    private void removePhone(ContactRow phone) {
+        if (busy || !confirm("Remove phone number " + phone.title() + "?")) {
             return;
         }
         run(() -> {
             customers.removePhone(customerNumber, phone.id());
             return null;
         }, done -> load("Phone number removed."), "Could not reach the mainframe. The phone number was not removed.");
+    }
+
+    private void removeEmail(ContactRow email) {
+        if (busy || !confirm("Remove email " + email.title() + "?")) {
+            return;
+        }
+        run(() -> {
+            customers.removeEmail(customerNumber, email.id());
+            return null;
+        }, done -> load("Email removed."), "Could not reach the mainframe. The email was not removed.");
+    }
+
+    @FXML
+    private void onAddEmail() {
+        if (!busy) {
+            openEmailEditor(null);
+        }
+    }
+
+    /** @param emailId the email to change, or null to add one */
+    private void openEmailEditor(Long emailId) {
+        String number = customerNumber;
+        Runnable backFromContacts = onBack;
+        Runnable reopen = () -> Navigator.<ContactsController>show("contacts", c -> c.open(number, backFromContacts));
+        Navigator.<EditEmailController>show("editemail", e -> e.open(number, emailId, reopen, reopen));
     }
 
     @FXML

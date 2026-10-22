@@ -61,6 +61,7 @@ class ChoicesTest {
         assertEquals(Choices.PAYMENT_FREQUENCIES, Choices.paymentFrequencies());
         assertEquals(Choices.CO_BORROWER_TYPES, Choices.coBorrowerTypes());
         assertEquals(Choices.PHONE_TYPES, Choices.phoneTypes());
+        assertEquals(Choices.EMAIL_TYPES, Choices.emailTypes());
     }
 
     @Test
@@ -71,5 +72,6 @@ class ChoicesTest {
         assertEquals(List.of("Weekly", "Fortnightly", "Monthly", "Yearly", "Onrenewal"), Choices.PAYMENT_FREQUENCIES);
         assertEquals(List.of("Coborrower", "Guarantor"), Choices.CO_BORROWER_TYPES);
         assertEquals(List.of("Home", "Mobile", "Work", "Other"), Choices.PHONE_TYPES);
+        assertEquals(List.of("Personal", "Work", "Other"), Choices.EMAIL_TYPES);
     }
 }
