@@ -44,18 +44,18 @@ This runs every test that does not need the mock mainframe, and checks that the 
 
 ## Running the application
 
-The user interface is JavaFX 21 on Java 21 and starts from `lavs.ui.LavsApp`.
+The user interface is JavaFX 21 (it runs on Java 17 or newer) and starts from `lavs.ui.LavsApp`.
 
 * `mvn javafx:run` starts the app at the login screen.
 * In IntelliJ or VS Code, run `lavs.ui.Launcher` (a plain `main` that works on a normal classpath).
 * Log in with the mainframe credentials below. The mainframe address is `https://animating-eraser-arrogance.ngrok-free.dev/`; override it with `-Dlavs.mainframe.url=...` or the `LAVS_MAINFRAME_URL` environment variable.
-* To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `loandetails`, `registercustomer`, `addloan`, `addcoborrower`, `editemployer`, `editpayment`, `editschedule`, `loannotes`, `editloannote`.
+* To open a screen directly, pass its name: `mvn javafx:run -Djavafx.args=customerdetails`. Names: `login`, `loggedout`, `customersearch`, `searchresults`, `fulldirectory`, `customerdetails`, `contacts`, `editphone`, `editemail`, `editaddress`, `editemployer`, `editnote`, `relationships`, `editrelationship`, `documents`, `adddocument`, `registercustomer`, `loandetails`, `loannotes`, `editloannote`, `addloan`, `addcoborrower`, `editpayment`, `editschedule`, `drafts`. Screens that show one customer or loan need to be reached from the app to have something to show.
 
 The three dots beside Logout show the sync of saved changes: green when all sent, a white dot moving along while sending, two yellow when changes are waiting for the connection, one red when something needs checking. Click the dots to open Saved changes: confirm records that may or may not have reached the mainframe, fix and resend refused loans, or discard unsent changes. The background sync starts when you log in and stops when you log out; each employee's drafts are kept in `~/.lavs/drafts/<login name>` and only go while that employee is logged in. Sent drafts are cleared after 7 days. A new customer is sent step by step and resumes where it stopped, so a dropped connection never creates it twice. Preview a state with `-Dlavs.sync=sent|sending|waiting|attention`, which keeps the dots on that state even after login.
 
 Keyboard shortcuts are listed on each screen with F1. Every shortcut is a second way to use a button that is already on screen.
 
-Every screen controller works through the business services (`CustomerService`, `LoanService`, `LoanAccountService`), which `AppContext` starts after login; there are no services in the `lavs.ui` package. New loans are saved as drafts and sent in the background. Customer details lists every address and note; they are added and edited on their own forms and removed in edit mode. Not available yet: editing a single repayment (the mainframe works repayments out from the loan terms) and photos. The screens are laid out from the Figma mock-ups in the proposal; Register customer, Add loan and Add co-borrower have no mock-up and reuse the Customer Details card.
+Every screen controller works through the business services (`CustomerService`, `LoanService`, `LoanAccountService`, `LoanNoteService`, `CustomerRelationshipService`, `DocumentService`), which `AppContext` starts after login; there are no services in the `lavs.ui` package, and a test (`ControllerWiringTest`) fails the build if a screen reaches the mainframe directly. New loans are saved as drafts and sent in the background. Customer details lists every address and note; they are added and edited on their own forms and removed in edit mode. From a customer, **Relationships ›** and **Documents ›** open the customer's relationships with other customers and the documents recorded for them; from a loan, **Loan notes ›** and **Documents ›** do the same for the loan, and **Submit for checking** moves a New loan to Pending once its rules are met. Not available yet: editing a single repayment (the mainframe works repayments out from the loan terms) and photos. The screens are laid out from the Figma mock-ups in the proposal; Register customer, Add loan and Add co-borrower have no mock-up and reuse the Customer Details card.
 
 Bundled fonts (Jacquard 12, Red Hat Mono, NATS and Nunito) are open-licence (SIL OFL) fonts.
 
@@ -81,7 +81,7 @@ Three layers, and calls only go downward.
 | Business logic | `src/main/java/lavs/business` | Every rule and calculation. It defines the interfaces the layers below it implement, so it can be tested with fakes and no mainframe. |
 | Data access | `src/main/java/lavs/data`, `src/main/java/lavs/infrastructure` | Saving drafts to files, talking to the mainframe, and the background worker thread. |
 
-`src/main/java/lavs/app/AppServices.java` creates the services and joins them in one place. The screens get it when the user logs in. `src/main/java/mainframe` is the provided mainframe client, which we use but do not change.
+`src/main/java/lavs/app/AppServices.java` creates the services and joins them in one place. The screens get it when the user logs in. `src/main/java/mainframe` is the provided mainframe client. We use it as given, with one small change: `HttpConnection` reports an "unauthorised" or "forbidden" answer as a new `SESSION_EXPIRED` status, so the app can send staff back to log in instead of saying the mainframe cannot be reached.
 
 ## How the offline sync works
 
@@ -93,25 +93,29 @@ This is the part of the design that answers the client's main complaint.
 4. **A record is never sent twice.** Before every attempt the draft is saved as "sending". If the reply is lost or the application stops part way through, the draft becomes "uncertain" and is not sent again until a person has checked the mainframe and said whether the record is there.
 5. **If the mainframe refuses a record,** the draft is kept with the reasons, so the staff member can correct it and send it again.
 
-The loan summary, the repayment schedule, changing an existing record and the relationships between customers are worked out or stored by the mainframe, so they need a live connection and say so clearly when there is none.
+The loan summary, the repayment schedule, changing an existing record, relationships between customers, loan notes and documents are worked out or stored by the mainframe, so they need a live connection and say so clearly when there is none.
 
 ## Loan and relationship rules
 
 * A loan needs a customer with a mailing address and a phone number or an email, and its values must pass the validation rules. Every problem is reported at once.
 * A customer cannot be a co-borrower on their own loan.
 * A customer cannot be related to themselves, and an "Other" relationship needs a description.
+* A loan moves from New to Pending (Submit for checking) only when it is New with every detail present and valid, its customer has a mailing address and a phone or an email, and a customer with no employer has a guarantor on the loan.
+* A loan note needs some text, up to 2000 characters, and a title of at most 40 characters ("General" when none is given). A document needs a file name and a kind.
 
 ## Known limits
 
-* Submitting a loan for checking (changing its status from New to Pending) is done by `LoanAccountService.submitForChecking`, with its rules (the loan must be New and complete, its customer needs a mailing address and a phone or email, and a customer with no employer needs a guarantor). The loan screen has no button for it yet.
-* A record whose outcome is uncertain waits for a person to check it. The services for that are in place (`BackgroundSync.findUncertain`, `confirmSynced` and `confirmNotSent`), but no screen calls them yet, so today the check is made by looking at the draft files in `~/.lavs/drafts`.
-* A customer is sent to the mainframe as several messages (the customer, then each address, phone number, email and employer). If the connection drops part way, the customer draft is marked uncertain rather than sent again, so it is not repeated blindly.
+* A record whose outcome is uncertain waits for a person to check the mainframe and settle it in the Saved changes window (click the sync dots). That is deliberate: the mainframe cannot tell us whether it already has a record, so guessing could create a duplicate loan.
+* The mainframe keeps a document's details (file name, kind, size), not the file itself, and it cannot change a recorded document. A wrong one is removed and recorded again.
+* Relationships, loan notes and documents need a live connection; only new customers, loans and co-borrowers can be saved offline.
 
 ## Mainframe credentials
 
 Username: Group_2
 
 Password: bug
+
+The mainframe numbers every request of an account in order, and refuses a request with the wrong number ("Invalid transaction number"). So everyone on the same login used to push the others out of step, and parts of the app sending at the same moment could do the same to themselves. `ResyncingConnection` fixes both: it sends one request at a time, and when the number is wrong it logs in again quietly (which gives the current number) and sends the request once more. Several people can now share the Group_2 login. It keeps the login name and password in memory until logout, and never writes them anywhere. If the tunnel itself is busy or down, the app still reports that the mainframe cannot be reached.
 
 ## Provided code
 
