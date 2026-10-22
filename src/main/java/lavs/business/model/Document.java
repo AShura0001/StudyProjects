@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * A document stored against a customer on the mainframe: its file name, file type and
+ * size, and what kind of document it is.
+ */
 public class Document implements  CustomerType {
     private String customerName;
     private String customerNumber;

@@ -17,6 +17,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerEmailGateway}: it turns each call into the provided
+ * customer email messages, and their replies back into business objects.
+ */
 public class CustomerEmailAdapter implements CustomerEmailGateway {
     private final Connection connection;
 

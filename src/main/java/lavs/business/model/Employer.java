@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * Where a customer works: the employer's name, the customer's position and salary, and the
+ * kind of employment.
+ */
 public class Employer implements  CustomerType {
     private String _customerName;
     private String _customerNumber;

@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerPhoneNumberGateway}: it turns each call into the provided
+ * customer phone number messages, and their replies back into business objects.
+ */
 public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
     private final Connection connection;
 

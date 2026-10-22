@@ -15,6 +15,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerEmployerGateway}: it turns each call into the provided
+ * customer employer messages, and their replies back into business objects.
+ */
 public class CustomerEmployerAdapter implements CustomerEmployerGateway {
     private final Connection connection;
 

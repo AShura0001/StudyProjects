@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * A link from one customer to another, such as a parent or a spouse. An "Other"
+ * relationship carries a description of what it is.
+ */
 public class Relationship implements  CustomerType {
     private String _customerName;
     private String _customerNumber;

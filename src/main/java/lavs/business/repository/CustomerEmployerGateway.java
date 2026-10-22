@@ -7,6 +7,11 @@ import lavs.business.model.Relationship;
 import java.io.IOException;
 import java.util.Optional;
 
+/**
+ * What the business layer needs from the mainframe for a customer's employers. The data access
+ * layer implements it, so the services can be tested with a stand-in instead of the mainframe.
+ * Every method throws {@link java.io.IOException} if the mainframe could not be reached.
+ */
 public interface CustomerEmployerGateway {
 
     /**

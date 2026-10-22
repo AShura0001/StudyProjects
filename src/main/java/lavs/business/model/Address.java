@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * One of a customer's addresses, as the mainframe holds it. One address can be
+ * the primary one, and an address can also be marked as the mailing address.
+ */
 public class Address  implements  CustomerType {
     private String city;
     private String country;
