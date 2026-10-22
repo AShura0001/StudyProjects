@@ -2,3 +2,6 @@
 **/*.java.bak
 
 target/
+
+# IntelliJ settings are personal to each machine
+.idea/
