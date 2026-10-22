@@ -55,7 +55,8 @@ public final class Navigator {
             Parent root = loader.load();
             init.accept(loader.getController());
             if (LavsApp.context() != null) {
-                SyncIndicator.addTo(root, LavsApp.context().syncStatus());
+                SyncIndicator.addTo(root, LavsApp.context().syncStatus(),
+                        () -> lavs.ui.controller.DraftsController.openWindow(stage));
             }
             if (stage.getScene() == null) {
                 stage.setScene(new Scene(root));

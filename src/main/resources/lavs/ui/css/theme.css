@@ -1011,3 +1011,185 @@
     -fx-stroke: rgba(255, 255, 255, 0.35);
     -fx-stroke-width: 1px;
 }
+
+/* ---------- Drop-downs and date pickers ---------- */
+/* They share the text-field look. Only the closed box is styled here; the popup
+   list and calendar keep JavaFX's default light look so they stay readable. */
+
+.combo-box.data-field,
+.date-picker.data-field,
+.date-picker.kv-field {
+    -fx-padding: 0;
+}
+
+.combo-box.data-field > .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #f2f2f4;
+    -fx-font-size: 12px;
+    -fx-padding: 0 8px;
+}
+
+.date-picker.data-field > .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #f2f2f4;
+    -fx-prompt-text-fill: #9a9da1;
+    -fx-font-size: 12px;
+    -fx-padding: 0 8px;
+}
+
+.date-picker.kv-field > .text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #f2f2f4;
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 10px;
+    -fx-padding: 0;
+}
+
+.combo-box.data-field > .arrow-button,
+.date-picker.data-field > .arrow-button,
+.date-picker.kv-field > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 6px;
+}
+
+.combo-box.data-field > .arrow-button > .arrow,
+.date-picker.data-field > .arrow-button > .arrow,
+.date-picker.kv-field > .arrow-button > .arrow {
+    -fx-background-color: #f2f2f4;
+}
+
+.editing .combo-box.data-field > .list-cell,
+.editing .date-picker.data-field > .text-field,
+.editing .date-picker.kv-field > .text-field {
+    -fx-text-fill: #1b1c1e;
+}
+
+.editing .date-picker.kv-field > .text-field {
+    -fx-padding: 0 6px;
+}
+
+.editing .combo-box.data-field > .arrow-button > .arrow,
+.editing .date-picker.data-field > .arrow-button > .arrow,
+.editing .date-picker.kv-field > .arrow-button > .arrow {
+    -fx-background-color: #1b1c1e;
+}
+
+/* View mode locks these by disabling them; keep them readable and hide the button. */
+.combo-box.data-field:disabled,
+.date-picker.data-field:disabled,
+.date-picker.kv-field:disabled {
+    -fx-opacity: 1;
+}
+
+.date-picker.kv-field:disabled > .text-field,
+.date-picker.data-field:disabled > .text-field {
+    -fx-opacity: 1;
+}
+
+.date-picker.kv-field:disabled > .arrow-button,
+.date-picker.data-field:disabled > .arrow-button {
+    -fx-opacity: 0;
+}
+
+/* Loan details edit mode: fields worked out from the loan stay read-only and look it. */
+.editing .kv-field.derived {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b9bcc0;
+    -fx-padding: 0;
+}
+
+/* ---------- Customer details: addresses list ---------- */
+
+.address-panel {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 2px 4px;
+}
+
+.address-panel .list-row,
+.address-panel .list-item {
+    -fx-padding: 3px 6px;
+}
+
+.address-tag {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 8px;
+    -fx-text-fill: #1b1c1e;
+    -fx-background-color: #a5c3ff;
+    -fx-background-radius: 6px;
+    -fx-padding: 0 5px;
+}
+
+.address-tag-mailing {
+    -fx-background-color: #9fe3b6;
+}
+
+.form-check {
+    -fx-text-fill: #f2f2f4;
+    -fx-font-size: 11px;
+    -fx-padding: 0 0 4px 0;
+}
+
+/* ---------- Customer notes ---------- */
+
+.notes-add {
+    -fx-font-size: 9px;
+    -fx-text-fill: #7aa7ff;
+    -fx-padding: 0 6px;
+    -fx-border-width: 0;
+}
+
+.editing .notes-add { -fx-text-fill: #2f5fd0; }
+
+.note-row {
+    -fx-padding: 4px 6px;
+    -fx-border-color: transparent transparent #b5b5b5 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.note-row-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-text-fill: #1b1c1e;
+}
+
+.note-row-text {
+    -fx-font-size: 10px;
+    -fx-text-fill: #3a3d40;
+}
+
+.note-input {
+    -fx-font-size: 12px;
+}
+
+.over-limit {
+    -fx-text-fill: #ff4d4d;
+}
+
+/* ---------- Saved changes (drafts) window ---------- */
+
+.draft-section {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 11px;
+    -fx-text-fill: #cfd0d6;
+    -fx-padding: 6px 0 0 0;
+}
+
+.draft-row {
+    -fx-background-color: #36393c;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 12px;
+}
+
+.draft-error {
+    -fx-font-size: 10px;
+    -fx-text-fill: #ff8a80;
+}
+
+.draft-tag-waiting {
+    -fx-background-color: #f5d36b;
+}
+
+.draft-tag-attention {
+    -fx-background-color: #ff8a80;
+}

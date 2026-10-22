@@ -1,13 +1,20 @@
 package lavs.infrastructure.mainframe;
 
+import lavs.business.model.Address;
 import lavs.business.model.CoBorrowerType;
+import lavs.business.model.Customer;
+import lavs.business.model.CustomerPayloads;
+import lavs.business.model.CustomerPayloads.CustomerContent;
 import lavs.business.model.CustomerReference;
 import lavs.business.model.CustomerReference.ExistingCustomer;
 import lavs.business.model.Draft;
+import lavs.business.model.Email;
+import lavs.business.model.Employer;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanPayloads;
 import lavs.business.model.LoanPayloads.CoBorrowerContent;
 import lavs.business.model.LoanPayloads.LoanContent;
+import lavs.business.model.PhoneNumber;
 import lavs.business.repository.DraftUploadGateway;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.RecordRejectedException;
@@ -16,6 +23,10 @@ import mainframe.client.Connection;
 import mainframe.client.Message;
 import mainframe.client.Status;
 import mainframe.client.StatusMessage;
+import mainframe.client.messages.customer.AddAddress;
+import mainframe.client.messages.customer.AddEmail;
+import mainframe.client.messages.customer.AddEmployer;
+import mainframe.client.messages.customer.AddPhoneNumber;
 import mainframe.client.messages.loan.AddCoborrower;
 import mainframe.client.messages.loan.Create;
 
@@ -34,16 +45,13 @@ import java.util.Objects;
  * answer, the record may have been saved, and that is reported as an unknown
  * outcome. When the mainframe says no, the draft is refused with its reason.
  *
- * <p>Loan and co-borrower drafts are supported. Customer drafts are refused with a
- * clear message, because nothing has defined what a saved customer looks like yet.
- * A draft that cannot be read, or that came without the numbers it needs, is also
+ * <p>Customer, loan and co-borrower drafts are supported. A customer is sent as the
+ * customer itself followed by its addresses, phone numbers, emails and employers.
+ * A draft that cannot be read, or that came without the numbers it needs, is
  * refused, without contacting the mainframe.
  */
 public class MainframeDraftUploader implements DraftUploadGateway {
 
-    /** The reason given when a customer draft is sent. */
-    public static final String CUSTOMER_NOT_SUPPORTED_MESSAGE =
-            "Sending a new customer to the mainframe is not supported yet.";
 
     /** The reason given when the text saved in a draft cannot be read. */
     public static final String UNREADABLE_DRAFT_MESSAGE =
@@ -71,14 +79,23 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         this.connection = Objects.requireNonNull(connection, "connection must not be null");
     }
 
+    /** The checkpoint holding a new customer's number once customer.create has succeeded. */
+    public static final String CUSTOMER_STEP = "customer";
+
     @Override
     public String upload(Draft draft, List<String> parentNumbers) {
+        return upload(draft, parentNumbers, () -> { });
+    }
+
+    @Override
+    public String upload(Draft draft, List<String> parentNumbers, Runnable saveProgress) {
         Objects.requireNonNull(draft, "draft must not be null");
         Objects.requireNonNull(parentNumbers, "parentNumbers must not be null");
+        Objects.requireNonNull(saveProgress, "saveProgress must not be null");
         return switch (draft.getType()) {
             case LOAN -> uploadLoan(draft, parentNumbers);
             case COBORROWER -> uploadCoBorrower(draft, parentNumbers);
-            case CUSTOMER -> throw refused(CUSTOMER_NOT_SUPPORTED_MESSAGE);
+            case CUSTOMER -> uploadCustomer(draft, saveProgress);
         };
     }
 
@@ -91,7 +108,7 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         }
         String customerNumber = numberOf(content.customer(), parentNumbers, 0);
         LoanDetails details = content.details();
-        Create message = new Create(customerNumber,
+        mainframe.client.messages.loan.Create message = new mainframe.client.messages.loan.Create(customerNumber,
                 details.paymentAmount().doubleValue(), details.paymentFrequency(),
                 details.principal().doubleValue(), details.rateAmount().doubleValue(),
                 details.rateFrequency(), details.rateType(),
@@ -115,6 +132,77 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         AddCoborrower message = new AddCoborrower(coBorrowerNumber, loanNumber, typeName(content.type()));
         send(message);
         return requireNumber(String.valueOf(message.getId()));
+    }
+
+    /**
+     * A new customer takes several messages: customer.create, then one per address,
+     * phone, email and employer. Each one that succeeds is recorded as a checkpoint and
+     * saved before the next is sent, so a retry after a lost connection carries on from
+     * there instead of creating the customer a second time.
+     */
+    private String uploadCustomer(Draft draft, Runnable saveProgress) {
+        CustomerContent content;
+        try {
+            content = CustomerPayloads.readCustomer(draft.getPayload());
+        } catch (IllegalArgumentException e) {
+            throw refused(UNREADABLE_DRAFT_MESSAGE);
+        }
+        String customerNumber = draft.checkpoint(CUSTOMER_STEP).orElse(null);
+        if (customerNumber == null) {
+            Customer customer = content.customer();
+            mainframe.client.messages.customer.Create create = new mainframe.client.messages.customer.Create(
+                    customer.get_dateOfBirth(), customer.get_familyName(),
+                    customer.get_firstName(), customer.get_nationality(), customer.getOrganisation(),
+                    customer.get_title());
+            send(create);
+            customerNumber = requireNumber(create.getNumber());
+            done(draft, saveProgress, CUSTOMER_STEP, customerNumber);
+        }
+        String number = customerNumber;
+        int i = 0;
+        for (Address a : content.addresses()) {
+            sendOnce(draft, saveProgress, "address." + i++, number, "address " + i, () -> new AddAddress(
+                    a.getCity(), a.getCountry(), number, a.getIsMailing(), a.getIsPrimary(), a.getLine1(),
+                    a.getLine2(), a.getOtherType(), a.getPostCode(), a.getSuburb(), a.getType()));
+        }
+        i = 0;
+        for (PhoneNumber p : content.phoneNumbers()) {
+            sendOnce(draft, saveProgress, "phone." + i++, number, "phone number " + i, () -> new AddPhoneNumber(
+                    p.is_canTxt(), p.get_countryCode(), number, p.is_isPrimary(), p.get_number(),
+                    p.get_otherType(), p.get_type()));
+        }
+        i = 0;
+        for (Email e : content.emails()) {
+            sendOnce(draft, saveProgress, "email." + i++, number, "email " + i, () -> new AddEmail(
+                    e.getAddress(), number, e.isPrimary(), e.getOtherType(), e.getType()));
+        }
+        i = 0;
+        for (Employer emp : content.employers()) {
+            sendOnce(draft, saveProgress, "employer." + i++, number, "employer " + i, () -> new AddEmployer(
+                    number, emp.get_name(), emp.get_position(), emp.get_salary(), emp.get_type()));
+        }
+        return customerNumber;
+    }
+
+    /** Sends one part of a new customer unless an earlier attempt already did. */
+    private void sendOnce(Draft draft, Runnable saveProgress, String step, String customerNumber, String what,
+                          java.util.function.Supplier<Message> message) {
+        if (draft.checkpoint(step).isPresent()) {
+            return;
+        }
+        try {
+            send(message.get());
+        } catch (RecordRejectedException e) {
+            String reason = e.getMessage() == null || e.getMessage().isBlank() ? "no reason given" : e.getMessage();
+            throw new RecordRejectedException("Customer " + customerNumber + " was created, but the mainframe refused "
+                    + what + ": " + reason, e.getFieldErrors());
+        }
+        done(draft, saveProgress, step, "sent");
+    }
+
+    private static void done(Draft draft, Runnable saveProgress, String step, String value) {
+        draft.recordCheckpoint(step, value);
+        saveProgress.run();
     }
 
     private static String numberOf(CustomerReference customer, List<String> parentNumbers, int position) {
@@ -141,6 +229,8 @@ public class MainframeDraftUploader implements DraftUploadGateway {
         } catch (IOException | RuntimeException e) {
             throw new UploadOutcomeUnknownException(UNREADABLE_REPLY_MESSAGE, e);
         }
+        // The mainframe turned the session away before doing anything, so the draft is safely unsent.
+        MainframeCalls.requireSession(status);
         if (status.getWasSuccessful()) {
             return;
         }

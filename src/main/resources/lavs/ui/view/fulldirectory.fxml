@@ -54,7 +54,7 @@
                 <Insets top="4" right="48" bottom="22" left="48"/>
             </padding>
 
-            <VBox styleClass="results-card" VBox.vgrow="ALWAYS">
+            <VBox styleClass="results-card" VBox.vgrow="ALWAYS" maxWidth="1280">
                 <padding>
                     <Insets top="20" right="22" bottom="14" left="22"/>
                 </padding>

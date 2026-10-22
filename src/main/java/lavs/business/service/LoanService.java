@@ -5,6 +5,7 @@ import lavs.business.model.CustomerProfile;
 import lavs.business.model.CustomerReference;
 import lavs.business.model.CustomerReference.DraftCustomer;
 import lavs.business.model.Draft;
+import lavs.business.model.DraftStatus;
 import lavs.business.model.DraftType;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanPayloads;
@@ -163,6 +164,55 @@ public class LoanService {
         dependsOn.add(loanDraftId);
         dependsOn.addAll(dependenciesOf(coBorrower));
         return sync.saveDraft(DraftType.COBORROWER, LoanPayloads.coBorrowerPayload(type, coBorrower), dependsOn);
+    }
+
+    /**
+     * Fixes a refused (or still waiting) loan draft and queues it to be sent again.
+     * The same rules as {@link #createLoan} are checked first.
+     *
+     * @param loanDraftId the local ID of the loan's draft
+     * @param details the corrected values
+     * @return the revised draft
+     * @throws LoanRuleException if a rule is broken, or the draft is missing or not a loan
+     * @throws IllegalStateException if the draft is being sent, uncertain or already sent
+     */
+    public Draft reviseLoan(String loanDraftId, LoanDetails details) {
+        Objects.requireNonNull(loanDraftId, "loanDraftId must not be null");
+        Objects.requireNonNull(details, "details must not be null");
+        Draft draft = drafts.findById(loanDraftId)
+                .filter(d -> d.getType() == DraftType.LOAN)
+                .orElseThrow(() -> new LoanRuleException(Map.of(LoanRuleException.GENERAL, LOAN_NOT_FOUND_MESSAGE)));
+        CustomerReference customer = LoanPayloads.readLoan(draft.getPayload()).customer();
+        Map<String, String> problems = new LinkedHashMap<>(validator.validate(details));
+        if (!problems.isEmpty()) {
+            throw new LoanRuleException(problems);
+        }
+        return sync.revise(loanDraftId, LoanPayloads.loanPayload(customer, details));
+    }
+
+    /**
+     * Loans for an existing customer that are saved here but not yet confirmed by the
+     * mainframe: waiting to be sent, uncertain, or refused.
+     *
+     * @return the drafts, oldest first
+     */
+    public List<Draft> unsentLoansOf(String customerNumber) {
+        Objects.requireNonNull(customerNumber, "customerNumber must not be null");
+        CustomerReference owner = CustomerReference.existing(customerNumber);
+        List<Draft> found = new ArrayList<>();
+        for (Draft draft : sync.findAll()) {
+            if (draft.getType() != DraftType.LOAN || draft.getStatus() == DraftStatus.SYNCED) {
+                continue;
+            }
+            try {
+                if (LoanPayloads.readLoan(draft.getPayload()).customer().equals(owner)) {
+                    found.add(draft);
+                }
+            } catch (IllegalArgumentException unreadable) {
+                // An unreadable draft is shown on the Drafts screen instead.
+            }
+        }
+        return found;
     }
 
     /**

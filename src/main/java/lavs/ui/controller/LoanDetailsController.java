@@ -10,11 +10,14 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Control;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -29,20 +32,49 @@ import javafx.scene.shape.SVGPath;
 
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
-import lavs.ui.service.LoanRecords;
-import lavs.ui.service.NotSupportedYetException;
+import lavs.business.model.CoBorrower;
+import lavs.business.model.LoanDetails;
+import lavs.business.model.LoanRecord;
+import lavs.business.model.RepaymentEntry;
+import lavs.business.model.RepaymentProgress;
+import lavs.business.model.RepaymentStatus;
+import lavs.business.service.LoanAccountService;
+import lavs.ui.component.Format;
+import lavs.ui.component.Inputs;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Loan Details with a view mode and an edit mode. Edit changes are held in the
- * form until Save; Cancel (or leaving) discards them after confirmation.
+ * Loan Details with a view mode and an edit mode, read and saved through
+ * LoanAccountService. Edit changes are held in the form until Save; Cancel (or
+ * leaving) discards them after confirmation.
  */
 public class LoanDetailsController {
+
+    /** What the screen shows, worked out from the business models. */
+    private record View(String loanNumber, String loanName, String loanAmount,
+                        String interestRate, String loanTerm, String startDate,
+                        String maturityDate, String monthlyPayment, String outstandingBalance,
+                        String statusText, int paymentsMade, int paymentsTotal,
+                        String totalPaid, String principalPaid, String interestPaid,
+                        String remainingBalance, String nextPaymentDue,
+                        List<CoBorrowerRow> coBorrowers, List<ScheduleRow> schedule) {
+    }
+
+    private record ScheduleRow(int number, String dueDate, String principal, String interest,
+                               String total, String status) {
+    }
+
+    private record CoBorrowerRow(long id, String name, String customerNumber) {
+    }
 
     private static final double[] VIEW_COLUMNS = {15, 19, 17, 17, 16, 16};
     private static final double[] EDIT_COLUMNS = {13, 16, 14, 14, 13, 13, 17};
@@ -55,7 +87,7 @@ public class LoanDetailsController {
     @FXML private TextField loanAmountField;
     @FXML private TextField interestRateField;
     @FXML private TextField loanTermField;
-    @FXML private TextField startDateField;
+    @FXML private DatePicker startDateField;
     @FXML private TextField maturityDateField;
     @FXML private TextField monthlyPaymentField;
     @FXML private TextField outstandingBalanceField;
@@ -77,12 +109,15 @@ public class LoanDetailsController {
     @FXML private Node editActions;
     @FXML private Label noticeLabel;
 
-    private final LoanRecords loanService = LavsApp.context().loans();
-    private final Map<String, TextField> fields = new LinkedHashMap<>();
+    private final LoanAccountService loanAccounts = LavsApp.context().loanAccounts();
+    private final Map<String, Control> fields = new LinkedHashMap<>();
+    /** The only fields typed into; the rest are worked out from the loan and stay read-only. */
+    private static final java.util.Set<String> EDITABLE = java.util.Set.of("loanAmount", "startDate");
     private Runnable onBack = () -> Navigator.show("customersearch");
 
-    private LoanRecords.LoanDetails details;
-    private List<LoanRecords.CoBorrower> workingCoBorrowers = new ArrayList<>();
+    private View details;
+    private LoanRecord loan;
+    private List<CoBorrowerRow> workingCoBorrowers = new ArrayList<>();
     private boolean editing;
     private boolean busy;
 
@@ -101,6 +136,16 @@ public class LoanDetailsController {
         fields.put("interestPaid", interestPaidField);
         fields.put("remainingBalance", remainingBalanceField);
         fields.put("nextPaymentDue", nextPaymentDueField);
+
+        Inputs.number(loanAmountField, 2);
+        Inputs.date(startDateField);
+        Tooltip scheduleTip = new Tooltip("Change this with Edit schedule.");
+        Tooltip workedOutTip = new Tooltip("Worked out from the loan's figures.");
+        fields.forEach((key, field) -> {
+            if (!EDITABLE.contains(key)) {
+                field.setTooltip(key.equals("maturityDate") || key.equals("monthlyPayment") ? scheduleTip : workedOutTip);
+            }
+        });
 
         setShown(noticeLabel, false);
         setShown(progress, false);
@@ -121,47 +166,114 @@ public class LoanDetailsController {
     public void open(String loanNumber, Runnable back) {
         onBack = back;
         loanIdLabel.setText(loanNumber);
-        setBusy(true);
+        load(loanNumber, "");
+    }
 
-        Task<LoanRecords.LoanDetails> task = new Task<>() {
+    private void load(String loanNumber, String noticeWhenDone) {
+        setBusy(true);
+        Task<Object[]> task = new Task<>() {
             @Override
-            protected LoanRecords.LoanDetails call() {
-                return loanService.details(loanNumber);
+            protected Object[] call() {
+                LoanRecord found = loanAccounts.find(loanNumber).orElse(null);
+                return found == null ? null : new Object[] {found, read(found)};
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            details = task.getValue();
-            if (details == null) {
+            Object[] result = task.getValue();
+            if (result == null) {
                 showNotice("Could not find loan " + loanNumber + ".");
             } else {
+                loan = (LoanRecord) result[0];
+                details = (View) result[1];
                 revert();
+                showNotice(noticeWhenDone);
             }
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice("Could not reach the mainframe. Try again.");
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
         });
 
         startWorker(task, "loan-details");
     }
 
+    /** Runs off the JavaFX thread: the loan's schedule, payments and co-borrowers, turned into screen text. */
+    private View read(LoanRecord loan) {
+        String loanNumber = loan.loanNumber();
+        // Which repayments are paid, and the totals, are worked out by the business layer.
+        RepaymentProgress progress = loanAccounts.progressOf(loan);
+        List<ScheduleRow> rows = new ArrayList<>();
+        for (RepaymentProgress.Repayment repayment : progress.repayments()) {
+            RepaymentEntry entry = repayment.entry();
+            rows.add(new ScheduleRow((int) entry.paymentNumber(), Format.date(entry.date()),
+                    Format.money(entry.principalAmount()), Format.money(entry.interestAmount()),
+                    Format.money(entry.amountPaid()), statusLabel(repayment.status())));
+        }
+        BigDecimal principal = loan.principal() == null ? BigDecimal.ZERO : loan.principal();
+        String nextDue = progress.nextDueDate().map(Format::date).orElse("None");
+
+        List<CoBorrowerRow> people = loanAccounts.coBorrowersOf(loanNumber).stream()
+                .map(c -> new CoBorrowerRow(c.id(),
+                        c.coBorrowerName() == null ? c.coBorrowerNumber() : c.coBorrowerName(), c.coBorrowerNumber()))
+                .toList();
+
+        String rate = loan.rateAmount() == null ? ""
+                : String.format(Locale.US, "%.2f%% %s (%s)", loan.rateAmount(),
+                Format.text(loan.rateType()), Format.text(loan.rateFrequency()));
+        String payment = loan.paymentAmount() == null ? ""
+                : Format.money(loan.paymentAmount()) + " / " + Format.text(loan.paymentFrequency());
+        return new View(loanNumber, Format.loanName(loanNumber), Format.money(principal), rate,
+                term(loan.startDate(), loan.renewalDate()), Format.date(loan.startDate()),
+                Format.date(loan.renewalDate()), payment, Format.money(progress.outstanding()),
+                loan.status() == null ? "Unknown" : loan.status(), progress.paymentsMade(), progress.paymentsTotal(),
+                Format.money(progress.totalPaid()), Format.money(progress.principalPaid()),
+                Format.money(progress.interestPaid()), Format.money(progress.outstanding()), nextDue, people,
+                List.copyOf(rows));
+    }
+
+    private static String statusLabel(RepaymentStatus status) {
+        return switch (status) {
+            case PAID -> "Paid";
+            case DUE -> "Due";
+            case UPCOMING -> "Upcoming";
+        };
+    }
+
+    private static String term(LocalDate start, LocalDate end) {
+        if (start == null || end == null) {
+            return "";
+        }
+        Period period = Period.between(start, end);
+        StringBuilder text = new StringBuilder();
+        if (period.getYears() > 0) {
+            text.append(period.getYears()).append(period.getYears() == 1 ? " year" : " years");
+        }
+        if (period.getMonths() > 0) {
+            text.append(text.isEmpty() ? "" : " ").append(period.getMonths()).append(period.getMonths() == 1 ? " month" : " months");
+        }
+        if (text.isEmpty()) {
+            text.append(period.getDays()).append(" days");
+        }
+        return text.toString();
+    }
+
     /** Puts the form, schedule and co-borrowers back to the last saved values. */
     private void revert() {
-        loanNameField.setText(details.loanName());
-        loanAmountField.setText(details.loanAmount());
-        interestRateField.setText(details.interestRate());
-        loanTermField.setText(details.loanTerm());
-        startDateField.setText(details.startDate());
-        maturityDateField.setText(details.maturityDate());
-        monthlyPaymentField.setText(details.monthlyPayment());
-        outstandingBalanceField.setText(details.outstandingBalance());
-        totalPaidField.setText(details.totalPaid());
-        principalPaidField.setText(details.principalPaid());
-        interestPaidField.setText(details.interestPaid());
-        remainingBalanceField.setText(details.remainingBalance());
-        nextPaymentDueField.setText(details.nextPaymentDue());
+        Inputs.setValue(loanNameField, details.loanName());
+        Inputs.setValue(loanAmountField, details.loanAmount());
+        Inputs.setValue(interestRateField, details.interestRate());
+        Inputs.setValue(loanTermField, details.loanTerm());
+        Inputs.setValue(startDateField, details.startDate());
+        Inputs.setValue(maturityDateField, details.maturityDate());
+        Inputs.setValue(monthlyPaymentField, details.monthlyPayment());
+        Inputs.setValue(outstandingBalanceField, details.outstandingBalance());
+        Inputs.setValue(totalPaidField, details.totalPaid());
+        Inputs.setValue(principalPaidField, details.principalPaid());
+        Inputs.setValue(interestPaidField, details.interestPaid());
+        Inputs.setValue(remainingBalanceField, details.remainingBalance());
+        Inputs.setValue(nextPaymentDueField, details.nextPaymentDue());
 
         statusLabel.setText(details.statusText());
         int percent = details.paymentsTotal() == 0 ? 0
@@ -181,8 +293,8 @@ public class LoanDetailsController {
         return details != null && !details.equals(readForm());
     }
 
-    private LoanRecords.LoanDetails readForm() {
-        return new LoanRecords.LoanDetails(details.loanNumber(),
+    private View readForm() {
+        return new View(details.loanNumber(),
                 text(loanNameField), text(loanAmountField), text(interestRateField),
                 text(loanTermField), text(startDateField), text(maturityDateField),
                 text(monthlyPaymentField), text(outstandingBalanceField),
@@ -192,8 +304,8 @@ public class LoanDetailsController {
                 List.copyOf(workingCoBorrowers), details.schedule());
     }
 
-    private static String text(TextField field) {
-        return field.getText().trim();
+    private static String text(Control field) {
+        return Inputs.valueOf(field);
     }
 
     private void renderSchedule() {
@@ -202,13 +314,13 @@ public class LoanDetailsController {
         if (details == null) {
             return;
         }
-        for (LoanRecords.ScheduleEntry entry : details.schedule()) {
+        for (ScheduleRow entry : details.schedule()) {
             scheduleBox.getChildren().add(scheduleRow(entry));
         }
     }
 
     /** A null entry builds the header row. */
-    private GridPane scheduleRow(LoanRecords.ScheduleEntry entry) {
+    private GridPane scheduleRow(ScheduleRow entry) {
         boolean header = entry == null;
         GridPane row = new GridPane();
         row.getStyleClass().add(header ? "schedule-header-row" : "schedule-row");
@@ -260,7 +372,7 @@ public class LoanDetailsController {
         };
     }
 
-    private void openPaymentEditor(LoanRecords.ScheduleEntry entry) {
+    private void openPaymentEditor(ScheduleRow entry) {
         if (!confirmDiscard()) {
             return;
         }
@@ -280,12 +392,12 @@ public class LoanDetailsController {
         if (details == null) {
             return;
         }
-        for (LoanRecords.CoBorrower coBorrower : workingCoBorrowers) {
+        for (CoBorrowerRow coBorrower : workingCoBorrowers) {
             coBorrowersBox.getChildren().add(coBorrowerRow(coBorrower));
         }
     }
 
-    private Node coBorrowerRow(LoanRecords.CoBorrower coBorrower) {
+    private Node coBorrowerRow(CoBorrowerRow coBorrower) {
         Label name = new Label(coBorrower.name());
         name.getStyleClass().add("cb-name");
         name.setMinWidth(82);
@@ -324,7 +436,7 @@ public class LoanDetailsController {
         return row;
     }
 
-    private void openCoBorrower(LoanRecords.CoBorrower coBorrower) {
+    private void openCoBorrower(CoBorrowerRow coBorrower) {
         if (!confirmDiscard()) {
             return;
         }
@@ -337,10 +449,11 @@ public class LoanDetailsController {
     /** Switches every editable part of the screen between view and edit mode. */
     private void applyMode(boolean edit) {
         editing = edit;
-        for (TextField field : fields.values()) {
-            field.setEditable(edit);
-            field.setFocusTraversable(edit);
-        }
+        fields.forEach((key, field) -> {
+            boolean editable = edit && EDITABLE.contains(key);
+            Inputs.setLocked(field, !editable);
+            toggleStyle(field, "derived", edit && !editable);
+        });
 
         toggleStyle(content, "editing", edit);
         toggleStyle(viewModeButton, "mode-selected", !edit);
@@ -354,7 +467,7 @@ public class LoanDetailsController {
             renderCoBorrowers();
         }
         if (edit) {
-            Platform.runLater(loanNameField::requestFocus);
+            Platform.runLater(loanAmountField::requestFocus);
         }
     }
 
@@ -391,43 +504,79 @@ public class LoanDetailsController {
         if (busy || !editing || details == null) {
             return;
         }
-        LoanRecords.LoanDetails edited = readForm();
+        Map<String, String> badDates = Inputs.badDates(fields);
+        if (!badDates.isEmpty()) {
+            showFieldErrors(badDates);
+            return;
+        }
+        View edited = readForm();
+        String amountText = edited.loanAmount().replace("$", "").replace(",", "");
+        if (amountText.isEmpty() || edited.startDate().isEmpty()) {
+            Map<String, String> missing = new LinkedHashMap<>();
+            if (amountText.isEmpty()) {
+                missing.put("loanAmount", "Loan amount is required.");
+            }
+            if (edited.startDate().isEmpty()) {
+                missing.put("startDate", "Start date is required.");
+            }
+            showFieldErrors(missing);
+            return;
+        }
+        LoanDetails current = LoanAccountService.termsOf(loan).orElse(null);
+        boolean termsChanged = !edited.loanAmount().equals(details.loanAmount())
+                || !edited.startDate().equals(details.startDate());
+        if (termsChanged && current == null) {
+            showNotice("The mainframe is missing some of this loan's terms, so they cannot be changed here.");
+            return;
+        }
+        LoanDetails terms = termsChanged ? new LoanDetails(new BigDecimal(amountText), current.rateType(),
+                current.rateAmount(), current.rateFrequency(), current.paymentAmount(), current.paymentFrequency(),
+                LocalDate.parse(edited.startDate()), current.renewalDate()) : null;
+        List<Long> removed = details.coBorrowers().stream()
+                .filter(c -> !edited.coBorrowers().contains(c))
+                .map(CoBorrowerRow::id)
+                .toList();
+        String loanNumber = details.loanNumber();
         clearFieldErrors();
         setBusy(true);
 
-        Task<Map<String, String>> task = new Task<>() {
+        Task<Void> task = new Task<>() {
             @Override
-            protected Map<String, String> call() {
-                return loanService.save(edited);
+            protected Void call() {
+                if (terms != null) {
+                    loanAccounts.updateTerms(loanNumber, terms);
+                }
+                for (long id : removed) {
+                    loanAccounts.removeCoBorrower(loanNumber, id);
+                }
+                return null;
             }
         };
 
         task.setOnSucceeded(e -> {
             setBusy(false);
-            Map<String, String> errors = task.getValue();
-            if (errors.isEmpty()) {
-                details = edited;
-                revert();
-                applyMode(false);
-                showNotice("Changes saved.");
-            } else {
-                showFieldErrors(errors);
-            }
+            applyMode(false);
+            // Read back what the mainframe now holds, including the schedule worked out again.
+            load(loanNumber, "Changes saved.");
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice(e.getSource().getException() instanceof NotSupportedYetException
-                    ? e.getSource().getException().getMessage()
-                    : "Could not reach the mainframe. Your changes are still on screen.");
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showFieldErrors(Format.fieldErrors(error, Map.of("principal", "loanAmount",
+                        "renewalDate", "startDate")));
+            } else {
+                showNotice(Format.problem(error, "Could not reach the mainframe. Your changes are still on screen."));
+            }
         });
 
         startWorker(task, "loan-save");
     }
 
     private void showFieldErrors(Map<String, String> errors) {
-        TextField first = null;
+        Control first = null;
         for (String key : errors.keySet()) {
-            TextField field = fields.get(key);
+            Control field = fields.get(key);
             if (field != null) {
                 toggleStyle(field, "field-error", true);
                 if (first == null) {
@@ -435,14 +584,14 @@ public class LoanDetailsController {
                 }
             }
         }
-        showNotice(String.join("  ", errors.values()));
+        showNotice(Inputs.notice(errors));
         if (first != null) {
             first.requestFocus();
         }
     }
 
     private void clearFieldErrors() {
-        for (TextField field : fields.values()) {
+        for (Control field : fields.values()) {
             toggleStyle(field, "field-error", false);
         }
     }

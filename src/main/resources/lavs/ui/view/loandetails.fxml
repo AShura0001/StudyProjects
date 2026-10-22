@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ProgressIndicator?>
@@ -63,7 +64,7 @@
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
 
-            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" alignment="TOP_LEFT">
+            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" alignment="TOP_LEFT" maxWidth="1280">
 
                 <HBox fx:id="content" spacing="24">
                     <padding>
@@ -101,7 +102,7 @@
                                        focusTraversable="false" maxWidth="220"
                                        GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                             <Label text="Start Date" styleClass="kv-label" GridPane.rowIndex="4"/>
-                            <TextField fx:id="startDateField" styleClass="kv-field" editable="false"
+                            <DatePicker fx:id="startDateField" styleClass="kv-field" editable="true"
                                        focusTraversable="false" maxWidth="220"
                                        GridPane.rowIndex="4" GridPane.columnIndex="1"/>
                             <Label text="Maturity Date" styleClass="kv-label" GridPane.rowIndex="5"/>
@@ -205,7 +206,7 @@
                                 <Insets top="18"/>
                             </VBox.margin>
                         </Label>
-                        <VBox styleClass="info-card" prefHeight="132" minHeight="132" maxHeight="132">
+                        <VBox styleClass="info-card" prefHeight="132" minHeight="132" maxHeight="360" VBox.vgrow="ALWAYS">
                             <VBox.margin>
                                 <Insets top="6"/>
                             </VBox.margin>

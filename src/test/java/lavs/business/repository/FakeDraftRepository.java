@@ -88,6 +88,6 @@ public class FakeDraftRepository implements DraftRepository {
     private static Draft copyOf(Draft draft) {
         return new Draft(draft.getLocalId(), draft.getType(), draft.getPayload(), draft.getStatus(),
                 draft.getCreatedAt(), draft.getServerNumber().orElse(null), draft.getErrors(),
-                draft.getDependsOn());
+                draft.getDependsOn(), draft.getCheckpoints());
     }
 }

@@ -50,4 +50,14 @@ public class ExecutorScheduler implements Scheduler {
     public void shutdown() {
         executor.shutdown();
     }
+
+    @Override
+    public boolean awaitStopped(Duration timeout) {
+        try {
+            return executor.awaitTermination(timeout.toNanos(), TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
 }

@@ -26,7 +26,15 @@ public class BackgroundSync {
     private final Scheduler scheduler;
     private final RetryPolicy retryPolicy;
     private final SyncListener listener;
+    /** Longest stop() waits for a pass already under way. */
+    static final Duration STOP_WAIT = Duration.ofSeconds(5);
+
     private final AtomicBoolean passQueued = new AtomicBoolean(false);
+    /**
+     * Held for a whole sync pass, and by every change a person makes to drafts, so a
+     * pass never sends or re-saves a draft that was just discarded or revised.
+     */
+    private final Object draftsLock = new Object();
     private volatile boolean stopped;
 
     // Only the worker touches these two, so they need no locking.
@@ -123,7 +131,10 @@ public class BackgroundSync {
      * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
      */
     public Draft confirmSynced(String localId, String serverNumber) {
-        Draft draft = service.confirmSynced(localId, serverNumber);
+        Draft draft;
+        synchronized (draftsLock) {
+            draft = service.confirmSynced(localId, serverNumber);
+        }
         requestSync();
         return draft;
     }
@@ -140,7 +151,10 @@ public class BackgroundSync {
      * @throws lavs.business.repository.DraftStorageException if the draft could not be saved
      */
     public Draft confirmNotSent(String localId) {
-        Draft draft = service.confirmNotSent(localId);
+        Draft draft;
+        synchronized (draftsLock) {
+            draft = service.confirmNotSent(localId);
+        }
         requestSync();
         return draft;
     }
@@ -153,6 +167,33 @@ public class BackgroundSync {
      * waiting is cancelled, because this pass replaces it. Does nothing once
      * {@link #stop()} has been called.
      */
+    public java.util.Optional<Draft> findById(String localId) {
+        return service.findById(localId);
+    }
+
+    /** @return every saved draft, oldest first */
+    public List<Draft> findAll() {
+        return service.findAll();
+    }
+
+    /** Replaces a refused or waiting draft's record and asks for it to be sent again. */
+    public Draft revise(String localId, String payload) {
+        Draft draft;
+        synchronized (draftsLock) {
+            draft = service.revise(localId, payload);
+        }
+        requestSync();
+        return draft;
+    }
+
+    /** Deletes a draft that has not been sent, so it never will be. */
+    public void discard(String localId) {
+        synchronized (draftsLock) {
+            service.discard(localId);
+        }
+        requestSync();
+    }
+
     public void requestSync() {
         if (stopped) {
             return;
@@ -169,6 +210,9 @@ public class BackgroundSync {
     public void stop() {
         stopped = true;
         scheduler.shutdown();
+        // A pass already under way finishes its current step; waiting for it means nothing
+        // touches the drafts folder once stop() returns (logout, closing the app, tests).
+        scheduler.awaitStopped(STOP_WAIT);
     }
 
     private void runPass() {
@@ -177,12 +221,21 @@ public class BackgroundSync {
         }
         cancelWaitingRetry();
         SyncResult result;
+        int needsChecking;
         try {
-            result = service.syncPending();
+            synchronized (draftsLock) {
+                result = service.syncPending();
+                needsChecking = service.countNeedingChecking();
+            }
         } catch (RuntimeException e) {
             listener.onSyncFailed(e);
             return;
         }
+        afterPass(result, needsChecking);
+    }
+
+    /** Passes on the result, then the total that needs a person, so old problems stay visible. */
+    private void afterPass(SyncResult result, int needsChecking) {
         if (result.connectionLost()) {
             consecutiveLosses++;
             Duration delay = retryPolicy.delayAfter(consecutiveLosses);
@@ -192,6 +245,7 @@ public class BackgroundSync {
             consecutiveLosses = 0;
             listener.onSyncFinished(result);
         }
+        listener.onNeedsChecking(needsChecking);
     }
 
     private void cancelWaitingRetry() {

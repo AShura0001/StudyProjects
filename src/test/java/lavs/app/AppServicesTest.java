@@ -278,6 +278,52 @@ class AppServicesTest {
     }
 
     @Test
+    void forMainframe_withoutProfiles_buildsACustomerServiceThatTheLoanRulesAsk() {
+        ScriptedConnection connection = new ScriptedConnection();
+        try (AppServices app = AppServices.forMainframe(connection, folder, new BasicLoanValidator(), listener)) {
+            assertTrue(app.customers().isPresent());
+
+            // Only the customer service can answer for a draft customer, and it looks in the drafts folder.
+            lavs.business.service.LoanRuleException refused = assertThrows(lavs.business.service.LoanRuleException.class,
+                    () -> app.loans().createLoan(CustomerReference.draft("no-such-draft"), DETAILS));
+
+            assertEquals(lavs.business.service.LoanService.CUSTOMER_NOT_FOUND_MESSAGE,
+                    refused.getProblems().values().iterator().next());
+            assertTrue(connection.requests().isEmpty());
+        }
+    }
+
+    @Test
+    void forMainframe_withoutProfiles_withANullArgument_isRejected() {
+        ScriptedConnection connection = new ScriptedConnection();
+        BasicLoanValidator validator = new BasicLoanValidator();
+        assertThrows(NullPointerException.class, () -> AppServices.forMainframe(null, folder, validator, listener));
+        assertThrows(NullPointerException.class, () -> AppServices.forMainframe(connection, null, validator, listener));
+        assertThrows(NullPointerException.class, () -> AppServices.forMainframe(connection, folder, null, listener));
+        assertThrows(NullPointerException.class, () -> AppServices.forMainframe(connection, folder, validator, null));
+    }
+
+    @Test
+    void forMainframe_withoutProfiles_buildsAReferenceDataServiceThatAsksTheMainframe() {
+        ScriptedConnection connection = new ScriptedConnection();
+        try (AppServices app = AppServices.forMainframe(connection, folder, new BasicLoanValidator(), listener)) {
+            connection.replySuccess("page", "1", "total", "1", "items", "1", "1:id", "7", "1:name", "CustomerAddressType");
+            connection.replySuccess("page", "1", "total", "1", "items", "1", "1:name", "Residential", "1:order", "1");
+
+            assertEquals(List.of("Residential"), app.referenceData().orElseThrow().getValues("CustomerAddressType"));
+            assertEquals("constantCategory.list", connection.requests().get(0).getRequestType());
+        }
+    }
+
+    @Test
+    void start_withGivenProfiles_hasNoCustomerService() {
+        try (AppServices app = start()) {
+            assertTrue(app.customers().isEmpty());
+            assertTrue(app.referenceData().isEmpty());
+        }
+    }
+
+    @Test
     void forMainframe_withANullConnection_isRejected() {
         assertThrows(NullPointerException.class, () -> AppServices.forMainframe(null, folder, profiles,
                 new BasicLoanValidator(), listener));

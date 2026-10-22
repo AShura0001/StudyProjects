@@ -123,7 +123,7 @@ public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
 
     public Optional<PhoneNumber> mapMessageToPhoneNumber(Message message) {
         if (message instanceof Retrieve retrieve) {
-            return Optional.of(new PhoneNumber(
+            PhoneNumber phone = new PhoneNumber(
                     retrieve.getCanTxt(),
                     retrieve.getCountryCode(),
                     retrieve.getCustomerName(),
@@ -132,7 +132,9 @@ public class CustomerPhoneNumberAdapter implements CustomerPhoneNumberGateway {
                     retrieve.getIsPrimary(),
                     retrieve.getOtherType(),
                     retrieve.getType()
-            ));
+            );
+            phone.set_number(retrieve.getNumber());
+            return Optional.of(phone);
         }
 
         return Optional.empty();

@@ -3,6 +3,8 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Tooltip?>
@@ -50,7 +52,7 @@
     </top>
 
     <center>
-        <VBox styleClass="page-fill" alignment="TOP_CENTER">
+        <VBox styleClass="page-fill" alignment="CENTER">
             <padding>
                 <Insets top="6" right="40" bottom="18" left="40"/>
             </padding>
@@ -62,29 +64,29 @@
                         <Insets top="26" right="46" bottom="22" left="46"/>
                     </padding>
 
-                    <Label text="Add a loan" styleClass="form-title"/>
+                    <Label fx:id="titleLabel" text="Add a loan" styleClass="form-title"/>
                     <Label text="The loan number is assigned once the loan is created."
                            styleClass="form-hint"/>
 
                     <HBox spacing="20">
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Loan Amount" styleClass="field-label"/>
-                            <TextField fx:id="principalField" styleClass="data-field" promptText="e.g. 25000" maxWidth="Infinity"/>
+                            <TextField fx:id="principalField" styleClass="data-field" promptText="e.g. 25000.00" maxWidth="Infinity"/>
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Start Date" styleClass="field-label"/>
-                            <TextField fx:id="startDateField" styleClass="data-field" promptText="YYYY-MM-DD" maxWidth="Infinity"/>
+                            <DatePicker fx:id="startDateField" styleClass="data-field" maxWidth="Infinity"/>
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Renewal Date" styleClass="field-label"/>
-                            <TextField fx:id="renewalDateField" styleClass="data-field" promptText="YYYY-MM-DD" maxWidth="Infinity"/>
+                            <DatePicker fx:id="renewalDateField" styleClass="data-field" maxWidth="Infinity"/>
                         </VBox>
                     </HBox>
 
                     <HBox spacing="20">
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Rate Type" styleClass="field-label"/>
-                            <TextField fx:id="rateTypeField" styleClass="data-field" promptText="Fixed or Floating" maxWidth="Infinity"/>
+                            <ComboBox fx:id="rateTypeField" styleClass="data-field" promptText="Choose…" maxWidth="Infinity"/>
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Interest Rate (%)" styleClass="field-label"/>
@@ -92,7 +94,7 @@
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Rate Frequency" styleClass="field-label"/>
-                            <TextField fx:id="rateFrequencyField" styleClass="data-field" promptText="e.g. Yearly" maxWidth="Infinity"/>
+                            <ComboBox fx:id="rateFrequencyField" styleClass="data-field" promptText="Choose…" maxWidth="Infinity"/>
                         </VBox>
                     </HBox>
 
@@ -103,7 +105,7 @@
                         </VBox>
                         <VBox spacing="4" HBox.hgrow="ALWAYS">
                             <Label text="Payment Frequency" styleClass="field-label"/>
-                            <TextField fx:id="paymentFrequencyField" styleClass="data-field" promptText="Weekly, Monthly…" maxWidth="Infinity"/>
+                            <ComboBox fx:id="paymentFrequencyField" styleClass="data-field" promptText="Choose…" maxWidth="Infinity"/>
                         </VBox>
                     </HBox>
 
@@ -113,7 +115,7 @@
                         <Button text="cancel" styleClass="btn-action, btn-action-cancel" onAction="#onBack">
                             <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>
                         </Button>
-                        <Button text="add loan" styleClass="btn-action, btn-action-save"
+                        <Button fx:id="submitButton" text="add loan" styleClass="btn-action, btn-action-save"
                                 onAction="#onSubmit">
                             <tooltip><Tooltip text="Add loan (Ctrl+S)"/></tooltip>
                         </Button>

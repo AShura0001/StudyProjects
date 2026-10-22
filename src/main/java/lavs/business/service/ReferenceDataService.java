@@ -5,11 +5,14 @@ import lavs.business.model.ReferenceItem;
 import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.ReferenceDataGateway;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Retrieves and caches the constant values for categories, such as the list of
@@ -19,7 +22,9 @@ import java.util.Objects;
  * cache, so values already fetched keep working while offline. Failed fetches
  * are not cached, so the next call tries the mainframe again.
  *
- * <p>Safe to call from several threads at once.
+ * <p>Safe to call from several threads at once. {@link #cachedValues(String)}
+ * never waits for the mainframe, so screens can call it while another thread
+ * is fetching with {@link #preload(Collection)}.
  */
 public class ReferenceDataService {
 
@@ -28,7 +33,7 @@ public class ReferenceDataService {
 
     private final ReferenceDataGateway gateway;
     private Map<String, Long> categoryIds;
-    private final Map<String, List<String>> valuesByCategory = new HashMap<>();
+    private final Map<String, List<String>> valuesByCategory = new ConcurrentHashMap<>();
 
     /**
      * Creates a service with an empty cache.
@@ -71,6 +76,43 @@ public class ReferenceDataService {
                 .toList();
         valuesByCategory.put(categoryName, values);
         return values;
+    }
+
+    /**
+     * Gets the values in a category if they have already been fetched, without
+     * asking the mainframe.
+     *
+     * @param categoryName the category's name as the mainframe spells it
+     * @return the value names, or empty if the category has not been fetched yet
+     * @throws NullPointerException if the category name is null
+     */
+    public Optional<List<String>> cachedValues(String categoryName) {
+        Objects.requireNonNull(categoryName, "categoryName must not be null");
+        return Optional.ofNullable(valuesByCategory.get(categoryName));
+    }
+
+    /**
+     * Fetches several categories into the cache, so they are ready before they
+     * are needed. A category that cannot be fetched, because the mainframe could
+     * not be reached or has no category with that name, is skipped and will be
+     * tried again next time.
+     *
+     * @param categoryNames the categories' names as the mainframe spells them
+     * @return how many of the categories are now cached
+     * @throws NullPointerException if the collection or any name in it is null
+     */
+    public int preload(Collection<String> categoryNames) {
+        Objects.requireNonNull(categoryNames, "categoryNames must not be null");
+        int loaded = 0;
+        for (String categoryName : categoryNames) {
+            try {
+                getValues(categoryName);
+                loaded++;
+            } catch (MainframeUnavailableException | IllegalArgumentException e) {
+                // Skipped; the next call tries the mainframe again.
+            }
+        }
+        return loaded;
     }
 
     /**

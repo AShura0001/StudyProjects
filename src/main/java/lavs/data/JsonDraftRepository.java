@@ -8,6 +8,7 @@ import lavs.business.repository.DraftRepository;
 import lavs.business.repository.DraftStorageException;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -68,9 +69,37 @@ public class JsonDraftRepository implements DraftRepository {
         try {
             Files.createDirectories(folder);
             mapper.writeValue(temp.toFile(), toFile(draft));
-            Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
+            replace(temp, target);
         } catch (IOException e) {
             throw new DraftStorageException("Could not save draft " + draft.getLocalId(), e);
+        }
+    }
+
+    /** How many times a busy file is tried before giving up, and the pause between tries. */
+    private static final int REPLACE_ATTEMPTS = 10;
+    private static final long REPLACE_PAUSE_MILLIS = 25;
+
+    /**
+     * Swaps the new file in for the old one in one step. On Windows that is refused
+     * while anything else has the old file open (a virus scanner, a backup or search
+     * indexer, another reader), so a refused swap is tried again for a short while.
+     */
+    private static void replace(Path temp, Path target) throws IOException {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
+                return;
+            } catch (AccessDeniedException busy) {
+                if (attempt >= REPLACE_ATTEMPTS) {
+                    throw busy;
+                }
+                try {
+                    Thread.sleep(REPLACE_PAUSE_MILLIS * attempt);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw busy;
+                }
+            }
         }
     }
 
@@ -169,7 +198,8 @@ public class JsonDraftRepository implements DraftRepository {
                 draft.getCreatedAt().toString(),
                 draft.getServerNumber().orElse(null),
                 draft.getErrors(),
-                draft.getDependsOn());
+                draft.getDependsOn(),
+                draft.getCheckpoints());
     }
 
     private Draft toDraft(DraftFile file) {
@@ -185,6 +215,7 @@ public class JsonDraftRepository implements DraftRepository {
                 Instant.parse(file.createdAt()),
                 file.serverNumber(),
                 file.errors() == null ? Map.of() : file.errors(),
-                file.dependsOn() == null ? List.of() : file.dependsOn());
+                file.dependsOn() == null ? List.of() : file.dependsOn(),
+                file.checkpoints() == null ? Map.of() : file.checkpoints());
     }
 }

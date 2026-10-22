@@ -39,4 +39,14 @@ public interface Scheduler {
 
     /** Stops the worker. Jobs that are still waiting for their delay are dropped. */
     void shutdown();
+
+    /**
+     * Waits for work already running to finish after {@link #shutdown()}.
+     *
+     * @param timeout the longest to wait
+     * @return true if everything finished in time
+     */
+    default boolean awaitStopped(Duration timeout) {
+        return true;
+    }
 }

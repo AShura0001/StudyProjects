@@ -9,7 +9,13 @@ import lavs.business.repository.MainframeUnavailableException;
 import lavs.business.repository.RecordRejectedException;
 import lavs.business.repository.UploadOutcomeUnknownException;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +74,14 @@ public class DraftSyncService {
     public record SyncResult(int synced, int rejected, int blocked, int uncertain, boolean connectionLost) {
     }
 
+    /** How long a sent draft is kept, so staff can still see what went through recently. */
+    public static final Duration KEEP_SENT_FOR = Duration.ofDays(7);
+
     private final DraftRepository repository;
     private final DraftUploadGateway gateway;
+    private final Clock clock;
+    /** Old sent drafts are cleared once per run of the app, on its first pass, not on every pass. */
+    private boolean cleanedUp;
 
     /**
      * Creates a service that stores drafts in the given repository and sends them
@@ -80,8 +92,97 @@ public class DraftSyncService {
      * @throws NullPointerException if either argument is null
      */
     public DraftSyncService(DraftRepository repository, DraftUploadGateway gateway) {
+        this(repository, gateway, Clock.systemUTC());
+    }
+
+    /**
+     * Creates the service with a chosen clock, so tests can decide how old drafts are.
+     */
+    public DraftSyncService(DraftRepository repository, DraftUploadGateway gateway, Clock clock) {
         this.repository = Objects.requireNonNull(repository, "repository must not be null");
         this.gateway = Objects.requireNonNull(gateway, "gateway must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    }
+
+    /** @return how many drafts are uncertain or refused, and so wait for a person */
+    public int countNeedingChecking() {
+        return repository.findByStatus(DraftStatus.UNCERTAIN).size()
+                + repository.findByStatus(DraftStatus.REJECTED).size();
+    }
+
+    /** @return every saved draft, oldest first */
+    public List<Draft> findAll() {
+        List<Draft> all = new ArrayList<>();
+        for (DraftStatus status : DraftStatus.values()) {
+            all.addAll(repository.findByStatus(status));
+        }
+        all.sort(Comparator.comparing(Draft::getCreatedAt).thenComparing(Draft::getLocalId));
+        return all;
+    }
+
+    public Optional<Draft> findById(String localId) {
+        return repository.findById(Objects.requireNonNull(localId, "localId must not be null"));
+    }
+
+    /**
+     * Replaces the record in a refused or waiting draft and queues it to be sent again.
+     * Steps of an earlier attempt that reached the mainframe are kept, so they are not repeated.
+     *
+     * @throws IllegalArgumentException if there is no such draft
+     * @throws IllegalStateException if the draft is being sent, uncertain or already sent
+     */
+    public Draft revise(String localId, String payload) {
+        Draft draft = findById(localId)
+                .orElseThrow(() -> new IllegalArgumentException("there is no saved draft with ID " + localId));
+        draft.revise(payload);
+        repository.save(draft);
+        return draft;
+    }
+
+    /**
+     * Deletes a draft that has not been sent, so it never will be.
+     *
+     * @throws IllegalArgumentException if there is no such draft
+     * @throws IllegalStateException if it is being sent or already sent, or another unsent draft needs it
+     */
+    public void discard(String localId) {
+        Draft draft = findById(localId)
+                .orElseThrow(() -> new IllegalArgumentException("there is no saved draft with ID " + localId));
+        if (draft.getStatus() == DraftStatus.SENDING || draft.getStatus() == DraftStatus.SYNCED) {
+            throw new IllegalStateException("a " + draft.getStatus() + " draft cannot be discarded");
+        }
+        boolean needed = findAll().stream()
+                .anyMatch(other -> other.getStatus() != DraftStatus.SYNCED && other.getDependsOn().contains(localId));
+        if (needed) {
+            throw new IllegalStateException("Another unsent record depends on this one. Discard that one first.");
+        }
+        repository.delete(localId);
+    }
+
+    /**
+     * Deletes sent drafts older than {@link #KEEP_SENT_FOR}, except those an unsent draft
+     * still depends on (it needs their mainframe number).
+     *
+     * @return how many were deleted
+     */
+    public int removeOldSent() {
+        List<Draft> all = findAll();
+        Set<String> needed = new HashSet<>();
+        for (Draft draft : all) {
+            if (draft.getStatus() != DraftStatus.SYNCED) {
+                needed.addAll(draft.getDependsOn());
+            }
+        }
+        Instant cutoff = clock.instant().minus(KEEP_SENT_FOR);
+        int removed = 0;
+        for (Draft draft : all) {
+            if (draft.getStatus() == DraftStatus.SYNCED && draft.getCreatedAt().isBefore(cutoff)
+                    && !needed.contains(draft.getLocalId())) {
+                repository.delete(draft.getLocalId());
+                removed++;
+            }
+        }
+        return removed;
     }
 
     /**
@@ -199,6 +300,10 @@ public class DraftSyncService {
      * @throws lavs.business.repository.DraftStorageException if a draft could not be read or saved
      */
     public SyncResult syncPending() {
+        if (!cleanedUp) {
+            removeOldSent();
+            cleanedUp = true;
+        }
         int uncertain = settleInterruptedAttempts();
         List<Draft> waiting = new ArrayList<>(repository.findPending());
         int synced = 0;
@@ -218,7 +323,8 @@ public class DraftSyncService {
                 draft.markSending();
                 repository.save(draft);
                 try {
-                    String number = gateway.upload(draft, parentNumbers.get());
+                    // Multi-step records save their progress after every step that reaches the mainframe.
+                    String number = gateway.upload(draft, parentNumbers.get(), () -> repository.save(draft));
                     draft.markSynced(number);
                     repository.save(draft);
                     synced++;
