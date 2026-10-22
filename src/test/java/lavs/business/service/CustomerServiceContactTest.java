@@ -463,4 +463,132 @@ class CustomerServiceContactTest {
                 () -> service.updateEmployer(employer("Acme", "Primary")));
         assertTrue(refused.getMessage().contains("employer change"));
     }
+
+    // ---- Removing phone numbers and emails ----
+
+    private void givenTwoPhones() throws IOException {
+        PhoneNumber primary = new PhoneNumber(true, "+64", "Jane Doe", NUMBER, 11, true, null, "Mobile");
+        primary.set_number("21 555 0100");
+        PhoneNumber work = new PhoneNumber(false, "+64", "Jane Doe", NUMBER, 21, false, null, "Work");
+        work.set_number("9 555 0200");
+        when(phones.ListCustomerPhoneNumbers(anyLong(), eq(NUMBER), anyLong()))
+                .thenReturn(new CustomerSearchResult<>(List.of(primary, work), 2, 1));
+        when(phones.deleteCustomerNumberByNumberAndId(anyLong(), eq(NUMBER))).thenReturn(true);
+    }
+
+    private void givenTwoEmails() throws IOException {
+        Email primary = new Email("jane@example.com", "Jane Doe", NUMBER, 12, true, null, "Personal");
+        Email work = new Email("jane@work.example.com", "Jane Doe", NUMBER, 22, false, null, "Work");
+        when(emails.ListCustomerEmails(anyLong(), eq(NUMBER), anyLong()))
+                .thenReturn(new CustomerSearchResult<>(List.of(primary, work), 2, 1));
+        when(emails.deleteCustomerEmail(eq(NUMBER), anyLong())).thenReturn(true);
+    }
+
+    private static ContactChanges removing(List<Long> phoneIds, List<Long> emailIds) {
+        return new ContactChanges(NUMBER, "Jane", "Doe", "+64", "21 555 0100", "jane@example.com",
+                List.of(), List.of(), List.of(), phoneIds, emailIds);
+    }
+
+    @Test
+    void removingAnotherPhone_deletesOnlyThatOne() throws IOException {
+        givenTwoPhones();
+
+        service.saveContactChanges(removing(List.of(21L), List.of()));
+
+        verify(phones).deleteCustomerNumberByNumberAndId(21L, NUMBER);
+        verify(phones, never()).deleteCustomerNumberByNumberAndId(11L, NUMBER);
+    }
+
+    @Test
+    void removingThePrimaryPhoneWhileOthersRemain_isRefused_andNothingIsSent() throws IOException {
+        givenTwoPhones();
+
+        ValidationException invalid = assertThrows(ValidationException.class, () ->
+                service.saveContactChanges(removing(List.of(11L), List.of())));
+
+        assertEquals("phones", invalid.getErrors().get(0).getField());
+        verify(phones, never()).deleteCustomerNumberByNumberAndId(anyLong(), any());
+        verifyNoWrites();
+    }
+
+    @Test
+    void removingEveryPhone_isAllowed() throws IOException {
+        givenTwoPhones();
+
+        service.saveContactChanges(removing(List.of(11L, 21L), List.of()));
+
+        verify(phones).deleteCustomerNumberByNumberAndId(11L, NUMBER);
+        verify(phones).deleteCustomerNumberByNumberAndId(21L, NUMBER);
+    }
+
+    @Test
+    void refusedPhoneRemoval_isReported() throws IOException {
+        givenTwoPhones();
+        when(phones.deleteCustomerNumberByNumberAndId(21L, NUMBER)).thenReturn(false);
+
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class, () ->
+                service.saveContactChanges(removing(List.of(21L), List.of())));
+
+        assertTrue(refused.getMessage().contains("phone number removal"));
+    }
+
+    @Test
+    void removingAnotherEmail_deletesOnlyThatOne() throws IOException {
+        givenTwoEmails();
+
+        service.saveContactChanges(removing(List.of(), List.of(22L)));
+
+        verify(emails).deleteCustomerEmail(NUMBER, 22L);
+        verify(emails, never()).deleteCustomerEmail(NUMBER, 12L);
+    }
+
+    @Test
+    void removingThePrimaryEmailWhileOthersRemain_isRefused_andNothingIsSent() throws IOException {
+        givenTwoEmails();
+
+        ValidationException invalid = assertThrows(ValidationException.class, () ->
+                service.saveContactChanges(removing(List.of(), List.of(12L))));
+
+        assertEquals("emails", invalid.getErrors().get(0).getField());
+        verify(emails, never()).deleteCustomerEmail(any(), anyLong());
+    }
+
+    @Test
+    void refusedEmailRemoval_isReported() throws IOException {
+        givenTwoEmails();
+        when(emails.deleteCustomerEmail(NUMBER, 22L)).thenReturn(false);
+
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class, () ->
+                service.saveContactChanges(removing(List.of(), List.of(22L))));
+
+        assertTrue(refused.getMessage().contains("email removal"));
+    }
+
+    @Test
+    void changesWithoutPhoneOrEmailRemovals_removeNone() {
+        ContactChanges changes = unchanged();
+
+        assertEquals(List.of(), changes.removedPhoneIds());
+        assertEquals(List.of(), changes.removedEmailIds());
+        assertEquals(List.of(), removing(null, null).removedPhoneIds());
+        assertEquals(List.of(), removing(null, null).removedEmailIds());
+    }
+
+    @Test
+    void findPhone_returnsThePhoneWithItsCustomer() throws IOException {
+        PhoneNumber stored = new PhoneNumber(false, "+64", "Jane Doe", null, 21, false, null, "Work");
+        when(phones.findCustomerNumberByNumberAndId(21, NUMBER)).thenReturn(Optional.of(stored));
+
+        assertEquals(NUMBER, service.findPhone(NUMBER, 21).orElseThrow().get_customerNumber());
+        assertTrue(service.findPhone(NUMBER, 99).isEmpty());
+    }
+
+    @Test
+    void findEmail_returnsTheEmailWithItsCustomer() throws IOException {
+        Email stored = new Email("jane@work.example.com", "Jane Doe", null, 22, false, null, "Work");
+        when(emails.findEmailByCustomerNumberAndId(22L, NUMBER)).thenReturn(Optional.of(stored));
+
+        assertEquals(NUMBER, service.findEmail(NUMBER, 22).orElseThrow().getCustomerNumber());
+        assertTrue(service.findEmail(NUMBER, 99).isEmpty());
+    }
 }
