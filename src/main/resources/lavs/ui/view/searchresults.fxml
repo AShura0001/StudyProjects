@@ -99,13 +99,18 @@
                     <Insets top="22" right="22" bottom="18" left="22"/>
                 </padding>
 
-                <Label text="Directory Lookup Results" styleClass="results-title"/>
-                <Label fx:id="countLabel" text="3 people found with similar names"
-                       styleClass="results-subtitle">
+                <HBox alignment="BOTTOM_LEFT">
                     <VBox.margin>
                         <Insets bottom="14"/>
                     </VBox.margin>
-                </Label>
+                    <VBox>
+                        <Label text="Directory Lookup Results" styleClass="results-title"/>
+                        <Label fx:id="countLabel" text="3 people found with similar names"
+                               styleClass="results-subtitle"/>
+                    </VBox>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="pageLabel" text="Page 1 out of 1" styleClass="results-subtitle"/>
+                </HBox>
 
                 <VBox fx:id="tableBox" styleClass="table-box"/>
 

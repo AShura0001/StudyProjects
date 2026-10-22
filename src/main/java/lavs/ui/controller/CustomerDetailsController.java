@@ -40,6 +40,7 @@ import lavs.business.service.LoanAccountService;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.Choices;
+import lavs.ui.component.CustomerStatus;
 import lavs.ui.component.Format;
 import lavs.ui.component.Inputs;
 import lavs.ui.component.NotesPaper;
@@ -65,7 +66,22 @@ public class CustomerDetailsController {
     private record Details(String customerNumber, String firstName, String lastName,
                            String phoneCode, String phoneNumber, String email, List<NoteRow> notes,
                            List<AddressRow> addresses, List<EmployerRow> employers, List<LoanListing> loans,
-                           List<UnsentLoan> unsentLoans) {
+                           List<UnsentLoan> unsentLoans, String status) {
+
+        Details withLoans(List<LoanListing> newLoans) {
+            return new Details(customerNumber, firstName, lastName, phoneCode, phoneNumber, email, notes,
+                    addresses, employers, newLoans, unsentLoans, status);
+        }
+
+        Details withAddresses(List<AddressRow> newAddresses) {
+            return new Details(customerNumber, firstName, lastName, phoneCode, phoneNumber, email, notes,
+                    newAddresses, employers, loans, unsentLoans, status);
+        }
+
+        Details withNotes(List<NoteRow> newNotes) {
+            return new Details(customerNumber, firstName, lastName, phoneCode, phoneNumber, email, newNotes,
+                    addresses, employers, loans, unsentLoans, status);
+        }
     }
 
     /** A loan saved here that the mainframe has not confirmed yet. */
@@ -107,6 +123,8 @@ public class CustomerDetailsController {
     @FXML private Button editModeButton;
     @FXML private Button photoEditButton;
     @FXML private Node editActions;
+    @FXML private Button statusButton;
+    @FXML private Label inactiveBadge;
     @FXML private StackPane photoCard;
     @FXML private StackPane avatarBox;
 
@@ -120,6 +138,12 @@ public class CustomerDetailsController {
     private List<NoteRow> workingNotes = new ArrayList<>();
     private boolean editing;
     private boolean busy;
+    /** True from opening the page until the loans, addresses and notes have all arrived. */
+    private boolean incomplete;
+    /** True when one of those later reads failed, so the page is showing only part of the customer. */
+    private boolean loadFailed;
+    /** Set when the screen is replaced, so a slow load stops asking the mainframe for more. */
+    private volatile boolean cancelled;
     /** Lets the phone field show a stored number exactly, even one the edit filter would refuse. */
     private boolean settingPhone;
 
@@ -138,6 +162,8 @@ public class CustomerDetailsController {
             if (scene != null) {
                 registerAccelerators(scene);
                 Platform.runLater(root::requestFocus);
+            } else {
+                cancelled = true;
             }
         });
     }
@@ -153,33 +179,84 @@ public class CustomerDetailsController {
         load(customerNumber, "");
     }
 
+    /**
+     * Shows the page as soon as the customer's basics arrive, then fills in the loans, addresses and
+     * notes one after another. A customer with hundreds of records takes many calls to read in full,
+     * and the mainframe connection handles one request at a time, so they cannot be read in parallel.
+     */
     private void load(String customerNumber, String noticeWhenDone) {
         setBusy(true);
+        incomplete = true;
+        loadFailed = false;
         Task<Details> task = new Task<>() {
             @Override
             protected Details call() throws Exception {
-                return read(customerNumber);
+                Details current = readCore(customerNumber);
+                if (current == null) {
+                    return null;
+                }
+                Details first = current;
+                Platform.runLater(() -> showFirst(first));
+                if (cancelled) {
+                    return current;
+                }
+                current = current.withLoans(loanAccounts.loansOf(customerNumber));
+                publish(current);
+                if (cancelled) {
+                    return current;
+                }
+                current = current.withAddresses(readAddresses(customerNumber));
+                publish(current);
+                if (cancelled) {
+                    return current;
+                }
+                current = current.withNotes(readNotes(customerNumber));
+                publish(current);
+                return current;
             }
         };
         task.setOnSucceeded(e -> {
-            setBusy(false);
-            details = task.getValue();
-            if (details == null) {
+            if (task.getValue() == null) {
+                setBusy(false);
                 showNotice("Could not find customer " + customerNumber + ".");
-            } else {
-                revert();
-                showNotice(noticeWhenDone);
+                return;
             }
+            incomplete = false;
+            showStatus();
+            showNotice(noticeWhenDone);
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
+            loadFailed = true;
+            String problem = Format.problem(task.getException(), "Could not reach the mainframe. Try again.");
+            showNotice(details == null ? problem : problem + " Some of this customer's records did not load.");
         });
         startWorker(task, "customer-details");
     }
 
-    /** Runs off the JavaFX thread: everything the screen shows, from the business services. */
-    private Details read(String customerNumber) throws Exception {
+    /** The basics are in: show the page, with the rest still to come. */
+    private void showFirst(Details first) {
+        if (cancelled) {
+            return;
+        }
+        setBusy(false);
+        details = first;
+        revert();
+        showNotice("Still loading loans, addresses and notes…");
+    }
+
+    /** A later part has arrived: show it. */
+    private void publish(Details now) {
+        Platform.runLater(() -> {
+            if (!cancelled) {
+                details = now;
+                revert();
+            }
+        });
+    }
+
+    /** Runs off the JavaFX thread: the quick part of what the screen shows. Loans, addresses and notes start empty. */
+    private Details readCore(String customerNumber) throws Exception {
         Optional<Customer> found = customers.getCustomer(customerNumber);
         if (found.isEmpty()) {
             return null;
@@ -187,25 +264,32 @@ public class CustomerDetailsController {
         Customer customer = found.get();
         PhoneNumber phone = customers.primaryPhone(customerNumber).orElse(null);
         Email email = customers.primaryEmail(customerNumber).orElse(null);
-        List<AddressRow> addresses = customers.listAddressesInFull(customerNumber).stream()
-                .map(CustomerDetailsController::addressRow)
-                .toList();
         List<EmployerRow> employers = customers.listEmployers(customerNumber).stream()
                 .map(e -> new EmployerRow(e.get_id(),
                         e.get_name() == null || e.get_name().isBlank() ? "Employer" : e.get_name(),
                         Format.text(e.get_type())))
                 .toList();
-        List<NoteRow> notes = customers.listNotes(customerNumber).stream()
+        return new Details(customerNumber, Format.text(customer.get_firstName()), Format.text(customer.get_familyName()),
+                phone == null ? "" : Format.text(phone.get_countryCode()),
+                phone == null ? "" : Format.text(phone.get_number()),
+                email == null ? "" : Format.text(email.getAddress()),
+                List.of(), List.of(), employers, List.of(), unsentLoans(customerNumber),
+                Format.text(customer.get_status()));
+    }
+
+    private List<AddressRow> readAddresses(String customerNumber) throws Exception {
+        return customers.listAddressesInFull(customerNumber).stream()
+                .map(CustomerDetailsController::addressRow)
+                .toList();
+    }
+
+    private List<NoteRow> readNotes(String customerNumber) throws Exception {
+        return customers.listNotes(customerNumber).stream()
                 .map(n -> new NoteRow(n.get_id(),
                         Format.text(n.get_type()).isEmpty() ? CustomerService.DEFAULT_NOTE_TYPE : Format.text(n.get_type()),
                         joined(" • ", dateOnly(n.get_dateAdded()), n.get_author()),
                         n.get_lines() == null ? "" : n.get_lines().strip()))
                 .toList();
-        return new Details(customerNumber, Format.text(customer.get_firstName()), Format.text(customer.get_familyName()),
-                phone == null ? "" : Format.text(phone.get_countryCode()),
-                phone == null ? "" : Format.text(phone.get_number()),
-                email == null ? "" : Format.text(email.getAddress()),
-                notes, addresses, employers, loanAccounts.loansOf(customerNumber), unsentLoans(customerNumber));
     }
 
     private List<UnsentLoan> unsentLoans(String customerNumber) {
@@ -275,6 +359,7 @@ public class CustomerDetailsController {
         renderAddresses();
         renderEmployers();
         renderLoans();
+        showStatus();
     }
 
     private boolean isDirty() {
@@ -290,7 +375,8 @@ public class CustomerDetailsController {
         return new Details(details.customerNumber(),
                 firstNameField.getText().trim(), lastNameField.getText().trim(),
                 code == null ? "" : code, number, emailField.getText().trim(), List.copyOf(workingNotes),
-                List.copyOf(workingAddresses), List.copyOf(workingEmployers), details.loans(), details.unsentLoans());
+                List.copyOf(workingAddresses), List.copyOf(workingEmployers), details.loans(), details.unsentLoans(),
+                details.status());
     }
 
     /** Edit mode lists the notes one by one, each with remove and Edit. */
@@ -552,6 +638,40 @@ public class CustomerDetailsController {
         return row;
     }
 
+    private boolean isInactive() {
+        return details != null && CustomerStatus.isInactive(details.status());
+    }
+
+    /** The red INACTIVE tag and the button that flips the customer's status; held back while the page is still loading. */
+    private void showStatus() {
+        boolean inactive = isInactive();
+        setShown(inactiveBadge, inactive);
+        setShown(statusButton, details != null);
+        statusButton.setDisable(incomplete);
+        statusButton.setText(inactive ? "Reactivate" : "Deactivate");
+        toggleStyle(statusButton, "btn-status-restore", inactive);
+    }
+
+    @FXML
+    private void onToggleStatus() {
+        if (busy || incomplete || details == null || !confirmDiscard()) {
+            return;
+        }
+        boolean inactive = isInactive();
+        String number = details.customerNumber();
+        if (!CustomerStatus.confirm(root.getScene().getWindow(), inactive)) {
+            return;
+        }
+        showNotice("");
+        setBusy(true);
+        CustomerStatus.flip(customers, number,
+                () -> load(number, inactive ? "Customer reactivated." : "Customer deactivated."),
+                problem -> {
+                    setBusy(false);
+                    showNotice(problem);
+                });
+    }
+
     /** Switches every editable part of the screen between view and edit mode. */
     private void applyMode(boolean edit) {
         editing = edit;
@@ -574,6 +694,7 @@ public class CustomerDetailsController {
         // Photos have no business service behind them yet.
         setShown(photoEditButton, false);
         setShown(editActions, edit);
+        showStatus();
         clearFieldErrors();
         if (details != null) {
             renderNotes();
@@ -621,10 +742,19 @@ public class CustomerDetailsController {
 
     @FXML
     private void onEditMode() {
-        if (!busy && details != null && !editing) {
-            showNotice("");
-            applyMode(true);
+        if (busy || details == null || editing) {
+            return;
         }
+        if (loadFailed) {
+            showNotice("Some of this customer's records did not load, so they cannot be edited. Reopen the page to try again.");
+            return;
+        }
+        if (incomplete) {
+            showNotice("Still loading loans, addresses and notes. Editing opens when they are in.");
+            return;
+        }
+        showNotice("");
+        applyMode(true);
     }
 
     @FXML

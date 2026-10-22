@@ -20,6 +20,7 @@ import javafx.scene.layout.VBox;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.CustomerRows;
+import lavs.ui.component.CustomerStatus;
 import lavs.business.model.Customer;
 import lavs.business.service.CustomerService;
 import lavs.ui.component.Format;
@@ -38,6 +39,7 @@ public class SearchResultsController {
     @FXML private ProgressIndicator progress;
     @FXML private VBox tableBox;
     @FXML private Label countLabel;
+    @FXML private Label pageLabel;
     @FXML private Button previousButton;
     @FXML private Button nextButton;
     @FXML private Label noticeLabel;
@@ -48,6 +50,7 @@ public class SearchResultsController {
     private final CustomerService customerService = LavsApp.context().customers();
     private List<Customer> matches = List.of();
     private int page;
+    private boolean statusBusy;
 
     @FXML
     private void initialize() {
@@ -102,17 +105,40 @@ public class SearchResultsController {
     private void render() {
         int total = matches.size();
         countLabel.setText(total + (total == 1 ? " person" : " people") + " found with similar names");
+        int pageCount = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+        pageLabel.setText("Page " + (page + 1) + " out of " + pageCount);
 
         tableBox.getChildren().setAll(CustomerRows.header());
         int from = page * PAGE_SIZE;
         int to = Math.min(from + PAGE_SIZE, total);
         for (Customer m : matches.subList(from, to)) {
             tableBox.getChildren().add(CustomerRows.customer(Format.name(m), Format.text(m.get_number()),
-                    () -> openDetails(m.get_number())));
+                    m.get_status(), () -> openDetails(m.get_number()), () -> changeStatus(m)));
         }
 
         previousButton.setDisable(page == 0);
         nextButton.setDisable(to >= total);
+    }
+
+    private void changeStatus(Customer customer) {
+        if (progress.isVisible() || statusBusy) {
+            return;
+        }
+        boolean inactive = CustomerStatus.isInactive(customer.get_status());
+        if (!CustomerStatus.confirm(root.getScene().getWindow(), inactive)) {
+            return;
+        }
+        statusBusy = true;
+        showNotice("");
+        CustomerStatus.flip(customerService, customer.get_number(), () -> {
+            statusBusy = false;
+            customer.set_status(inactive ? "Active" : "Inactive");
+            render();
+            showNotice(Format.name(customer) + (inactive ? " reactivated." : " deactivated."));
+        }, problem -> {
+            statusBusy = false;
+            showNotice(problem);
+        });
     }
 
     @FXML

@@ -17,6 +17,7 @@ import javafx.scene.layout.VBox;
 import lavs.ui.Navigator;
 import lavs.ui.LavsApp;
 import lavs.ui.component.CustomerRows;
+import lavs.ui.component.CustomerStatus;
 import lavs.business.model.Customer;
 import lavs.business.repository.CustomerSearchResult;
 import lavs.business.service.CustomerService;
@@ -41,6 +42,8 @@ public class FullDirectoryController {
     private int page;
     private int total;
     private boolean loading;
+    private boolean statusBusy;
+    private List<Customer> shown = List.of();
 
     @FXML
     private void initialize() {
@@ -86,11 +89,8 @@ public class FullDirectoryController {
 
         task.setOnSucceeded(e -> {
             page = target;
-            tableBox.getChildren().setAll(CustomerRows.header());
-            for (Customer m : task.getValue()) {
-                tableBox.getChildren().add(CustomerRows.customer(Format.name(m), Format.text(m.get_number()),
-                        () -> openDetails(m.get_number())));
-            }
+            shown = task.getValue();
+            renderRows();
             loading = false;
             countLabel.setText(total + " customers registered");
             updatePager();
@@ -104,6 +104,35 @@ public class FullDirectoryController {
         Thread worker = new Thread(task, "directory-page");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    private void renderRows() {
+        tableBox.getChildren().setAll(CustomerRows.header());
+        for (Customer m : shown) {
+            tableBox.getChildren().add(CustomerRows.customer(Format.name(m), Format.text(m.get_number()),
+                    m.get_status(), () -> openDetails(m.get_number()), () -> changeStatus(m)));
+        }
+    }
+
+    private void changeStatus(Customer customer) {
+        if (loading || statusBusy) {
+            return;
+        }
+        boolean inactive = CustomerStatus.isInactive(customer.get_status());
+        if (!CustomerStatus.confirm(root.getScene().getWindow(), inactive)) {
+            return;
+        }
+        statusBusy = true;
+        showNotice("");
+        CustomerStatus.flip(customerService, customer.get_number(), () -> {
+            statusBusy = false;
+            customer.set_status(inactive ? "Active" : "Inactive");
+            renderRows();
+            showNotice(Format.name(customer) + (inactive ? " reactivated." : " deactivated."));
+        }, problem -> {
+            statusBusy = false;
+            showNotice(problem);
+        });
     }
 
     private void openDetails(String customerNumber) {

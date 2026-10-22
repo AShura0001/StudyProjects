@@ -11,6 +11,7 @@ import lavs.ui.component.Inputs;
 import lavs.business.model.Employer;
 import lavs.business.service.CustomerService;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -19,6 +20,8 @@ import java.util.Map;
  * On save the customer's page reopens.
  */
 public class EditEmployerController extends FormController {
+
+    private static final String PRIMARY = "Primary";
 
     @FXML private Label titleLabel;
     @FXML private TextField nameField;
@@ -55,9 +58,12 @@ public class EditEmployerController extends FormController {
         this.onDone = done;
         if (this.employerId == null) {
             titleLabel.setText("Add an employer");
-            // A customer's first employer is their main one.
-            load(() -> customerService.listEmployers(customerNumber).isEmpty(), first -> {
-                Inputs.setValue(typeField, first ? "Primary" : "Secondary");
+            // With no primary employer yet the new one can only be the primary, so that is the
+            // only choice offered; once there is a primary it is Secondary by default.
+            load(() -> customerService.listEmployers(customerNumber).stream()
+                    .anyMatch(e -> PRIMARY.equalsIgnoreCase(e.get_type())), hasPrimary -> {
+                typeField.getItems().setAll(hasPrimary ? Choices.EMPLOYER_TYPES : List.of(PRIMARY));
+                Inputs.setValue(typeField, hasPrimary ? "Secondary" : PRIMARY);
             });
             return;
         }

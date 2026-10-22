@@ -81,9 +81,14 @@
 
                 <VBox fx:id="idleInfo" alignment="TOP_CENTER">
                     <HBox alignment="BASELINE_CENTER" spacing="0">
+                        <Label text="click " styleClass="link-text-dark"/>
+                        <Hyperlink text="here" styleClass="link-inline-dark" onAction="#onFullDirectory"/>
+                        <Label text=" for full existing records" styleClass="link-text-dark"/>
+                    </HBox>
+                    <HBox alignment="BASELINE_CENTER" spacing="0">
                         <Label text="click " styleClass="link-text"/>
-                        <Hyperlink text="here" styleClass="link-inline" onAction="#onFullDirectory"/>
-                        <Label text=" for full existing records" styleClass="link-text"/>
+                        <Hyperlink text="here" styleClass="link-inline" onAction="#onRegister"/>
+                        <Label text=" to register a new customer" styleClass="link-text"/>
                     </HBox>
                 </VBox>
 

@@ -1193,3 +1193,97 @@
 .draft-tag-attention {
     -fx-background-color: #ff8a80;
 }
+
+/* ---------- Greyish-black link text (full directory line) ---------- */
+
+.link-text-dark {
+    -fx-text-fill: #3a3d40;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+}
+
+.link-inline-dark {
+    -fx-text-fill: #3a3d40;
+    -fx-font-size: 12px;
+    -fx-font-family: "Nunito Bold";
+    -fx-underline: true;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.link-inline-dark:visited { -fx-text-fill: #3a3d40; }
+.link-inline-dark:focused { -fx-border-color: -lavs-focus; -fx-border-width: 1px; }
+
+/* ---------- Shortcut hint, bottom right of every screen ---------- */
+
+.shortcut-hint {
+    -fx-text-fill: #8b8b93;
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+
+.shortcut-hint:hover { -fx-text-fill: #b8bac0; }
+
+/* ---------- Loan notes ---------- */
+
+.note-card {
+    -fx-background-color: #3a3d40;
+    -fx-background-radius: 10px;
+    -fx-padding: 10px 12px;
+}
+
+.note-card-title {
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 13px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.note-card-meta {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 10px;
+    -fx-text-fill: #b8bac0;
+}
+
+.note-card-text {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 12px;
+    -fx-text-fill: #f2f2f4;
+}
+
+.notes-empty {
+    -fx-font-family: "Nunito Regular";
+    -fx-font-size: 12px;
+    -fx-text-fill: #b8bac0;
+    -fx-padding: 8px 2px;
+}
+
+/* ---------- Customer status (deactivate / reactivate) ---------- */
+
+.status-tag-inactive {
+    -fx-background-color: #ff4d4d;
+    -fx-text-fill: #ffffff;
+}
+
+.btn-status {
+    -fx-background-color: transparent;
+    -fx-border-color: #ff4d4d;
+    -fx-border-radius: 3px;
+    -fx-border-width: 1px;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #ff4d4d;
+    -fx-font-family: "Nunito Bold";
+    -fx-font-size: 10px;
+    -fx-padding: 3px 10px;
+    -fx-cursor: hand;
+}
+
+.btn-status:hover { -fx-background-color: rgba(255, 77, 77, 0.15); }
+.btn-status:focused { -fx-border-color: #a5c3ff; -fx-border-width: 2px; }
+.btn-status-restore { -fx-border-color: #9fe3b6; -fx-text-fill: #9fe3b6; }
+
+.btn-status-row {
+    -fx-font-size: 9px;
+    -fx-padding: 2px 8px;
+}
