@@ -672,6 +672,17 @@ public class LoanDetailsController {
         Navigator.<LoanNotesController>show("loannotes", n -> n.open(loanNumber, reopen));
     }
 
+    /** Opens the documents recorded for the loan, where they are added and removed. */
+    @FXML
+    private void onLoanDocuments() {
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<DocumentsController>show("documents", d -> d.openForLoan(loanNumber, reopen));
+    }
+
     @FXML
     private void onAddCoBorrower() {
         if (details == null || !confirmDiscard()) {

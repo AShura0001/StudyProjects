@@ -519,6 +519,35 @@ public class CustomerDetailsController {
                         d -> d.open(customerNumber, backFromCustomer))));
     }
 
+    /** Opens the customer's relationships with other customers, where they are added, changed and removed. */
+    @FXML
+    private void onRelationships() {
+        if (details == null || busy || !confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Navigator.<RelationshipsController>show("relationships",
+                r -> r.open(customerNumber, reopenCustomer(customerNumber)));
+    }
+
+    /** Opens the documents recorded for the customer, where they are added and removed. */
+    @FXML
+    private void onDocuments() {
+        if (details == null || busy || !confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Navigator.<DocumentsController>show("documents",
+                d -> d.openForCustomer(customerNumber, reopenCustomer(customerNumber)));
+    }
+
+    /** Comes back to this customer's page, keeping where Back on it leads. */
+    private Runnable reopenCustomer(String customerNumber) {
+        Runnable backFromCustomer = onBack;
+        return () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                d -> d.open(customerNumber, backFromCustomer));
+    }
+
     @FXML
     private void onAddAddress() {
         if (details != null) {
