@@ -20,6 +20,7 @@ import java.util.Objects;
 final class MainframeCalls {
 
     static final String UNREACHABLE_MESSAGE = "The mainframe could not be reached.";
+    static final String UNREADABLE_MESSAGE = "The mainframe's reply could not be read.";
     static final String REJECTED_MESSAGE = "The mainframe refused the request.";
 
     private MainframeCalls() {
@@ -28,8 +29,12 @@ final class MainframeCalls {
     /**
      * Sends a message.
      *
+     * <p>The provided message classes fail with a {@link RuntimeException} when a reply
+     * leaves out a value they need, for example an amount. That is reported like any
+     * other unusable reply, never as a crash.
+     *
      * @return the status; it may be unsuccessful if the mainframe refused the message
-     * @throws MainframeUnavailableException if the mainframe could not be reached
+     * @throws MainframeUnavailableException if the mainframe could not be reached or its reply could not be read
      */
     static Status send(Message message, Connection connection) {
         Status status;
@@ -37,6 +42,8 @@ final class MainframeCalls {
             status = message.send(connection);
         } catch (IOException e) {
             throw new MainframeUnavailableException(UNREACHABLE_MESSAGE, e);
+        } catch (RuntimeException e) {
+            throw new MainframeUnavailableException(UNREADABLE_MESSAGE, e);
         }
         requireSession(status);
         if (isNetworkFailure(status)) {

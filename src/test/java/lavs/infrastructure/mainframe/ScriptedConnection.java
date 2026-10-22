@@ -57,6 +57,11 @@ public class ScriptedConnection implements Connection {
         replies.add(StatusMessage.UNABLE_TO_PARSE.generateMessageResponse(1));
     }
 
+    /** Queues a reply that says the mainframe no longer accepts this login session. */
+    public void replySessionExpired() {
+        replies.add(StatusMessage.SESSION_EXPIRED.generateMessageResponse(1));
+    }
+
     /**
      * Sets what the connection answers when asked whether it is connected.
      *

@@ -154,7 +154,6 @@ public class CustomerService implements CustomerProfileSource {
      * @param term what to look for; null or blank lists everyone
      * @param page the page, counting from 1
      */
-    @SuppressWarnings("unchecked")
     public CustomerSearchResult<Customer> search(String term, long page, long pageSize) throws IOException {
         String cleaned = term == null || term.isBlank() ? null : term.trim();
         CustomerSearchResult<Customer> result = customerGateway.searchCustomer(page, cleaned, pageSize);

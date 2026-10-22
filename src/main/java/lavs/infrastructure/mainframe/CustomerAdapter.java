@@ -15,6 +15,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerGateway}: it turns each call into the provided
+ * customer messages, and their replies back into business objects.
+ */
 public class CustomerAdapter implements CustomerGateway {
     private final Connection connection;
 
@@ -37,7 +41,9 @@ public class CustomerAdapter implements CustomerGateway {
         if (!retrieve.send(connection).getWasSuccessful()) {
             return false;
         }
-        String status = retrieve.getStatus().equalsIgnoreCase(UpdateStatus.STATUS_ACTIVE) ? UpdateStatus.STATUS_INACTIVE : UpdateStatus.STATUS_ACTIVE;
+        // Turns an Active customer Inactive, and anything else (including a status the mainframe left out) Active.
+        String status = UpdateStatus.STATUS_ACTIVE.equalsIgnoreCase(retrieve.getStatus())
+                ? UpdateStatus.STATUS_INACTIVE : UpdateStatus.STATUS_ACTIVE;
         UpdateStatus updateStatus = new UpdateStatus(customerNumber, status);
         return updateStatus.send(connection).getWasSuccessful();
     }
@@ -54,8 +60,15 @@ public class CustomerAdapter implements CustomerGateway {
         );
         if (create.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(create.getNumber());
-            retrieve.send(connection);
-            return mapMessageToCustomer(retrieve);
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToCustomer(retrieve);
+            }
+            // The customer was created even though it could not be read back, so report it
+            // with the number and details the mainframe sent when it created them.
+            Customer created = new Customer(create.getDateOfBirth(), create.getFamilyName(), create.getFirstName(),
+                    create.getNumber(), create.getStatus(), create.getTitle());
+            created.set_nationality(create.getNationality());
+            return Optional.of(created);
         }
         return Optional.empty();
     }
@@ -72,17 +85,20 @@ public class CustomerAdapter implements CustomerGateway {
         );
         if (update.send(connection).getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(customer.get_number());
-            retrieve.send(connection);
-            return mapMessageToCustomer(retrieve);
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToCustomer(retrieve);
+            }
+            // The change was saved even though it could not be read back, so report the customer as sent.
+            return Optional.of(customer);
         }
         return Optional.empty();
     }
 
-    public CustomerSearchResult searchCustomer(long page, String searchTerm, long page_size) throws IOException {
+    public CustomerSearchResult<Customer> searchCustomer(long page, String searchTerm, long page_size) throws IOException {
         Search search = new Search(page, searchTerm, page_size);
         if (search.send(connection).getWasSuccessful()) {
             ArrayList<Customer> customers = mapItemsToCustomer(search.getItems());
-            return new CustomerSearchResult(customers, search.getTotal(), search.getPage());
+            return new CustomerSearchResult<>(customers, search.getTotal(), search.getPage());
         }
         return null;
     }
