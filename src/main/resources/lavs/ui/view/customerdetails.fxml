@@ -137,7 +137,12 @@
 
                             <HBox spacing="42">
                                 <VBox spacing="4">
-                                    <Label text="Phone Number" styleClass="field-label"/>
+                                    <HBox alignment="CENTER_LEFT" spacing="6">
+                                        <Label text="Phone Number" styleClass="field-label"/>
+                                        <Hyperlink text="Manage" styleClass="link-add" onAction="#onManageContacts">
+                                            <tooltip><Tooltip text="Every phone number for this customer"/></tooltip>
+                                        </Hyperlink>
+                                    </HBox>
                                     <HBox spacing="4">
                                         <ComboBox fx:id="phoneCodeBox" styleClass="data-field"
                                                   prefWidth="70" minWidth="70" maxWidth="70"/>
@@ -148,7 +153,12 @@
                                     </HBox>
                                 </VBox>
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                                    <Label text="Email Address" styleClass="field-label"/>
+                                    <HBox alignment="CENTER_LEFT" spacing="6">
+                                        <Label text="Email Address" styleClass="field-label"/>
+                                        <Hyperlink text="Manage" styleClass="link-add" onAction="#onManageContacts">
+                                            <tooltip><Tooltip text="Every email for this customer"/></tooltip>
+                                        </Hyperlink>
+                                    </HBox>
                                     <TextField fx:id="emailField" styleClass="data-field"
                                                editable="false" focusTraversable="false"/>
                                 </VBox>

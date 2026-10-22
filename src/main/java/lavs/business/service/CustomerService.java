@@ -277,9 +277,12 @@ public class CustomerService implements CustomerProfileSource {
      * <p>The primary address can only be removed together with every other address;
      * otherwise another address must be made primary first.
      *
-     * <p>Notes listed in removedNoteIds are deleted last.
+     * <p>The primary phone number and primary email follow the same rule: they can only be
+     * removed together with every other one, so another must be made primary first.
      *
-     * <p>Error fields: firstName, familyName, phone, email, addresses.
+     * <p>Notes listed in removedNoteIds are deleted, then phone numbers and emails, last.
+     *
+     * <p>Error fields: firstName, familyName, phone, email, addresses, phones, emails.
      *
      * @throws ValidationException listing every problem found; nothing was sent
      * @throws RecordRejectedException if the customer is gone or the mainframe refused a change
@@ -315,6 +318,16 @@ public class CustomerService implements CustomerProfileSource {
                 addOnce(errors, "addresses", "Make another address primary before removing the primary address");
             }
         }
+        if (!changes.removedPhoneIds().isEmpty()
+                && removesPrimaryButNotAll(listPhones(number), PhoneNumber::get_id, PhoneNumber::is_isPrimary,
+                changes.removedPhoneIds())) {
+            addOnce(errors, "phones", "Make another phone number primary before removing the primary phone number");
+        }
+        if (!changes.removedEmailIds().isEmpty()
+                && removesPrimaryButNotAll(listEmails(number), Email::getId, Email::isPrimary,
+                changes.removedEmailIds())) {
+            addOnce(errors, "emails", "Make another email primary before removing the primary email");
+        }
         validateOrThrow(errors);
 
         if (nameChanged && customerGateway.updateCustomer(customer).isEmpty()) {
@@ -345,6 +358,24 @@ public class CustomerService implements CustomerProfileSource {
                 throw refused("note removal");
             }
         }
+        for (long phoneId : changes.removedPhoneIds()) {
+            if (!deletePhone(number, phoneId)) {
+                throw refused("phone number removal");
+            }
+        }
+        for (long emailId : changes.removedEmailIds()) {
+            if (!deleteEmail(number, emailId)) {
+                throw refused("email removal");
+            }
+        }
+    }
+
+    /** True when the primary one is among those removed while others would stay. */
+    private static <T> boolean removesPrimaryButNotAll(List<T> items, java.util.function.ToLongFunction<T> id,
+                                                       java.util.function.Predicate<T> isPrimary, List<Long> removed) {
+        boolean removesPrimary = items.stream().anyMatch(i -> isPrimary.test(i) && removed.contains(id.applyAsLong(i)));
+        boolean keepsSome = items.stream().anyMatch(i -> !removed.contains(id.applyAsLong(i)));
+        return removesPrimary && keepsSome;
     }
 
     /** @return the phone record to send, or null when nothing changed or the change is invalid */
@@ -595,6 +626,13 @@ public class CustomerService implements CustomerProfileSource {
         return fetchAllPages(page -> phoneGateway.ListCustomerPhoneNumbers(page, customerNumber, PAGE_SIZE));
     }
 
+    /** One phone number in full, for changing it on its own form. */
+    public Optional<PhoneNumber> findPhone(String customerNumber, long phoneId) throws IOException {
+        Optional<PhoneNumber> found = phoneGateway.findCustomerNumberByNumberAndId(phoneId, customerNumber);
+        found.ifPresent(p -> p.set_customerNumber(customerNumber));
+        return found;
+    }
+
     public PhoneNumber addPhone(PhoneNumber phone) throws IOException {
         validateOrThrow(validationService.validatePhone(phone));
         if (phone.is_isPrimary()) {
@@ -609,6 +647,24 @@ public class CustomerService implements CustomerProfileSource {
             clearExistingPrimaryPhone(phone.get_customerNumber(), phone.get_id());
         }
         return phoneGateway.updateCustomerNumber(phone).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the phone update"));
+    }
+
+    /**
+     * Removes one phone number, keeping the single-primary rule: the primary phone number
+     * can only be removed when it is the last one, so another must be made primary first.
+     *
+     * @throws ValidationException (field phones) if the primary would be removed while others remain
+     * @throws RecordRejectedException if the mainframe refused the removal
+     */
+    public void removePhone(String customerNumber, long phoneId) throws IOException {
+        if (removesPrimaryButNotAll(listPhones(customerNumber), PhoneNumber::get_id, PhoneNumber::is_isPrimary,
+                List.of(phoneId))) {
+            throw new ValidationException(List.of(new ValidationError("phones",
+                    "Make another phone number primary before removing the primary phone number")));
+        }
+        if (!deletePhone(customerNumber, phoneId)) {
+            throw refused("phone number removal");
+        }
     }
 
     public boolean deletePhone(String customerNumber, long phoneId) throws IOException {
@@ -637,6 +693,13 @@ public class CustomerService implements CustomerProfileSource {
         return fetchAllPages(page -> emailGateway.ListCustomerEmails(page, customerNumber, PAGE_SIZE));
     }
 
+    /** One email in full, for changing it on its own form. */
+    public Optional<Email> findEmail(String customerNumber, long emailId) throws IOException {
+        Optional<Email> found = emailGateway.findEmailByCustomerNumberAndId(emailId, customerNumber);
+        found.ifPresent(e -> e.setCustomerNumber(customerNumber));
+        return found;
+    }
+
     public Email addEmail(Email email) throws IOException {
         validateOrThrow(validationService.validateEmail(email));
         if (email.isPrimary()) {
@@ -651,6 +714,23 @@ public class CustomerService implements CustomerProfileSource {
             clearExistingPrimaryEmail(email.getCustomerNumber(), email.getId());
         }
         return emailGateway.updateCustomerEmail(email).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the email update"));
+    }
+
+    /**
+     * Removes one email, keeping the single-primary rule: the primary email can only be
+     * removed when it is the last one, so another must be made primary first.
+     *
+     * @throws ValidationException (field emails) if the primary would be removed while others remain
+     * @throws RecordRejectedException if the mainframe refused the removal
+     */
+    public void removeEmail(String customerNumber, long emailId) throws IOException {
+        if (removesPrimaryButNotAll(listEmails(customerNumber), Email::getId, Email::isPrimary, List.of(emailId))) {
+            throw new ValidationException(List.of(new ValidationError("emails",
+                    "Make another email primary before removing the primary email")));
+        }
+        if (!deleteEmail(customerNumber, emailId)) {
+            throw refused("email removal");
+        }
     }
 
     public boolean deleteEmail(String customerNumber, long emailId) throws IOException {

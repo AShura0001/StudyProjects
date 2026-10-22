@@ -420,6 +420,19 @@ public class CustomerDetailsController {
         return tag;
     }
 
+    /** Opens every phone number and email of the customer, where they are added, changed and removed. */
+    @FXML
+    private void onManageContacts() {
+        if (details == null || busy || !confirmDiscard()) {
+            return;
+        }
+        String customerNumber = details.customerNumber();
+        Runnable backFromCustomer = onBack;
+        Navigator.<ContactsController>show("contacts", c -> c.open(customerNumber,
+                () -> Navigator.<CustomerDetailsController>show("customerdetails",
+                        d -> d.open(customerNumber, backFromCustomer))));
+    }
+
     @FXML
     private void onAddAddress() {
         if (details != null) {
