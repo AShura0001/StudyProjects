@@ -78,6 +78,20 @@
                                     <SVGPath styleClass="avatar" scaleX="3.75" scaleY="3.75"
                                              content="M12 3 A4.5 4.5 0 1 1 12 12 A4.5 4.5 0 1 1 12 3 Z M3 21 C3 15.5 7 13.5 12 13.5 C17 13.5 21 15.5 21 21 Z"/>
                                 </StackPane>
+                                <Label fx:id="inactiveBadge" text="INACTIVE" styleClass="address-tag, status-tag-inactive"
+                                       visible="false" managed="false" StackPane.alignment="BOTTOM_LEFT">
+                                    <StackPane.margin>
+                                        <Insets bottom="10" left="10"/>
+                                    </StackPane.margin>
+                                </Label>
+                                <Button fx:id="statusButton" text="Deactivate" styleClass="btn-status"
+                                        visible="false" managed="false" onAction="#onToggleStatus"
+                                        StackPane.alignment="BOTTOM_RIGHT">
+                                    <StackPane.margin>
+                                        <Insets right="10" bottom="10"/>
+                                    </StackPane.margin>
+                                    <tooltip><Tooltip text="Mark this customer Inactive on the mainframe"/></tooltip>
+                                </Button>
                                 <Button fx:id="photoEditButton" styleClass="btn-edit-chip" text="Edit"
                                         visible="false" managed="false" onAction="#onPhotoEdit"
                                         StackPane.alignment="BOTTOM_RIGHT">
@@ -180,16 +194,16 @@
                                     <HBox.margin>
                                         <Insets bottom="22"/>
                                     </HBox.margin>
-                                    <StackPane>
-                                        <Label text="EMPLOYERS" styleClass="panel-title" maxWidth="Infinity"/>
-                                        <Hyperlink text="Add" styleClass="notes-add" onAction="#onAddEmployer"
-                                                   StackPane.alignment="CENTER_RIGHT"/>
-                                    </StackPane>
+                                    <Label text="EMPLOYERS" styleClass="panel-title" maxWidth="Infinity"/>
                                     <ScrollPane styleClass="panel-scroll" fitToWidth="true"
                                                 hbarPolicy="NEVER" vbarPolicy="ALWAYS"
                                                 VBox.vgrow="ALWAYS" focusTraversable="false">
                                         <VBox fx:id="employersBox"/>
                                     </ScrollPane>
+                                    <Button text="+ Add an employer" styleClass="btn-add-wide"
+                                            maxWidth="Infinity" onAction="#onAddEmployer">
+                                        <tooltip><Tooltip text="Add an employer to this customer"/></tooltip>
+                                    </Button>
                                 </VBox>
 
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
@@ -238,7 +252,7 @@
 
                         <HBox fx:id="editActions" spacing="6" alignment="BOTTOM_RIGHT"
                               StackPane.alignment="BOTTOM_RIGHT" visible="false" managed="false"
-                              maxWidth="-Infinity" maxHeight="-Infinity">
+                              maxWidth="-Infinity" maxHeight="-Infinity" translateY="12">
                             <Button fx:id="cancelButton" text="cancel" styleClass="btn-action, btn-action-cancel"
                                     onAction="#onCancel">
                                 <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>

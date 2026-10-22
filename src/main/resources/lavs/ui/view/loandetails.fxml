@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ProgressIndicator?>
@@ -165,11 +166,14 @@
                             </VBox.margin>
                         </ProgressBar>
 
-                        <Label text="Summary" styleClass="section-title">
+                        <HBox alignment="BASELINE_LEFT">
                             <VBox.margin>
                                 <Insets top="18"/>
                             </VBox.margin>
-                        </Label>
+                            <Label text="Summary" styleClass="section-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Hyperlink text="Loan notes ›" styleClass="link-add" onAction="#onLoanNotes"/>
+                        </HBox>
                         <GridPane styleClass="info-card" vgap="2">
                             <VBox.margin>
                                 <Insets top="6"/>

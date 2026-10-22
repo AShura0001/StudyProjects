@@ -1,6 +1,7 @@
 package lavs.ui;
 
 import lavs.app.AppServices;
+import lavs.business.repository.LoanNoteGateway;
 import lavs.business.service.AuthService;
 import lavs.business.service.BasicLoanValidator;
 import lavs.business.service.CustomerService;
@@ -12,6 +13,7 @@ import lavs.ui.component.Choices;
 import lavs.ui.sync.SyncState;
 import lavs.ui.sync.SyncStatus;
 import lavs.ui.sync.SyncStatusListener;
+import lavs.infrastructure.mainframe.LoanNoteAdapter;
 import mainframe.client.Connection;
 
 import java.io.IOException;
@@ -24,6 +26,7 @@ public final class AppContext implements AutoCloseable {
     private final SyncStatus syncStatus = new SyncStatus();
     private volatile boolean syncPreview;
     private volatile AppServices services;
+    private volatile LoanNoteGateway loanNotes;
 
     public AppContext(Connection connection, AuthService auth) {
         this.connection = Objects.requireNonNull(connection, "connection must not be null");
@@ -48,6 +51,17 @@ public final class AppContext implements AutoCloseable {
     /** Loans already on the mainframe. Available once logged in. */
     public LoanAccountService loanAccounts() {
         return started().loanAccounts().orElseThrow(() -> new IllegalStateException("loan account service not built"));
+    }
+
+    /**
+     * A loan's notes on the mainframe. No service offers these yet, so the screens
+     * use the gateway directly.
+     */
+    public synchronized LoanNoteGateway loanNotes() {
+        if (loanNotes == null) {
+            loanNotes = new LoanNoteAdapter(connection);
+        }
+        return loanNotes;
     }
 
     /** The mainframe's constant values, such as address types, for the drop-down lists. Available once logged in. */

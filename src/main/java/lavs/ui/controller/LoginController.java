@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 import lavs.business.model.AuthResult;
 import lavs.business.service.AuthService;
 import lavs.ui.Navigator;
+import lavs.ui.component.CenteredCaret;
 
 import java.util.Objects;
 import java.util.logging.Level;
@@ -54,6 +55,10 @@ public class LoginController {
     private void initialize() {
         // Enter submits from either field, matching the default button.
         submitButton.setDefaultButton(true);
+
+        // The caret sits in the middle of an empty field, under the centred placeholder.
+        CenteredCaret.apply(employeeIdField);
+        CenteredCaret.apply(passwordField);
 
         // Clear a stale error as soon as the user starts correcting it.
         employeeIdField.textProperty().addListener((obs, old, now) -> clearMessage());

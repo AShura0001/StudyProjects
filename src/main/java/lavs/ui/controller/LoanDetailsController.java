@@ -607,6 +607,16 @@ public class LoanDetailsController {
     }
 
     @FXML
+    private void onLoanNotes() {
+        if (details == null || !confirmDiscard()) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Runnable reopen = reopenLoan(loanNumber);
+        Navigator.<LoanNotesController>show("loannotes", n -> n.open(loanNumber, reopen));
+    }
+
+    @FXML
     private void onAddCoBorrower() {
         if (details == null || !confirmDiscard()) {
             return;

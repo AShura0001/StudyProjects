@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
+import lavs.ui.component.ShortcutHint;
 import lavs.ui.component.SyncIndicator;
 
 import java.io.IOException;
@@ -54,6 +55,9 @@ public final class Navigator {
             loader.setControllerFactory(controllerFactory);
             Parent root = loader.load();
             init.accept(loader.getController());
+            if (!"loggedout".equals(view)) {
+                ShortcutHint.addTo(root);
+            }
             if (LavsApp.context() != null) {
                 SyncIndicator.addTo(root, LavsApp.context().syncStatus(),
                         () -> lavs.ui.controller.DraftsController.openWindow(stage));
