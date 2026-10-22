@@ -23,27 +23,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for the CUSTOMER branch of MainframeDraftUploader.upload(), added when
- * that branch changed from always refusing customer drafts to actually sending
- * them.
+ * Tests for sending a new customer draft through MainframeDraftUploader. A new
+ * customer goes as several messages: customer.create, then one for each address,
+ * phone number, email and employer. The loan and co-borrower drafts are covered by
+ * MainframeDraftUploaderTest.
  *
- * NOTE for whoever merges this: an existing MainframeDraftUploaderTest already
- * covers the LOAN/COBORROWER branches and probably still asserts the OLD
- * behaviour for CUSTOMER (always refused, via the now-deleted
- * CUSTOMER_NOT_SUPPORTED_MESSAGE constant). That old assertion needs to be
- * removed or updated - this file only adds new tests for the new behaviour, it
- * does not touch the existing file. Please merge by hand, don't overwrite.
- *
- * These tests deliberately only assert on things verified from Create.java's
- * actual source (its request type "customer.create" and that it reads "number"
- * back from the response). The AddAddress/AddPhoneNumber/AddEmail/AddEmployer
- * message classes' own request/response wire format has not been seen directly
- * here - only their Java constructor signatures, inferred from the existing
- * adapters. So these tests check call counts and the overall outcome (customer
- * number returned, exceptions thrown correctly), not the exact wire contents
- * of each Add* call. If those message classes' source is available, it would
- * be worth strengthening these tests to assert their request types and fields
- * directly, the way the Create-based tests below do.
+ * <p>These tests check the request type of customer.create, that the customer
+ * number is read back, the number of follow-up messages, and that failures turn
+ * into the right exceptions.
  */
 class MainframeDraftUploaderCustomerTest {
 

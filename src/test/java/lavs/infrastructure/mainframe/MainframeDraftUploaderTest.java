@@ -171,19 +171,6 @@ class MainframeDraftUploaderTest {
         assertEquals(0, connection.pings());
     }
 
-    // Commented out for now, shouldnt be relevant anymore
-    // @Test
-    // void upload_ofACustomer_isRefusedBecauseCustomerDraftsAreNotSupportedYet() {
-    //     Draft customer = new Draft(DraftType.CUSTOMER, "any text");
-
-    //     RecordRejectedException thrown =
-    //             assertThrows(RecordRejectedException.class, () -> uploader.upload(customer, List.of()));
-
-    //     assertEquals(MainframeDraftUploader.CUSTOMER_NOT_SUPPORTED_MESSAGE, thrown.getMessage());
-    //     assertEquals(0, connection.pings());
-    //     assertTrue(connection.requests().isEmpty());
-    // }
-
     @Test
     void upload_ofACoBorrowerForAnExistingCustomer_attachesThemToTheLoan() {
         coBorrowerReplyWith("5");
