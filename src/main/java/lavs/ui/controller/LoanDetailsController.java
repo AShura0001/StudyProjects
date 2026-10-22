@@ -106,6 +106,7 @@ public class LoanDetailsController {
     @FXML private Button addCoBorrowerButton;
     @FXML private Button viewModeButton;
     @FXML private Button editModeButton;
+    @FXML private Button submitButton;
     @FXML private Node editActions;
     @FXML private Label noticeLabel;
 
@@ -287,6 +288,13 @@ public class LoanDetailsController {
         clearFieldErrors();
         renderSchedule();
         renderCoBorrowers();
+        updateSubmitButton();
+    }
+
+    /** Only a New loan can be sent for checking, and not while it is being edited. */
+    private void updateSubmitButton() {
+        setShown(submitButton, !editing && loan != null
+                && LoanAccountService.NEW_STATUS.equalsIgnoreCase(loan.status()));
     }
 
     private boolean isDirty() {
@@ -461,6 +469,7 @@ public class LoanDetailsController {
         setShown(scheduleEditButton, edit);
         setShown(addCoBorrowerButton, edit);
         setShown(editActions, edit);
+        updateSubmitButton();
         clearFieldErrors();
         if (details != null) {
             renderSchedule();
@@ -594,6 +603,53 @@ public class LoanDetailsController {
         for (Control field : fields.values()) {
             toggleStyle(field, "field-error", false);
         }
+    }
+
+    /** Moves the loan from New to Pending once every rule passes; every problem is listed at once. */
+    @FXML
+    private void onSubmitForChecking() {
+        if (busy || editing || details == null) {
+            return;
+        }
+        String loanNumber = details.loanNumber();
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
+                "Submit loan " + loanNumber + " for checking? Its status changes from New to Pending.",
+                ButtonType.YES, ButtonType.NO);
+        alert.setTitle("Submit for checking");
+        alert.setHeaderText(null);
+        alert.initOwner(root.getScene().getWindow());
+        Optional<ButtonType> answer = alert.showAndWait();
+        if (answer.isEmpty() || answer.get() != ButtonType.YES) {
+            return;
+        }
+        showNotice("");
+        setBusy(true);
+
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                loanAccounts.submitForChecking(loanNumber);
+                return null;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            setBusy(false);
+            load(loanNumber, "Submitted for checking. The loan is now Pending.");
+        });
+        task.setOnFailed(e -> {
+            setBusy(false);
+            Throwable error = task.getException();
+            if (Format.isRuleError(error)) {
+                showNotice("This loan cannot be submitted yet.  " + Inputs.notice(Format.fieldErrors(error, Map.of())));
+            } else {
+                // The reply may have been lost after the change was made, so read the loan again before retrying.
+                load(loanNumber, Format.problem(error, "Could not reach the mainframe.")
+                        + " Check the status before submitting again.");
+            }
+        });
+
+        startWorker(task, "loan-submit");
     }
 
     @FXML
