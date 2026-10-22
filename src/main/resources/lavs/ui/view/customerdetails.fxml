@@ -225,17 +225,19 @@
                                                     VBox.vgrow="ALWAYS" focusTraversable="false">
                                             <VBox fx:id="loansBox"/>
                                         </ScrollPane>
+                                        <Button text="+ Add another loan" styleClass="btn-add-wide"
+                                                maxWidth="Infinity" onAction="#onAddLoan">
+                                            <tooltip><Tooltip text="Start a new loan for this customer"/></tooltip>
+                                        </Button>
                                     </VBox>
-                                    <HBox alignment="CENTER_LEFT" spacing="10">
-                                        <Hyperlink text="Add another loan" styleClass="link-add"
-                                                   onAction="#onAddLoan"/>
-                                        <Region HBox.hgrow="ALWAYS"/>
+                                    <!-- Their own row, kept at full width, so a narrow window never shortens them. -->
+                                    <HBox alignment="CENTER_RIGHT" spacing="10">
                                         <Hyperlink text="Relationships ›" styleClass="link-add"
-                                                   onAction="#onRelationships">
+                                                   onAction="#onRelationships" minWidth="-Infinity">
                                             <tooltip><Tooltip text="Other customers this customer is related to"/></tooltip>
                                         </Hyperlink>
                                         <Hyperlink text="Documents ›" styleClass="link-add"
-                                                   onAction="#onDocuments">
+                                                   onAction="#onDocuments" minWidth="-Infinity">
                                             <tooltip><Tooltip text="Documents recorded for this customer"/></tooltip>
                                         </Hyperlink>
                                     </HBox>
