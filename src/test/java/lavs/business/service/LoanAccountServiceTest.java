@@ -37,7 +37,8 @@ class LoanAccountServiceTest {
         loans = mock(LoanGateway.class);
         coBorrowers = mock(LoanCoBorrowerGateway.class);
         payments = mock(LoanPaymentGateway.class);
-        service = new LoanAccountService(loans, coBorrowers, payments, new BasicLoanValidator());
+        service = new LoanAccountService(loans, coBorrowers, payments, new BasicLoanValidator(),
+                mock(CustomerProfileSource.class));
         when(loans.findLoan("LN-1")).thenReturn(Optional.of(LOAN));
     }
 

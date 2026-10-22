@@ -103,7 +103,7 @@ The loan summary, the repayment schedule, changing an existing record and the re
 
 ## Known limits
 
-* Submitting a loan for checking (changing its status from New to Pending) is not part of the loan service. The adapter for it exists.
+* Submitting a loan for checking (changing its status from New to Pending) is done by `LoanAccountService.submitForChecking`, with its rules (the loan must be New and complete, its customer needs a mailing address and a phone or email, and a customer with no employer needs a guarantor). The loan screen has no button for it yet.
 * A record whose outcome is uncertain waits for a person to check it. The services for that are in place (`BackgroundSync.findUncertain`, `confirmSynced` and `confirmNotSent`), but no screen calls them yet, so today the check is made by looking at the draft files in `~/.lavs/drafts`.
 * A customer is sent to the mainframe as several messages (the customer, then each address, phone number, email and employer). If the connection drops part way, the customer draft is marked uncertain rather than sent again, so it is not repeated blindly.
 

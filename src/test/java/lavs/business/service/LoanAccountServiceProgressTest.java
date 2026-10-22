@@ -94,7 +94,7 @@ class LoanAccountServiceProgressTest {
         when(payments.listPayments(eq("LN-1"), eq(1L), anyLong()))
                 .thenReturn(new PageResult<LoanPayment>(List.of(), 2, 1));
         LoanAccountService service = new LoanAccountService(loans, mock(LoanCoBorrowerGateway.class), payments,
-                new BasicLoanValidator());
+                new BasicLoanValidator(), mock(CustomerProfileSource.class));
         LoanRecord loan = new LoanRecord("LN-1", "CUS-1", "Jane Doe", "Active", new BigDecimal("10000"),
                 "Fixed", new BigDecimal("5"), "Yearly", new BigDecimal("500"), "Monthly",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2027, 1, 1));
