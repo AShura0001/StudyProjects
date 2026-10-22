@@ -591,4 +591,43 @@ class CustomerServiceContactTest {
         assertEquals(NUMBER, service.findEmail(NUMBER, 22).orElseThrow().getCustomerNumber());
         assertTrue(service.findEmail(NUMBER, 99).isEmpty());
     }
+
+    @Test
+    void removePhone_deletesAnotherPhone() throws IOException {
+        givenTwoPhones();
+
+        service.removePhone(NUMBER, 21L);
+
+        verify(phones).deleteCustomerNumberByNumberAndId(21L, NUMBER);
+    }
+
+    @Test
+    void removePhone_ofThePrimaryWhileOthersRemain_isRefused() throws IOException {
+        givenTwoPhones();
+
+        ValidationException invalid = assertThrows(ValidationException.class, () -> service.removePhone(NUMBER, 11L));
+
+        assertEquals("phones", invalid.getErrors().get(0).getField());
+        verify(phones, never()).deleteCustomerNumberByNumberAndId(anyLong(), any());
+    }
+
+    @Test
+    void removePhone_ofTheLastPhone_isAllowed() throws IOException {
+        when(phones.deleteCustomerNumberByNumberAndId(11L, NUMBER)).thenReturn(true);
+
+        service.removePhone(NUMBER, 11L);
+
+        verify(phones).deleteCustomerNumberByNumberAndId(11L, NUMBER);
+    }
+
+    @Test
+    void removePhone_whenTheMainframeRefuses_isReported() throws IOException {
+        givenTwoPhones();
+        when(phones.deleteCustomerNumberByNumberAndId(21L, NUMBER)).thenReturn(false);
+
+        RecordRejectedException refused = assertThrows(RecordRejectedException.class,
+                () -> service.removePhone(NUMBER, 21L));
+
+        assertTrue(refused.getMessage().contains("phone number removal"));
+    }
 }

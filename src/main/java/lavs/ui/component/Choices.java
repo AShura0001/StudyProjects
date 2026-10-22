@@ -33,10 +33,11 @@ public final class Choices {
     public static final String RATE_FREQUENCY_CATEGORY = "LoanRateFrequency";
     public static final String PAYMENT_FREQUENCY_CATEGORY = "LoanPaymentFrequency";
     public static final String CO_BORROWER_TYPE_CATEGORY = "LoanCoborrowerType";
+    public static final String PHONE_TYPE_CATEGORY = "CustomerPhoneNumberType";
 
     /** Every category above, for fetching them all after login. */
     public static final List<String> MAINFRAME_CATEGORIES = List.of(ADDRESS_TYPE_CATEGORY, RATE_TYPE_CATEGORY,
-            RATE_FREQUENCY_CATEGORY, PAYMENT_FREQUENCY_CATEGORY, CO_BORROWER_TYPE_CATEGORY);
+            RATE_FREQUENCY_CATEGORY, PAYMENT_FREQUENCY_CATEGORY, CO_BORROWER_TYPE_CATEGORY, PHONE_TYPE_CATEGORY);
 
     public static final List<String> TITLES = List.of("Mr", "Mrs", "Ms", "Miss", "Mx", "Dr");
 
@@ -56,6 +57,9 @@ public final class Choices {
 
     /** The mainframe's employer types (its customer.addEmployer message spells them this way). */
     public static final List<String> EMPLOYER_TYPES = List.of("Primary", "Secondary");
+
+    /** The mainframe's phone number types. */
+    public static final List<String> PHONE_TYPES = List.of("Home", "Mobile", "Work", "Other");
 
     public static final List<String> CO_BORROWER_TYPES = List.of(
             AddCoborrower.TYPE_COBORROWER, AddCoborrower.TYPE_GUARANTOR);
@@ -97,6 +101,10 @@ public final class Choices {
 
     public static List<String> paymentFrequencies() {
         return fromMainframe(PAYMENT_FREQUENCY_CATEGORY, PAYMENT_FREQUENCIES);
+    }
+
+    public static List<String> phoneTypes() {
+        return fromMainframe(PHONE_TYPE_CATEGORY, PHONE_TYPES);
     }
 
     public static List<String> coBorrowerTypes() {

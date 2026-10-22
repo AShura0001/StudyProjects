@@ -649,6 +649,24 @@ public class CustomerService implements CustomerProfileSource {
         return phoneGateway.updateCustomerNumber(phone).orElseThrow(() -> new IllegalStateException("Mainframe did not accept the phone update"));
     }
 
+    /**
+     * Removes one phone number, keeping the single-primary rule: the primary phone number
+     * can only be removed when it is the last one, so another must be made primary first.
+     *
+     * @throws ValidationException (field phones) if the primary would be removed while others remain
+     * @throws RecordRejectedException if the mainframe refused the removal
+     */
+    public void removePhone(String customerNumber, long phoneId) throws IOException {
+        if (removesPrimaryButNotAll(listPhones(customerNumber), PhoneNumber::get_id, PhoneNumber::is_isPrimary,
+                List.of(phoneId))) {
+            throw new ValidationException(List.of(new ValidationError("phones",
+                    "Make another phone number primary before removing the primary phone number")));
+        }
+        if (!deletePhone(customerNumber, phoneId)) {
+            throw refused("phone number removal");
+        }
+    }
+
     public boolean deletePhone(String customerNumber, long phoneId) throws IOException {
         return phoneGateway.deleteCustomerNumberByNumberAndId(phoneId, customerNumber);
     }
