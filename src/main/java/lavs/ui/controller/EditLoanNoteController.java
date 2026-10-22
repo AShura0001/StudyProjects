@@ -5,23 +5,26 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
-import lavs.business.model.LoanNote;
-import lavs.business.repository.LoanNoteGateway;
+import lavs.business.service.LoanNoteService;
 import lavs.ui.LavsApp;
 
 import java.util.Map;
 
-/** Adds a note to a loan, or changes one. On save the loan's notes reopen. */
+/**
+ * Adds a note to a loan, or changes one. On save the loan's notes reopen. The rules
+ * (some text, at most {@link LoanNoteService#MAX_LENGTH} characters) are checked by
+ * {@link LoanNoteService}; problems come back against the fields.
+ */
 public class EditLoanNoteController extends FormController {
 
-    private static final int MAX_LENGTH = 2000;
+    private static final int MAX_LENGTH = LoanNoteService.MAX_LENGTH;
 
     @FXML private Label titleLabel;
     @FXML private Label countLabel;
     @FXML private TextField typeField;
     @FXML private TextArea linesField;
 
-    private final LoanNoteGateway notes = LavsApp.context().loanNotes();
+    private final LoanNoteService notes = LavsApp.context().loanNotes();
     private String loanNumber;
     /** The note being changed, or null when adding one. */
     private Long noteId;
@@ -61,7 +64,7 @@ public class EditLoanNoteController extends FormController {
             return;
         }
         titleLabel.setText("Edit note");
-        load(() -> notes.findNote(loanNumber, noteId).orElse(null), note -> {
+        load(() -> notes.find(loanNumber, noteId).orElse(null), note -> {
             if (note == null) {
                 showNotice("Could not find that note.");
                 return;
@@ -73,21 +76,17 @@ public class EditLoanNoteController extends FormController {
 
     @Override
     protected void submitForm() {
-        String type = typeField.getText() == null ? "" : typeField.getText().strip();
-        String lines = linesField.getText() == null ? "" : linesField.getText().strip();
-        String title = type.isEmpty() ? LoanNotesController.DEFAULT_TITLE : type;
+        String title = typeField.getText();
+        String lines = linesField.getText();
+        String loan = loanNumber;
         Long id = noteId;
         save(() -> {
-            if (lines.isEmpty()) {
-                return Map.of("lines", "Write something in the note first.");
+            if (id == null) {
+                notes.add(loan, title, lines);
+            } else {
+                notes.update(loan, id, title, lines);
             }
-            if (lines.length() > MAX_LENGTH) {
-                return Map.of("lines", "A note can be at most " + MAX_LENGTH + " characters.");
-            }
-            LoanNote saved = id == null
-                    ? notes.addNote(loanNumber, title, lines)
-                    : notes.updateNote(loanNumber, id, title, lines);
-            return saved == null ? Map.of("form", "The mainframe did not accept the note.") : Map.of();
+            return Map.of();
         });
     }
 
