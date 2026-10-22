@@ -2,6 +2,8 @@ package lavs.business.service;
 
 import lavs.business.model.CoBorrower;
 import lavs.business.model.CoBorrowerType;
+import lavs.business.model.CustomerProfile;
+import lavs.business.model.CustomerReference;
 import lavs.business.model.LoanDetails;
 import lavs.business.model.LoanListing;
 import lavs.business.model.LoanRecord;
@@ -16,6 +18,7 @@ import lavs.business.repository.PageResult;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +35,23 @@ public class LoanAccountService {
     /** Shown when the mainframe cannot be reached. */
     public static final String OFFLINE_MESSAGE = "The mainframe could not be reached. Try again.";
 
+    /** The status a loan has until it is submitted for checking. */
+    public static final String NEW_STATUS = "New";
+    /** The key of the problem reported when the loan is not New. */
+    public static final String STATUS_FIELD = "status";
+    /** The problem reported when the loan is not New. */
+    public static final String STATUS_MESSAGE = "Only a loan with the status New can be submitted for checking.";
+    /** The key of the problem reported when the mainframe left some details of the loan out. */
+    public static final String DETAILS_FIELD = "details";
+    /** The problem reported when the mainframe left some details of the loan out. */
+    public static final String DETAILS_MESSAGE =
+            "The loan is missing some of its details, so it cannot be submitted for checking.";
+    /** The key of the problem reported when a customer with no employer has no guarantor. */
+    public static final String GUARANTOR_FIELD = "guarantor";
+    /** The problem reported when a customer with no employer has no guarantor. */
+    public static final String GUARANTOR_MESSAGE =
+            "A customer with no employer needs a guarantor on the loan before it can be submitted for checking.";
+
     private static final long PAGE_SIZE = 100;
     private static final int MAX_PAGES = 1000;
 
@@ -39,16 +59,21 @@ public class LoanAccountService {
     private final LoanCoBorrowerGateway coBorrowers;
     private final LoanPaymentGateway payments;
     private final LoanValidator validator;
+    private final CustomerProfileSource profiles;
 
     /**
+     * @param profiles how the facts about a loan's customer are found, for the rules about
+     *                 submitting a loan for checking
      * @throws NullPointerException if any argument is null
      */
     public LoanAccountService(LoanGateway loans, LoanCoBorrowerGateway coBorrowers,
-                              LoanPaymentGateway payments, LoanValidator validator) {
+                              LoanPaymentGateway payments, LoanValidator validator,
+                              CustomerProfileSource profiles) {
         this.loans = Objects.requireNonNull(loans, "loans must not be null");
         this.coBorrowers = Objects.requireNonNull(coBorrowers, "coBorrowers must not be null");
         this.payments = Objects.requireNonNull(payments, "payments must not be null");
         this.validator = Objects.requireNonNull(validator, "validator must not be null");
+        this.profiles = Objects.requireNonNull(profiles, "profiles must not be null");
     }
 
     /** @return every loan the customer owns; empty when they have none */
@@ -157,6 +182,60 @@ public class LoanAccountService {
         }
         offline(() -> {
             loans.updateLoan(loanNumber, loan.customerNumber(), terms);
+            return null;
+        });
+        return find(loanNumber).orElse(loan);
+    }
+
+    /**
+     * Moves a loan from New to Pending, so it goes to be checked. Every rule is checked
+     * first and every problem is reported at once: the loan must be New with all its
+     * details present and valid, its customer must have a mailing address and a phone or
+     * an email, and a customer with no employer needs a guarantor on the loan.
+     *
+     * @param loanNumber the mainframe's number for the loan
+     * @return the loan as the mainframe now holds it
+     * @throws LoanRuleException if the loan or its customer cannot be found, or a rule is broken
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     * @throws lavs.business.repository.RecordRejectedException if the mainframe refused the change
+     */
+    public LoanRecord submitForChecking(String loanNumber) {
+        requireText(loanNumber, "loanNumber");
+        LoanRecord loan = find(loanNumber).orElseThrow(() ->
+                new LoanRuleException(Map.of(LoanRuleException.GENERAL, LoanService.LOAN_NOT_FOUND_MESSAGE)));
+        if (loan.customerNumber() == null || loan.customerNumber().isBlank()) {
+            throw new LoanRuleException(Map.of(LoanRuleException.GENERAL, LoanService.CUSTOMER_NOT_FOUND_MESSAGE));
+        }
+        CustomerProfile owner = offline(() -> profiles.profileOf(CustomerReference.existing(loan.customerNumber())))
+                .orElseThrow(() -> new LoanRuleException(
+                        Map.of(LoanRuleException.GENERAL, LoanService.CUSTOMER_NOT_FOUND_MESSAGE)));
+
+        Map<String, String> problems = new LinkedHashMap<>();
+        if (!NEW_STATUS.equalsIgnoreCase(loan.status())) {
+            problems.put(STATUS_FIELD, STATUS_MESSAGE);
+        }
+        Optional<LoanDetails> terms = termsOf(loan);
+        if (terms.isEmpty()) {
+            problems.put(DETAILS_FIELD, DETAILS_MESSAGE);
+        } else {
+            validator.validate(terms.get()).forEach(problems::putIfAbsent);
+        }
+        if (!owner.hasMailingAddress()) {
+            problems.put(LoanService.MAILING_ADDRESS_FIELD, LoanService.MAILING_ADDRESS_MESSAGE);
+        }
+        if (!owner.hasPhoneOrEmail()) {
+            problems.put(LoanService.CONTACT_METHOD_FIELD, LoanService.CONTACT_METHOD_MESSAGE);
+        }
+        if (!owner.hasEmployer() && coBorrowersOf(loanNumber).stream()
+                .noneMatch(person -> person.type() == CoBorrowerType.GUARANTOR)) {
+            problems.put(GUARANTOR_FIELD, GUARANTOR_MESSAGE);
+        }
+        if (!problems.isEmpty()) {
+            throw new LoanRuleException(problems);
+        }
+
+        offline(() -> {
+            loans.submitForChecking(loanNumber);
             return null;
         });
         return find(loanNumber).orElse(loan);

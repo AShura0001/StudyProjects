@@ -144,7 +144,7 @@ public final class AppServices implements AutoCloseable {
                         new CustomerNoteAdapter(connection), new ValidationService(), repository, sync),
                 validator, listener, new ExecutorScheduler(), RetryPolicy.standard());
         services.loanAccounts = new LoanAccountService(gateways.loans(), new LoanCoBorrowerAdapter(connection),
-                new LoanPaymentAdapter(connection), validator);
+                new LoanPaymentAdapter(connection), validator, services.customers);
         services.referenceData = new ReferenceDataService(new ReferenceDataAdapter(connection));
         return services;
     }
