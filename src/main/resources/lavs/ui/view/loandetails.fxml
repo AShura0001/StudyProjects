@@ -178,9 +178,6 @@
                                 <Insets top="18"/>
                             </VBox.margin>
                             <Label text="Summary" styleClass="section-title"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <Hyperlink text="Loan notes ›" styleClass="link-add" onAction="#onLoanNotes"/>
-                            <Hyperlink text="Documents ›" styleClass="link-add" onAction="#onLoanDocuments"/>
                         </HBox>
                         <GridPane styleClass="info-card" vgap="2">
                             <VBox.margin>
@@ -212,6 +209,17 @@
                                        focusTraversable="false" maxWidth="110"
                                        GridPane.rowIndex="4" GridPane.columnIndex="1"/>
                         </GridPane>
+                        <!-- Their own row, at full width, so the 320px column never shortens them. -->
+                        <HBox alignment="CENTER_RIGHT" spacing="10">
+                            <Hyperlink text="Full summary ›" styleClass="link-add" onAction="#onLoanSummary"
+                                       minWidth="-Infinity">
+                                <tooltip><Tooltip text="The mainframe's figures for the whole loan"/></tooltip>
+                            </Hyperlink>
+                            <Hyperlink text="Loan notes ›" styleClass="link-add" onAction="#onLoanNotes"
+                                       minWidth="-Infinity"/>
+                            <Hyperlink text="Documents ›" styleClass="link-add" onAction="#onLoanDocuments"
+                                       minWidth="-Infinity"/>
+                        </HBox>
 
                         <Label text="Co-Borrowers" styleClass="section-title">
                             <VBox.margin>
