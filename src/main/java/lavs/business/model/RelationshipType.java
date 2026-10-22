@@ -31,4 +31,28 @@ public enum RelationshipType {
     public String mainframeName() {
         return mainframeName;
     }
+
+    /**
+     * Gets how this type reads to a person, for example "Legal authority".
+     *
+     * @return the label
+     */
+    public String label() {
+        return this == LEGAL_AUTHORITY ? "Legal authority" : mainframeName;
+    }
+
+    /**
+     * Finds the type the mainframe calls by the given name, ignoring case.
+     *
+     * @param name the mainframe's name, for example {@code LegalAuthority}
+     * @return the type, or empty if the name is not one of the known types
+     */
+    public static java.util.Optional<RelationshipType> fromMainframeName(String name) {
+        for (RelationshipType type : values()) {
+            if (type.mainframeName.equalsIgnoreCase(name == null ? "" : name.strip())) {
+                return java.util.Optional.of(type);
+            }
+        }
+        return java.util.Optional.empty();
+    }
 }

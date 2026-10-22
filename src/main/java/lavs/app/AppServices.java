@@ -9,6 +9,8 @@ import lavs.business.service.BackgroundSync;
 import lavs.business.service.CustomerProfileSource;
 import lavs.business.service.CustomerRelationshipService;
 import lavs.business.service.LoanAccountService;
+import lavs.business.service.DocumentService;
+import lavs.business.service.LoanNoteService;
 import lavs.business.service.CustomerService;
 import lavs.business.service.DraftSyncService;
 import lavs.business.service.LoanService;
@@ -21,11 +23,14 @@ import lavs.business.service.ValidationService;
 import lavs.data.JsonDraftRepository;
 import lavs.infrastructure.concurrent.ExecutorScheduler;
 import lavs.infrastructure.mainframe.CustomerAdapter;
+import lavs.infrastructure.mainframe.CustomerDocumentAdapter;
 import lavs.infrastructure.mainframe.CustomerAddressAdapter;
 import lavs.infrastructure.mainframe.CustomerEmailAdapter;
 import lavs.infrastructure.mainframe.CustomerEmployerAdapter;
 import lavs.infrastructure.mainframe.CustomerNoteAdapter;
 import lavs.infrastructure.mainframe.LoanCoBorrowerAdapter;
+import lavs.infrastructure.mainframe.LoanDocumentAdapter;
+import lavs.infrastructure.mainframe.LoanNoteAdapter;
 import lavs.infrastructure.mainframe.LoanPaymentAdapter;
 import lavs.infrastructure.mainframe.CustomerPhoneNumberAdapter;
 import lavs.infrastructure.mainframe.CustomerRelationshipAdapter;
@@ -84,6 +89,8 @@ public final class AppServices implements AutoCloseable {
     private final CustomerRelationshipService relationships;
     private final CustomerService customers;
     private LoanAccountService loanAccounts;
+    private LoanNoteService loanNotes;
+    private DocumentService documents;
     private ReferenceDataService referenceData;
 
     private AppServices(BackgroundSync sync, LoanService loans, CustomerRelationshipService relationships,
@@ -145,6 +152,9 @@ public final class AppServices implements AutoCloseable {
                 validator, listener, new ExecutorScheduler(), RetryPolicy.standard());
         services.loanAccounts = new LoanAccountService(gateways.loans(), new LoanCoBorrowerAdapter(connection),
                 new LoanPaymentAdapter(connection), validator, services.customers);
+        services.loanNotes = new LoanNoteService(new LoanNoteAdapter(connection));
+        services.documents = new DocumentService(new CustomerDocumentAdapter(connection),
+                new LoanDocumentAdapter(connection));
         services.referenceData = new ReferenceDataService(new ReferenceDataAdapter(connection));
         return services;
     }
@@ -285,6 +295,25 @@ public final class AppServices implements AutoCloseable {
      */
     public Optional<LoanAccountService> loanAccounts() {
         return Optional.ofNullable(loanAccounts);
+    }
+
+    /**
+     * Gets the service for the notes on a loan, when these services were started against the mainframe.
+     *
+     * @return the loan note service, or empty when it was not built
+     */
+    public Optional<LoanNoteService> loanNotes() {
+        return Optional.ofNullable(loanNotes);
+    }
+
+    /**
+     * Gets the service for the documents recorded against customers and loans, when
+     * these services were started against the mainframe.
+     *
+     * @return the document service, or empty when it was not built
+     */
+    public Optional<DocumentService> documents() {
+        return Optional.ofNullable(documents);
     }
 
     /**

@@ -22,21 +22,18 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
 import lavs.business.model.LoanNote;
-import lavs.business.repository.LoanNoteGateway;
-import lavs.business.repository.PageResult;
+import lavs.business.service.LoanNoteService;
 import lavs.ui.LavsApp;
 import lavs.ui.Navigator;
 import lavs.ui.component.Format;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /** Every note on one loan, with a way to add, change and remove them. */
 public class LoanNotesController {
 
-    private static final long PAGE_SIZE = 50;
-    static final String DEFAULT_TITLE = "General";
+    static final String DEFAULT_TITLE = LoanNoteService.DEFAULT_TITLE;
 
     @FXML private BorderPane root;
     @FXML private Node content;
@@ -45,7 +42,7 @@ public class LoanNotesController {
     @FXML private VBox notesBox;
     @FXML private Label noticeLabel;
 
-    private final LoanNoteGateway notes = LavsApp.context().loanNotes();
+    private final LoanNoteService notes = LavsApp.context().loanNotes();
     private String loanNumber;
     private Runnable onBack = () -> Navigator.show("customersearch");
     private boolean busy;
@@ -79,13 +76,7 @@ public class LoanNotesController {
         Task<List<LoanNote>> task = new Task<>() {
             @Override
             protected List<LoanNote> call() {
-                // The list holds titles and dates only; each note's text is fetched on its own.
-                PageResult<LoanNote> page = notes.listNotes(loan, 1, PAGE_SIZE);
-                List<LoanNote> full = new ArrayList<>();
-                for (LoanNote summary : page.getList()) {
-                    full.add(notes.findNote(loan, summary.id()).orElse(summary));
-                }
-                return full;
+                return notes.notesOf(loan);
             }
         };
         task.setOnSucceeded(e -> {
@@ -178,7 +169,7 @@ public class LoanNotesController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                notes.deleteNote(loan, note.id());
+                notes.delete(loan, note.id());
                 return null;
             }
         };

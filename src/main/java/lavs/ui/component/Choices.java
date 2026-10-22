@@ -66,6 +66,11 @@ public final class Choices {
     /** The mainframe's email types. */
     public static final List<String> EMAIL_TYPES = List.of("Personal", "Work", "Other");
 
+    /** Kinds of document staff record against a customer or a loan. */
+    public static final List<String> DOCUMENT_TYPES = List.of(
+            "Proof of Identity", "Proof of Address", "Proof of Income", "Bank Statement",
+            "Employment Contract", "Valuation", "Other");
+
     public static final List<String> CO_BORROWER_TYPES = List.of(
             AddCoborrower.TYPE_COBORROWER, AddCoborrower.TYPE_GUARANTOR);
 

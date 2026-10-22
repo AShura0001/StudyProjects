@@ -9,6 +9,9 @@ import mainframe.client.StatusMessage;
 import java.io.IOException;
 import java.util.Objects;
 
+/**
+ * Logs staff in to the mainframe and out again, for {@link lavs.business.repository.AuthGateway}.
+ */
 public class AuthAdapter implements lavs.business.repository.AuthGateway {
     public static final String UNAVAILABLE_MESSAGE = "The mainframe could not be reached.";
     public static final String REFUSED_MESSAGE = "The mainframe refused the username or password.";

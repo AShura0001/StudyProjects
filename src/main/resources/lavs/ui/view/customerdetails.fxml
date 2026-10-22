@@ -226,8 +226,19 @@
                                             <VBox fx:id="loansBox"/>
                                         </ScrollPane>
                                     </VBox>
-                                    <Hyperlink text="Add another loan" styleClass="link-add"
-                                               onAction="#onAddLoan"/>
+                                    <HBox alignment="CENTER_LEFT" spacing="10">
+                                        <Hyperlink text="Add another loan" styleClass="link-add"
+                                                   onAction="#onAddLoan"/>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Hyperlink text="Relationships ›" styleClass="link-add"
+                                                   onAction="#onRelationships">
+                                            <tooltip><Tooltip text="Other customers this customer is related to"/></tooltip>
+                                        </Hyperlink>
+                                        <Hyperlink text="Documents ›" styleClass="link-add"
+                                                   onAction="#onDocuments">
+                                            <tooltip><Tooltip text="Documents recorded for this customer"/></tooltip>
+                                        </Hyperlink>
+                                    </HBox>
                                 </VBox>
                             </HBox>
                         </VBox>

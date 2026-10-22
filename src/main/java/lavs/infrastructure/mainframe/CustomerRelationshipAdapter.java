@@ -15,6 +15,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerRelationshipGateway}: it turns each call into the provided
+ * customer relationship messages, and their replies back into business objects.
+ */
 public class CustomerRelationshipAdapter implements CustomerRelationshipGateway {
     private final Connection connection;
 

@@ -14,6 +14,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerDocumentGateway}: it turns each call into the provided
+ * customer document messages, and their replies back into business objects.
+ */
 public class CustomerDocumentAdapter implements CustomerDocumentGateway {
     private final Connection connection;
 

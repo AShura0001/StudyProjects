@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * One of a customer's phone numbers, with its country code, whether it can receive texts,
+ * and whether it is the primary one.
+ */
 public class PhoneNumber implements  CustomerType {
     private boolean _canTxt;
     private String _countryCode;

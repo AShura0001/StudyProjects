@@ -15,6 +15,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerAddressGateway}: it turns each call into the provided
+ * customer address messages, and their replies back into business objects.
+ */
 public class CustomerAddressAdapter implements CustomerAddressGateway {
     private final Connection connection;
 
@@ -128,8 +132,9 @@ public class CustomerAddressAdapter implements CustomerAddressGateway {
             address.setId(item.getId());
             address.setCity(item.getCity());
             address.setCountry(item.getCountry());
-            address.setIsMailing(item.getIsMailing().equalsIgnoreCase("y") ? Boolean.TRUE : Boolean.FALSE);
-            address.setIsPrimary(item.getIsPrimary().equalsIgnoreCase("y") ? Boolean.TRUE : Boolean.FALSE);
+            // A flag the mainframe leaves out reads as "no" rather than failing the whole list.
+            address.setIsMailing("y".equalsIgnoreCase(item.getIsMailing()));
+            address.setIsPrimary("y".equalsIgnoreCase(item.getIsPrimary()));
             address.setType(item.getType());
             address.setCustomerNumber(list.getCustomerNumber());
             address.setCustomerName(list.getCustomerName());

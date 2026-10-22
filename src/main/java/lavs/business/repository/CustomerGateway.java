@@ -7,6 +7,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * What the business layer needs from the mainframe for customers themselves: finding,
+ * searching, creating, changing and activating or deactivating them. The data access layer
+ * implements it. Every method throws {@link java.io.IOException} if the mainframe could not be reached.
+ */
 public interface CustomerGateway {
 
     /**
@@ -52,7 +57,7 @@ public interface CustomerGateway {
      * @return
      * @throws IOException
      */
-    CustomerSearchResult searchCustomer(long page, String searchTerm, long page_size) throws IOException;
+    CustomerSearchResult<Customer> searchCustomer(long page, String searchTerm, long page_size) throws IOException;
 
 
 

@@ -1,5 +1,8 @@
 package lavs.business.model;
 
+/**
+ * One of a customer's email addresses. One email can be the primary one.
+ */
 public class Email implements  CustomerType {
     private String address;
     private String customerName;

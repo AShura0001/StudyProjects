@@ -8,6 +8,7 @@ import lavs.business.service.AuthService;
 import lavs.infrastructure.mainframe.AuthAdapter;
 import lavs.ui.controller.*;
 import lavs.ui.sync.SyncState;
+import lavs.infrastructure.mainframe.ResyncingConnection;
 import lavs.infrastructure.mainframe.SessionWatchingConnection;
 import mainframe.client.HttpConnection;
 
@@ -31,7 +32,11 @@ public class LavsApp extends Application {
 
         String url = System.getProperty("lavs.mainframe.url",
                 System.getenv().getOrDefault("LAVS_MAINFRAME_URL", "https://animating-eraser-arrogance.ngrok-free.dev/"));
-        SessionWatchingConnection connection = new SessionWatchingConnection(new HttpConnection(url));
+        // The inner wrapper keeps the mainframe's request numbers in step (one request at a time, and a
+        // quiet re-login if someone else on the same account moved the count on); the outer one notices
+        // when the session has really ended.
+        SessionWatchingConnection connection =
+                new SessionWatchingConnection(new ResyncingConnection(new HttpConnection(url)));
         context = new AppContext(connection, new AuthService(new AuthAdapter(connection)));
         // When the mainframe stops accepting the session, log out cleanly and say why,
         // instead of every screen reporting that the mainframe cannot be reached.

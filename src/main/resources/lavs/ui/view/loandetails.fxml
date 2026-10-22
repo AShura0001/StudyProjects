@@ -166,6 +166,13 @@
                             </VBox.margin>
                         </ProgressBar>
 
+                        <Button fx:id="submitButton" text="Submit for checking" styleClass="btn-primary"
+                                visible="false" managed="false" onAction="#onSubmitForChecking">
+                            <VBox.margin>
+                                <Insets top="10"/>
+                            </VBox.margin>
+                        </Button>
+
                         <HBox alignment="BASELINE_LEFT">
                             <VBox.margin>
                                 <Insets top="18"/>
@@ -173,6 +180,7 @@
                             <Label text="Summary" styleClass="section-title"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <Hyperlink text="Loan notes ›" styleClass="link-add" onAction="#onLoanNotes"/>
+                            <Hyperlink text="Documents ›" styleClass="link-add" onAction="#onLoanDocuments"/>
                         </HBox>
                         <GridPane styleClass="info-card" vgap="2">
                             <VBox.margin>

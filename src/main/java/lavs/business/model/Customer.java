@@ -1,5 +1,9 @@
 package lavs.business.model;
 
+/**
+ * A customer of the bank, as the mainframe holds them: title, names, date of birth,
+ * nationality and status. The customer number is given by the mainframe.
+ */
 public class Customer implements  CustomerType {
     private String dateOfBirth;
     private String familyName;

@@ -1,5 +1,8 @@
 package lavs.business.model;
 
+/**
+ * A note on a customer: its title (the type), its text, and who added it and when.
+ */
 public class Note implements  CustomerType {
     private String _author;
     private String _customerName;

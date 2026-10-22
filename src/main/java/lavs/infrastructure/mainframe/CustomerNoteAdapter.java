@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
+/**
+ * Talks to the mainframe for {@link lavs.business.repository.CustomerNoteGateway}: it turns each call into the provided
+ * customer note messages, and their replies back into business objects.
+ */
 public class CustomerNoteAdapter implements CustomerNoteGateway {
 
     private final Connection connection;
@@ -45,8 +49,11 @@ public class CustomerNoteAdapter implements CustomerNoteGateway {
         Status status = updateNote.send(connection);
         if (status.getWasSuccessful()) {
             Retrieve retrieve = new Retrieve(note.get_id(), note.get_customerNumber());
-            retrieve.send(connection);
-            return mapMessageToNote(retrieve);
+            if (retrieve.send(connection).getWasSuccessful()) {
+                return mapMessageToNote(retrieve);
+            }
+            // The change was saved even though it could not be read back, so report the note as sent.
+            return Optional.of(note);
         }
         return Optional.empty();
     }

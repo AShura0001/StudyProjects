@@ -1,11 +1,13 @@
 package lavs.ui;
 
 import lavs.app.AppServices;
-import lavs.business.repository.LoanNoteGateway;
 import lavs.business.service.AuthService;
 import lavs.business.service.BasicLoanValidator;
+import lavs.business.service.CustomerRelationshipService;
 import lavs.business.service.CustomerService;
+import lavs.business.service.DocumentService;
 import lavs.business.service.LoanAccountService;
+import lavs.business.service.LoanNoteService;
 import lavs.business.service.LoanService;
 import lavs.business.service.ReferenceDataService;
 import lavs.business.service.SyncListener;
@@ -13,20 +15,23 @@ import lavs.ui.component.Choices;
 import lavs.ui.sync.SyncState;
 import lavs.ui.sync.SyncStatus;
 import lavs.ui.sync.SyncStatusListener;
-import lavs.infrastructure.mainframe.LoanNoteAdapter;
 import mainframe.client.Connection;
 
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * What every screen shares: the connection to the mainframe, logging in and out, the sync
+ * indicator, and the business services. The services start when someone logs in and stop
+ * when they log out, so a screen asks for them here instead of building its own.
+ */
 public final class AppContext implements AutoCloseable {
     private final Connection connection;
     private final AuthService auth;
     private final SyncStatus syncStatus = new SyncStatus();
     private volatile boolean syncPreview;
     private volatile AppServices services;
-    private volatile LoanNoteGateway loanNotes;
 
     public AppContext(Connection connection, AuthService auth) {
         this.connection = Objects.requireNonNull(connection, "connection must not be null");
@@ -48,20 +53,24 @@ public final class AppContext implements AutoCloseable {
         return started().sync();
     }
 
+    /** Documents recorded against customers and loans on the mainframe. Available once logged in. */
+    public DocumentService documents() {
+        return started().documents().orElseThrow(() -> new IllegalStateException("document service not built"));
+    }
+
+    /** Relationships between customers on the mainframe. Available once logged in. */
+    public CustomerRelationshipService relationships() {
+        return started().relationships();
+    }
+
     /** Loans already on the mainframe. Available once logged in. */
     public LoanAccountService loanAccounts() {
         return started().loanAccounts().orElseThrow(() -> new IllegalStateException("loan account service not built"));
     }
 
-    /**
-     * A loan's notes on the mainframe. No service offers these yet, so the screens
-     * use the gateway directly.
-     */
-    public synchronized LoanNoteGateway loanNotes() {
-        if (loanNotes == null) {
-            loanNotes = new LoanNoteAdapter(connection);
-        }
-        return loanNotes;
+    /** The notes on loans already on the mainframe. Available once logged in. */
+    public LoanNoteService loanNotes() {
+        return started().loanNotes().orElseThrow(() -> new IllegalStateException("loan note service not built"));
     }
 
     /** The mainframe's constant values, such as address types, for the drop-down lists. Available once logged in. */

@@ -5,10 +5,13 @@ import lavs.business.model.RelationshipDetails;
 import lavs.business.model.RelationshipType;
 import lavs.business.repository.CustomerGateway;
 import lavs.business.repository.CustomerRelationshipGateway;
+import lavs.business.repository.CustomerSearchResult;
 import lavs.business.repository.MainframeUnavailableException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,6 +29,9 @@ import java.util.Optional;
  * them off its own thread.
  */
 public class CustomerRelationshipService {
+
+    private static final long PAGE_SIZE = 100;
+    private static final int MAX_PAGES = 1000;
 
     /** The message shown when the mainframe cannot be reached. */
     public static final String OFFLINE_MESSAGE =
@@ -172,6 +178,35 @@ public class CustomerRelationshipService {
     public Optional<Relationship> find(String customerNumber, long relationshipId) {
         requireCustomerNumber(customerNumber);
         return call(() -> relationships.findRelationshipByCustomerNumberAndId(relationshipId, customerNumber));
+    }
+
+    /**
+     * Gets every relationship of a customer, each read in full. The mainframe's list
+     * leaves out the other customer's name and an "Other" relationship's description,
+     * so each one is read on its own; if one cannot be read, the list's version is kept.
+     *
+     * @param customerNumber the mainframe's number for the customer
+     * @return the relationships, in the order the mainframe lists them; empty if there are none
+     * @throws NullPointerException if the customer number is null
+     * @throws IllegalArgumentException if the customer number is blank
+     * @throws MainframeUnavailableException if the mainframe could not be reached
+     */
+    public List<Relationship> relationshipsOf(String customerNumber) {
+        requireCustomerNumber(customerNumber);
+        List<Relationship> all = new ArrayList<>();
+        for (long page = 1; page <= MAX_PAGES; page++) {
+            long current = page;
+            CustomerSearchResult<Relationship> result =
+                    call(() -> relationships.ListCustomerRelationships(current, customerNumber, PAGE_SIZE));
+            for (Relationship summary : result.getList()) {
+                all.add(call(() -> relationships.findRelationshipByCustomerNumberAndId(summary.get_id(), customerNumber))
+                        .orElse(summary));
+            }
+            if (result.getList().isEmpty() || all.size() >= result.getTotal()) {
+                break;
+            }
+        }
+        return all;
     }
 
     private Map<String, String> problemsInThe(String customerNumber, RelationshipDetails details) {
