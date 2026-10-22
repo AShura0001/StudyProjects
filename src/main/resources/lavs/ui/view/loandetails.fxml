@@ -165,6 +165,13 @@
                             </VBox.margin>
                         </ProgressBar>
 
+                        <Button fx:id="submitButton" text="Submit for checking" styleClass="btn-primary"
+                                visible="false" managed="false" onAction="#onSubmitForChecking">
+                            <VBox.margin>
+                                <Insets top="10"/>
+                            </VBox.margin>
+                        </Button>
+
                         <Label text="Summary" styleClass="section-title">
                             <VBox.margin>
                                 <Insets top="18"/>
