@@ -1,0 +1,12 @@
+schema: "classroom50/repo-config/v1"
+classroom: "se325-2026"
+assignment: "lab-5"
+owner:
+  username: "rsaj289"
+  id: 201749220
+  accepted_at: "2026-08-30T11:20:40Z"
+source:
+  owner: "uoa-se325"
+  owner_id: 108706923
+  repo: "se325-lab-05"
+  branch: "main"
