@@ -1,0 +1,64 @@
+package uoa.se325.assignment01.controller;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import uoa.se325.assignment01.auth.SecurityUtils;
+import uoa.se325.assignment01.dto.UserCredentials;
+import uoa.se325.assignment01.model.User;
+import uoa.se325.assignment01.repository.UserRepository;
+
+import java.net.URI;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserRepository userRepository;
+
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Void> login(@RequestBody UserCredentials credentials, HttpServletResponse response) {
+        String passHash = SecurityUtils.getSHA256Hash(credentials.password());
+
+        User user = userRepository.findByUsername(credentials.username())
+                .filter(u -> u.getPassHash().equals(passHash))
+                .orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Cookie authCookie = SecurityUtils.createAuthCookie(user.getUsername(), SecurityUtils.generateRandomUUIDString());
+        response.addCookie(authCookie);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        response.addCookie(SecurityUtils.createEmptyAuthCookie());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping
+    public ResponseEntity<Void> createUser(@RequestBody UserCredentials credentials) {
+        if (userRepository.findByUsername(credentials.username()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        User user = new User(credentials.username(), SecurityUtils.getSHA256Hash(credentials.password()));
+        user = userRepository.save(user);
+
+        return ResponseEntity.created(URI.create("/api/users/" + user.getId())).build();
+    }
+}
