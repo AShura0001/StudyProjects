@@ -1,0 +1,10 @@
+digraph "diamond" {
+	a	 [Weight=6];
+	b	 [Weight=4];
+	a -> b	 [Weight=3];
+	c	 [Weight=9];
+	a -> c	 [Weight=8];
+	d	 [Weight=5];
+	b -> d	 [Weight=2];
+	c -> d	 [Weight=7];
+}

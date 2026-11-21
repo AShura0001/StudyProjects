@@ -1,0 +1,18 @@
+digraph "mixed8" {
+	a	 [Weight=4];
+	b	 [Weight=5];
+	a -> b	 [Weight=3];
+	c	 [Weight=3];
+	a -> c	 [Weight=6];
+	d	 [Weight=6];
+	b -> d	 [Weight=2];
+	c -> d	 [Weight=5];
+	e	 [Weight=2];
+	d -> e	 [Weight=4];
+	f	 [Weight=7];
+	g	 [Weight=4];
+	f -> g	 [Weight=1];
+	h	 [Weight=5];
+	e -> h	 [Weight=3];
+	g -> h	 [Weight=7];
+}
