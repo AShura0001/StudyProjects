@@ -1,0 +1,211 @@
+package nz.ac.auckland.se283.vtc;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import nz.ac.auckland.se283.tools.AiClient;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+public class VtcTest {
+  private AiClient aiMock;
+  private VoiceToCodeTranscriber vtcTrascriber;
+
+  @BeforeEach
+  public void setUp() {
+    this.aiMock = Mockito.mock(AiClient.class);
+    this.vtcTrascriber = new VoiceToCodeTranscriber(aiMock);
+  }
+
+  @Test
+  public void transcribe_whenFormatIsMp4_returnInvalidAudioFormat() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "mp4";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Invalid audio format", result);
+  }
+
+  @Test
+  public void transcribe_whenFormatIsWav_returnTranscription() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "wav";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("this, this and that", result);
+  }
+
+  @Test
+  public void transcribe_whenFormatIsM4a_returnTranscription() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "m4a";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("this, this and that", result);
+  }
+
+  @Test
+  public void transcribe_whenFormatIsFlac_returnInvalidAudioFormat() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "flac";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Invalid audio format", result);
+  }
+
+  @Test
+  public void transcribe_whenAudioDataIsEmpty_returnTooSmallToTranscribe() {
+
+    byte[] audioData = new byte[0];
+    String format = "m4a";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Too small to transcribe!", result);
+  }
+
+  @Test
+  public void transcribe_whenAudioDataIsJustBelowMinSize_returnTooSmall() {
+
+    byte[] audioData = new byte[1024 * 2 - 1];
+    String format = "m4a";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Too small to transcribe!", result);
+  }
+
+  @Test
+  public void transcribe_whenDataIsExactlyMinSize_returnTranscription() {
+
+    byte[] audioData = new byte[1024 * 2];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("this, this and that", result);
+  }
+
+  @Test
+  public void transcribe_whenDataIsJustAboveMaxSize_returnTooLarge() {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20) + 1];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Too large to transcribe!", result);
+  }
+
+  @Test
+  public void transcribe_whenDataIsExactlyMaxSize_returnTranscription() {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format)).thenReturn("this, this and that");
+
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("this, this and that", result);
+  }
+
+  @Test
+  public void textToCode_simpleInput_returnCode() throws IOException {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format))
+        .thenReturn("Move Straight. Turn right. Move straight.");
+
+    String text = vtcTrascriber.voiceToText(audioData, format);
+    Mockito.when(aiMock.genCode(text))
+        .thenReturn(
+            "List<Integer> movement = List.of(1,0,1);\n"
+                + "List<Integer> direction = List.of(0,1,1);\n");
+
+    String result = vtcTrascriber.textToCode(text);
+    assertEquals(
+        "List<Integer> movement = List.of(1,0,1);\n"
+            + "List<Integer> direction = List.of(0,1,1);\n",
+        result);
+  }
+
+  @Test
+  public void textToCode_simpleInput_checksIfActualFileIsCreated() throws IOException {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format))
+        .thenReturn("Move Straight. Turn right. Move straight.");
+    String text = vtcTrascriber.voiceToText(audioData, format);
+    Mockito.when(aiMock.genCode(text))
+        .thenReturn(
+            "List<Integer> movement = List.of(1,0,1);\n"
+                + "List<Integer> direction = List.of(0,1,1);\n");
+    String code = vtcTrascriber.textToCode(text);
+
+    File file =
+        new File(
+            "src\\main\\java\\n"
+                + //
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
+
+    assertTrue(file.exists());
+  }
+
+  @Test
+  public void textToCode_simpleInput_checksGeneratedFile() throws IOException {
+
+    byte[] audioData = new byte[(1024 * 1024 * 20)];
+    String format = "mp3";
+    Mockito.when(aiMock.transcribe(audioData, format))
+        .thenReturn("Move Straight. Turn right. Move straight.");
+    String text = vtcTrascriber.voiceToText(audioData, format);
+    Mockito.when(aiMock.genCode(text))
+        .thenReturn(
+            "List<Integer> movement = List.of(1,0,1);\n"
+                + "List<Integer> direction = List.of(0,1,1);\n");
+    String code = vtcTrascriber.textToCode(text);
+
+    File file =
+        new File(
+            "src\\main\\java\\n"
+                + //
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
+
+    String fileContent = java.nio.file.Files.readString(file.toPath());
+    assertEquals(code, fileContent);
+
+    // Cleanup
+    file.delete();
+  }
+
+  @Test
+  public void transcribe_whenAudioDataIsNull_returnTooSmallToTranscribe() {
+
+    byte[] audioData = null;
+    String format = "mp3";
+    String result = vtcTrascriber.voiceToText(audioData, format);
+
+    assertEquals("Too small to transcribe!", result);
+  }
+}

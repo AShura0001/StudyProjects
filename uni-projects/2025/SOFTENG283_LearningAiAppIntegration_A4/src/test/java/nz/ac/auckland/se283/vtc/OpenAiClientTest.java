@@ -1,0 +1,53 @@
+package nz.ac.auckland.se283.vtc;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.times;
+
+import java.io.File;
+import java.io.IOException;
+import nz.ac.auckland.se283.tools.AiClient;
+import nz.ac.auckland.se283.tools.ApiCaller;
+import nz.ac.auckland.se283.tools.OpeniAiClient;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+public class OpenAiClientTest {
+
+  @Test
+  public void transcribe_validDataSizeAndFormat_setsCorrectConfigurations() throws IOException {
+    // Arrange
+    byte[] audioData = new byte[1024 * 3];
+    String format = "mp3";
+
+    ApiCaller caller = Mockito.mock(ApiCaller.class);
+    AiClient client = new OpeniAiClient(caller);
+    VoiceToCodeTranscriber transcriber = new VoiceToCodeTranscriber(client);
+
+    Mockito.when(caller.call(audioData, format)).thenReturn(("this, this and that"));
+    Mockito.when(
+            caller.call(
+                "Convert the following text to code based on the language format provided: "
+                    + "this, this and that",
+                "English"))
+        .thenReturn(("while true: print(\"Hellow World!\")"));
+
+    // Act
+    String transcription = transcriber.voiceToText(audioData, format);
+    String result = transcriber.textToCode(transcription);
+
+    // Assert
+    Mockito.verify(caller, times(1)).setModel("gpt-4.1-mini");
+    Mockito.verify(caller, times(1)).setN(1);
+    Mockito.verify(caller, times(1)).setTemperature(0.2);
+    Mockito.verify(caller, times(1)).setMaxTokens(10000);
+    assertEquals("while true: print(\"Hellow World!\")", result);
+
+    // Cleanup
+    File file =
+        new File(
+            "src\\main\\java\\n"
+                + //
+                "z\\ac\\auckland\\se283\\generated\\GeneratedCode.txt");
+    file.delete();
+  }
+}
