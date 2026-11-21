@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+
+<!--
+    Loan Details, laid out from the Figma frames "Loan details (view mode)"
+    and "Loan details (edit mode)". Values are plain text in view mode and
+    become light inputs in edit mode, so one set of fields serves both. The
+    schedule rows and co-borrowers are built by the controller.
+-->
+<BorderPane fx:id="root" styleClass="light-root"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="lavs.ui.controller.LoanDetailsController"
+            prefWidth="900" prefHeight="600"
+            stylesheets="@../css/theme.css">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" styleClass="page-fill">
+            <padding>
+                <Insets top="10" right="22" bottom="0" left="22"/>
+            </padding>
+
+            <Button styleClass="btn-chip" text="Back" onAction="#onBack">
+                <graphic>
+                    <SVGPath styleClass="chip-icon" content="M20 12 H5 M11 6 L5 12 L11 18"/>
+                </graphic>
+                <tooltip><Tooltip text="Back (Esc)"/></tooltip>
+            </Button>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button styleClass="btn-chip, btn-chip-danger" text="Logout"
+                    contentDisplay="RIGHT" onAction="#onLogout">
+                <graphic>
+                    <SVGPath styleClass="chip-icon"
+                             content="M9 3 H4 V21 H9 M16 7 L21 12 L16 17 M21 12 H9"/>
+                </graphic>
+                <tooltip><Tooltip text="Log out (Ctrl+L)"/></tooltip>
+            </Button>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox styleClass="page-fill" alignment="TOP_CENTER">
+            <padding>
+                <Insets top="6" right="40" bottom="18" left="40"/>
+            </padding>
+
+            <StackPane styleClass="profile-card" VBox.vgrow="ALWAYS" alignment="TOP_LEFT" maxWidth="1280">
+
+                <HBox fx:id="content" spacing="24">
+                    <padding>
+                        <Insets top="58" right="34" bottom="18" left="28"/>
+                    </padding>
+
+                    <VBox HBox.hgrow="ALWAYS" minWidth="380">
+                        <Label text="Loan Details" styleClass="section-title"/>
+                        <Pane styleClass="section-rule" prefHeight="1" minHeight="1" maxHeight="1">
+                            <VBox.margin>
+                                <Insets top="4" bottom="8"/>
+                            </VBox.margin>
+                        </Pane>
+
+                        <GridPane vgap="2">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="125" prefWidth="125"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+
+                            <Label text="Loan Name" styleClass="kv-label" GridPane.rowIndex="0"/>
+                            <TextField fx:id="loanNameField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="Loan Amount" styleClass="kv-label" GridPane.rowIndex="1"/>
+                            <TextField fx:id="loanAmountField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                            <Label text="Interest Rate" styleClass="kv-label" GridPane.rowIndex="2"/>
+                            <TextField fx:id="interestRateField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                            <Label text="Loan Term" styleClass="kv-label" GridPane.rowIndex="3"/>
+                            <TextField fx:id="loanTermField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                            <Label text="Start Date" styleClass="kv-label" GridPane.rowIndex="4"/>
+                            <DatePicker fx:id="startDateField" styleClass="kv-field" editable="true"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                            <Label text="Maturity Date" styleClass="kv-label" GridPane.rowIndex="5"/>
+                            <TextField fx:id="maturityDateField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                            <Label text="Monthly Payment" styleClass="kv-label" GridPane.rowIndex="6"/>
+                            <TextField fx:id="monthlyPaymentField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                            <Label text="Outstanding Balance" styleClass="kv-label" GridPane.rowIndex="7"/>
+                            <TextField fx:id="outstandingBalanceField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="220"
+                                       GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <HBox alignment="CENTER_LEFT" spacing="8">
+                            <VBox.margin>
+                                <Insets top="20" bottom="6"/>
+                            </VBox.margin>
+                            <Label text="Repayment Schedule" styleClass="section-title"/>
+                            <Button fx:id="scheduleEditButton" styleClass="btn-edit-chip" text="Edit"
+                                    visible="false" managed="false" onAction="#onScheduleEdit">
+                                <graphic>
+                                    <SVGPath styleClass="edit-chip-icon"
+                                             content="M4 20 L8 19 L19 8 L16 5 L5 16 Z M14 7 L17 10"/>
+                                </graphic>
+                            </Button>
+                        </HBox>
+
+                        <VBox fx:id="scheduleHeaderBox"/>
+                        <ScrollPane styleClass="panel-scroll" fitToWidth="true" hbarPolicy="NEVER"
+                                    vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS" focusTraversable="false">
+                            <VBox fx:id="scheduleBox"/>
+                        </ScrollPane>
+                    </VBox>
+
+                    <VBox prefWidth="320" minWidth="320" maxWidth="320">
+                        <Label text="Loan Status" styleClass="section-title"/>
+
+                        <HBox styleClass="status-card" alignment="CENTER_LEFT" spacing="9">
+                            <VBox.margin>
+                                <Insets top="6"/>
+                            </VBox.margin>
+                            <Region styleClass="status-dot" prefWidth="8" minWidth="8" maxWidth="8"
+                                    prefHeight="8" minHeight="8" maxHeight="8"/>
+                            <VBox spacing="1">
+                                <Label fx:id="statusLabel" text="Active — In Good Standing"
+                                       styleClass="status-title"/>
+                                <Label fx:id="statusSubtitleLabel"
+                                       text="24 of 120 payments completed (20%)"
+                                       styleClass="status-subtitle"/>
+                            </VBox>
+                        </HBox>
+
+                        <ProgressBar fx:id="paymentsProgress" styleClass="loan-progress" progress="0.2"
+                                     maxWidth="Infinity" prefHeight="4" minHeight="4" maxHeight="4">
+                            <VBox.margin>
+                                <Insets top="10"/>
+                            </VBox.margin>
+                        </ProgressBar>
+
+                        <Button fx:id="submitButton" text="Submit for checking" styleClass="btn-primary"
+                                visible="false" managed="false" onAction="#onSubmitForChecking">
+                            <VBox.margin>
+                                <Insets top="10"/>
+                            </VBox.margin>
+                        </Button>
+
+                        <HBox alignment="BASELINE_LEFT">
+                            <VBox.margin>
+                                <Insets top="18"/>
+                            </VBox.margin>
+                            <Label text="Summary" styleClass="section-title"/>
+                        </HBox>
+                        <GridPane styleClass="info-card" vgap="2">
+                            <VBox.margin>
+                                <Insets top="6"/>
+                            </VBox.margin>
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="170" prefWidth="170"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+
+                            <Label text="Total Paid to Date" styleClass="kv-label" GridPane.rowIndex="0"/>
+                            <TextField fx:id="totalPaidField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="110"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="Principal Paid" styleClass="kv-label" GridPane.rowIndex="1"/>
+                            <TextField fx:id="principalPaidField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="110"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                            <Label text="Interest Paid" styleClass="kv-label" GridPane.rowIndex="2"/>
+                            <TextField fx:id="interestPaidField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="110"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                            <Label text="Remaining Balance" styleClass="kv-label" GridPane.rowIndex="3"/>
+                            <TextField fx:id="remainingBalanceField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="110"
+                                       GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                            <Label text="Next Payment Due" styleClass="kv-label" GridPane.rowIndex="4"/>
+                            <TextField fx:id="nextPaymentDueField" styleClass="kv-field" editable="false"
+                                       focusTraversable="false" maxWidth="110"
+                                       GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                        </GridPane>
+                        <!-- Their own row, at full width, so the 320px column never shortens them. -->
+                        <HBox alignment="CENTER_RIGHT" spacing="10">
+                            <Hyperlink text="Full summary ›" styleClass="link-add" onAction="#onLoanSummary"
+                                       minWidth="-Infinity">
+                                <tooltip><Tooltip text="The mainframe's figures for the whole loan"/></tooltip>
+                            </Hyperlink>
+                            <Hyperlink text="Loan notes ›" styleClass="link-add" onAction="#onLoanNotes"
+                                       minWidth="-Infinity"/>
+                            <Hyperlink text="Documents ›" styleClass="link-add" onAction="#onLoanDocuments"
+                                       minWidth="-Infinity"/>
+                        </HBox>
+
+                        <Label text="Co-Borrowers" styleClass="section-title">
+                            <VBox.margin>
+                                <Insets top="18"/>
+                            </VBox.margin>
+                        </Label>
+                        <VBox styleClass="info-card" prefHeight="132" minHeight="132" maxHeight="360" VBox.vgrow="ALWAYS">
+                            <VBox.margin>
+                                <Insets top="6"/>
+                            </VBox.margin>
+                            <ScrollPane styleClass="panel-scroll" fitToWidth="true" hbarPolicy="NEVER"
+                                        vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS" focusTraversable="false">
+                                <VBox fx:id="coBorrowersBox"/>
+                            </ScrollPane>
+                            <Button fx:id="addCoBorrowerButton" styleClass="btn-add-wide"
+                                    text="+ Add a new co-borrower" visible="false" managed="false"
+                                    onAction="#onAddCoBorrower"/>
+                        </VBox>
+                    </VBox>
+                </HBox>
+
+                <Label fx:id="loanIdLabel" text="LN-5004" styleClass="id-tag"
+                       prefWidth="173" minWidth="173" maxWidth="173"
+                       prefHeight="44" minHeight="44" maxHeight="44"
+                       StackPane.alignment="TOP_CENTER">
+                    <StackPane.margin>
+                        <Insets top="10"/>
+                    </StackPane.margin>
+                </Label>
+
+                <HBox spacing="22" alignment="TOP_RIGHT" StackPane.alignment="TOP_RIGHT"
+                      maxWidth="-Infinity" maxHeight="-Infinity">
+                    <StackPane.margin>
+                        <Insets top="14" right="26"/>
+                    </StackPane.margin>
+                    <VBox alignment="TOP_CENTER" spacing="3">
+                        <Button fx:id="viewModeButton" styleClass="mode-circle, mode-selected"
+                                onAction="#onViewMode">
+                            <graphic>
+                                <StackPane>
+                                    <SVGPath styleClass="mode-icon"
+                                             content="M2 12 C5 6 9 4 12 4 C15 4 19 6 22 12 C19 18 15 20 12 20 C9 20 5 18 2 12 Z"/>
+                                    <SVGPath styleClass="mode-icon-solid"
+                                             content="M9 12 A3 3 0 1 1 15 12 A3 3 0 1 1 9 12 Z"/>
+                                </StackPane>
+                            </graphic>
+                            <tooltip><Tooltip text="View mode"/></tooltip>
+                        </Button>
+                        <Label text="view mode" styleClass="mode-caption"/>
+                    </VBox>
+                    <VBox alignment="TOP_CENTER" spacing="3">
+                        <Button fx:id="editModeButton" styleClass="mode-circle" onAction="#onEditMode">
+                            <graphic>
+                                <SVGPath styleClass="mode-icon"
+                                         content="M4 20 L8 19 L19 8 L16 5 L5 16 Z M14 7 L17 10"/>
+                            </graphic>
+                            <tooltip><Tooltip text="Edit mode (Ctrl+E)"/></tooltip>
+                        </Button>
+                        <Label text="edit mode" styleClass="mode-caption"/>
+                    </VBox>
+                </HBox>
+
+                <HBox fx:id="editActions" spacing="6" alignment="BOTTOM_RIGHT"
+                      StackPane.alignment="BOTTOM_RIGHT" visible="false" managed="false"
+                      maxWidth="-Infinity" maxHeight="-Infinity">
+                    <StackPane.margin>
+                        <Insets right="26" bottom="12"/>
+                    </StackPane.margin>
+                    <Button text="cancel" styleClass="btn-action, btn-action-cancel" onAction="#onCancel">
+                        <tooltip><Tooltip text="Cancel (Esc)"/></tooltip>
+                    </Button>
+                    <Button text="save" styleClass="btn-action, btn-action-save" onAction="#onSave">
+                        <tooltip><Tooltip text="Save (Ctrl+S)"/></tooltip>
+                    </Button>
+                </HBox>
+
+                <ProgressIndicator fx:id="progress" visible="false" managed="false"
+                                   prefWidth="44" prefHeight="44" maxWidth="44" maxHeight="44"
+                                   StackPane.alignment="CENTER"/>
+            </StackPane>
+
+            <Label fx:id="noticeLabel" styleClass="message-muted" wrapText="true"
+                   textAlignment="CENTER" visible="false" managed="false">
+                <VBox.margin>
+                    <Insets top="6"/>
+                </VBox.margin>
+            </Label>
+        </VBox>
+    </center>
+
+</BorderPane>

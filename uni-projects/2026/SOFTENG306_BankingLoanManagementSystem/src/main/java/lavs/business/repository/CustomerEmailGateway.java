@@ -1,0 +1,62 @@
+package lavs.business.repository;
+
+import lavs.business.model.Address;
+import lavs.business.model.Email;
+import lavs.business.model.Employer;
+
+import java.io.IOException;
+import java.util.Optional;
+
+/**
+ * What the business layer needs from the mainframe for a customer's email addresses. The data access
+ * layer implements it, so the services can be tested with a stand-in instead of the mainframe.
+ * Every method throws {@link java.io.IOException} if the mainframe could not be reached.
+ */
+public interface CustomerEmailGateway {
+
+
+    /**
+     *
+     * @param id             Email id
+     * @param customerNumber
+     * @return An Optional wrap of an Email if it exists otherwise the Optional is empty
+     * @throws IOException
+     */
+    Optional<Email> findEmailByCustomerNumberAndId(Long id, String customerNumber) throws IOException;
+
+
+    /**
+     *
+     * @param email An instance of the updated email
+     * @return An Optional wrap of an Email if successful otherwise the Optional is empty
+     * @throws IOException
+     */
+    Optional<Email> updateCustomerEmail(Email email) throws IOException;
+
+
+    /**
+     *
+     * @param customerNumber
+     * @param id             Email id
+     * @throws IOException
+     */
+    boolean deleteCustomerEmail(String customerNumber, long id) throws IOException;
+
+    /**
+     *
+     * @param Email
+     * @return
+     * @throws IOException
+     */
+    Optional<Email> addCustomerEmail(Email email) throws IOException;
+
+    /**
+     *
+     * @param page  The current page of Emails to retrieve
+     * @param customerNumber The customer whose Emails are listed
+     * @param page_size Number of elements per page
+     * @return A page of Emails for the customer, empty if the request failed
+     * @throws IOException
+     */
+    CustomerSearchResult<Email> ListCustomerEmails(long page, String customerNumber, long page_size) throws IOException;
+}

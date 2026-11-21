@@ -1,0 +1,202 @@
+package lavs.ui.controller;
+
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
+
+import lavs.ui.Navigator;
+import lavs.ui.LavsApp;
+import lavs.ui.component.CustomerRows;
+import lavs.ui.component.CustomerStatus;
+import lavs.business.model.Customer;
+import lavs.business.repository.CustomerSearchResult;
+import lavs.business.service.CustomerService;
+import lavs.ui.component.Format;
+
+import java.util.List;
+
+/** Full directory: every registered customer, ten per page. */
+public class FullDirectoryController {
+
+    private static final int PAGE_SIZE = 10;
+
+    @FXML private BorderPane root;
+    @FXML private VBox tableBox;
+    @FXML private Label countLabel;
+    @FXML private Label pageLabel;
+    @FXML private Button previousButton;
+    @FXML private Button nextButton;
+    @FXML private Label noticeLabel;
+
+    private final CustomerService customerService = LavsApp.context().customers();
+    private int page;
+    private int total;
+    private boolean loading;
+    private boolean statusBusy;
+    private List<Customer> shown = List.of();
+
+    @FXML
+    private void initialize() {
+        setShown(noticeLabel, false);
+        root.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) {
+                registerAccelerators(scene);
+                Platform.runLater(root::requestFocus);
+            }
+        });
+    }
+
+    /** Shows the given zero-based page; called by whichever screen opens the directory. */
+    public void open(int pageIndex) {
+        loadPage(pageIndex);
+    }
+
+    /** Each accelerator is a second route to a control that is already on screen. */
+    private void registerAccelerators(Scene scene) {
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.ESCAPE), this::onBack);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN), this::onLogout);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.PAGE_DOWN), this::onNext);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.PAGE_UP), this::onPrevious);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.F1), this::showShortcuts);
+    }
+
+    private void loadPage(int target) {
+        if (loading) {
+            return;
+        }
+        loading = true;
+        updatePager();
+
+        Task<List<Customer>> task = new Task<>() {
+            @Override
+            protected List<Customer> call() throws Exception {
+                // The mainframe counts pages from 1; this screen counts from 0.
+                CustomerSearchResult<Customer> result = customerService.search(null, target + 1L, PAGE_SIZE);
+                total = (int) result.getTotal();
+                return result.getList();
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            page = target;
+            shown = task.getValue();
+            renderRows();
+            loading = false;
+            countLabel.setText(total + " customers registered");
+            updatePager();
+        });
+        task.setOnFailed(e -> {
+            loading = false;
+            showNotice(Format.problem(task.getException(), "Could not reach the mainframe. Try again."));
+            updatePager();
+        });
+
+        Thread worker = new Thread(task, "directory-page");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void renderRows() {
+        tableBox.getChildren().setAll(CustomerRows.header());
+        for (Customer m : shown) {
+            tableBox.getChildren().add(CustomerRows.customer(Format.name(m), Format.text(m.get_number()),
+                    m.get_status(), () -> openDetails(m.get_number()), () -> changeStatus(m)));
+        }
+    }
+
+    private void changeStatus(Customer customer) {
+        if (loading || statusBusy) {
+            return;
+        }
+        boolean inactive = CustomerStatus.isInactive(customer.get_status());
+        if (!CustomerStatus.confirm(root.getScene().getWindow(), inactive)) {
+            return;
+        }
+        statusBusy = true;
+        showNotice("");
+        CustomerStatus.flip(customerService, customer.get_number(), () -> {
+            statusBusy = false;
+            customer.set_status(inactive ? "Active" : "Inactive");
+            renderRows();
+            showNotice(Format.name(customer) + (inactive ? " reactivated." : " deactivated."));
+        }, problem -> {
+            statusBusy = false;
+            showNotice(problem);
+        });
+    }
+
+    private void openDetails(String customerNumber) {
+        int returnPage = page;
+        Navigator.<CustomerDetailsController>show("customerdetails", c -> c.open(customerNumber,
+                () -> Navigator.<FullDirectoryController>show("fulldirectory", d -> d.open(returnPage))));
+    }
+
+    private int pageCount() {
+        return Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+    }
+
+    private void updatePager() {
+        pageLabel.setText("Page " + (page + 1) + " out of " + pageCount());
+        previousButton.setDisable(loading || page == 0);
+        nextButton.setDisable(loading || page + 1 >= pageCount());
+    }
+
+    @FXML
+    private void onPrevious() {
+        if (!previousButton.isDisabled()) {
+            loadPage(page - 1);
+        }
+    }
+
+    @FXML
+    private void onNext() {
+        if (!nextButton.isDisabled()) {
+            loadPage(page + 1);
+        }
+    }
+
+    @FXML
+    private void onBack() {
+        Navigator.show("customersearch");
+    }
+
+    @FXML
+    private void onLogout() {
+        LavsApp.context().logout();
+        Navigator.show("loggedout");
+    }
+
+    private void showNotice(String text) {
+        noticeLabel.setText(text);
+        setShown(noticeLabel, !text.isEmpty());
+    }
+
+    private static void setShown(Node node, boolean shown) {
+        node.setVisible(shown);
+        node.setManaged(shown);
+    }
+
+    private void showShortcuts() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Keyboard shortcuts");
+        alert.setHeaderText("Full directory");
+        alert.setContentText("""
+                Page Down  Next page
+                Page Up    Previous page
+                Esc        Back to search
+                Ctrl+L     Log out
+                F1         This list""");
+        alert.initOwner(root.getScene().getWindow());
+        alert.showAndWait();
+    }
+}
