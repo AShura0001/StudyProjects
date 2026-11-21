@@ -1,0 +1,196 @@
+package nz.ac.auckland.se283.navigation;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
+import nz.ac.auckland.se283.exceptions.UnsupportedCommandException;
+import org.junit.jupiter.api.Test;
+
+public class NavigationTest {
+  private NavigationController navigationController = new NavigationController();
+
+  @Test
+  public void command_moveForward_returnMovementQueue() {
+    String[] commands = {"moveForward", "moveForward", "moveForward"};
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertTrue(result.containsKey("movementQueue"));
+  }
+
+  @Test
+  public void command_moveForward_returnCorrectMovementQueue() {
+    String[] commands = {"moveForward", "moveForward", "moveForward"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(1, 1, 1));
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertEquals(expectedQueue, result.get("movementQueue"));
+  }
+
+  @Test
+  public void command_moveBackward_returnMovementQueue() {
+    String[] commands = {"moveBackward"};
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertTrue(result.containsKey("movementQueue"));
+  }
+
+  @Test
+  public void command_moveBackward_returnCorrectMovementQueue() {
+    String[] commands = {"moveBackward", "moveForward", "moveBackward"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(-1, 1, -1));
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertEquals(expectedQueue, result.get("movementQueue"));
+  }
+
+  @Test
+  public void command_stop_returnMovementQueue() {
+    String[] commands = {"stop"};
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertTrue(result.containsKey("movementQueue"));
+  }
+
+  @Test
+  public void command_stop_returnCorrectMovementQueue() {
+    String[] commands = {"moveBackward", "moveForward", "stop", "moveBackward"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(-1, 1, 0, -1));
+
+    HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+
+    assertEquals(expectedQueue, result.get("movementQueue"));
+  }
+
+  @Test
+  public void command_unsupportedCommand_returnEmptyMap() {
+    String[] commands = {"jump", "sit", "dance"};
+
+    assertThrows(
+        UnsupportedCommandException.class, () -> navigationController.processInput(commands));
+  }
+
+  @Test
+  public void command_turnRight_returnMovementQueue() {
+    String[] commands = {"turnRight"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_turnLeft_returnMovementQueue() {
+    String[] commands = {"turnLeft"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_turningCmds_returnCorrectDirectionQueue() {
+    String[] commands = {"turnLeft", "turnRight", "turnLeft", "turnLeft"};
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(-1, 1, -1, -1));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertEquals(expectedQueue, result.get("directionQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_moveForwardFast_returnMovementQueue() {
+    String[] commands = {"moveForwardFast"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("movementQueue") && result.containsKey("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_moveBackwardFast_returnMovementQueue() {
+    String[] commands = {"moveBackwardFast"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("movementQueue") && result.containsKey("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_moveSlow_returnMovementQueue() {
+    String[] commands = {"moveForwardSlow", "moveBackwardSlow"};
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertTrue(result.containsKey("movementQueue") && result.containsKey("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void command_speedMovement_returnCorrectSpeedQueue() {
+    String[] commands = {
+      "moveForwardFast", "moveBackwardFast", "moveForwardSlow", "moveBackwardSlow"
+    };
+    Queue<Integer> expectedQueue = new LinkedList<>(Arrays.asList(2, 2, -1, -1));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      assertEquals(expectedQueue, result.get("speedQueue"));
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  @Test
+  public void input_navigationSample1_returnCorrectNavigationMap() {
+    String[] commands = {
+      "moveForward",
+      "moveBackwardFast",
+      "moveForwardSlow",
+      "turnRight",
+      "moveBackwardSlow",
+      "stop",
+      "turnLeft"
+    };
+    Queue<Integer> expectedMovementQueue = new LinkedList<>(Arrays.asList(1, -1, 1, 0, -1, 0, 0));
+    Queue<Integer> expectedDirectionQueue = new LinkedList<>(Arrays.asList(0, 0, 0, 1, 0, 0, -1));
+    Queue<Integer> expectedSpeedQueue = new LinkedList<>(Arrays.asList(1, 2, -1, 0, -1, 0, 0));
+
+    try {
+      HashMap<String, Queue<Integer>> result = navigationController.processInput(commands);
+      boolean correctMovementQueue = expectedMovementQueue.equals(result.get("movementQueue"));
+      boolean correctDirectionQueue = expectedDirectionQueue.equals(result.get("directionQueue"));
+      boolean correctSpeedQueue = expectedSpeedQueue.equals(result.get("speedQueue"));
+      assertTrue(correctMovementQueue && correctDirectionQueue && correctSpeedQueue);
+    } catch (UnsupportedCommandException e) {
+      fail(e.getMessage());
+    }
+  }
+}
