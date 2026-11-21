@@ -1,0 +1,19 @@
+{
+  "editor.formatOnSave": true,
+  "[java]": {
+    "editor.defaultFormatter": "josevseb.google-java-format-for-vs-code",
+    "editor.rulers": [
+      112
+    ]
+  },
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  }
+}
